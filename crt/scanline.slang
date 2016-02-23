@@ -42,7 +42,7 @@ void main()
    tex.y = floor(tex.y) + 0.5;
    tex = tex * global.SourceSize.zw;
 
-#define TEX(x, y) textureLod(Source, tex + vec2(0, y * global.SourceSize.w), 0.0).rgb
+#define TEX(x, y) textureLodOffset(Source, tex, 0.0, ivec2(x, y)).rgb
    vec3 l0 = TEX(0, -1);
    vec3 l1 = TEX(0,  0);
    vec3 l2 = TEX(0,  1);

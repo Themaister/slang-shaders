@@ -43,7 +43,7 @@ void main()
    float a = fract(u);
    vec2 tex = vec2((floor(u) + 0.5) * global.SourceSize.z, vTexCoord.y);
 
-#define TEX(x, y) textureLod(Source, tex + vec2(x * global.SourceSize.z, 0.0), 0.0).rgb
+#define TEX(x, y) textureLodOffset(Source, tex, 0.0, ivec2(x, y)).rgb
 
    vec3 color =
       kernel(a + 1.0) * TEX(-1, 0) +

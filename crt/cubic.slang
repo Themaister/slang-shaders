@@ -24,15 +24,13 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-#define PI 3.1415926535
-
 void main()
 {
    float u = vTexCoord.x * global.SourceSize.x - 0.5;
    float a = fract(u);
    vec2 tex = vec2((floor(u) + 0.5) * global.SourceSize.z, vTexCoord.y);
 
-#define TEX(x, y) textureLod(Source, tex + vec2(x * global.SourceSize.z, 0.0), 0.0).rgb
+#define TEX(x, y) textureLodOffset(Source, tex, 0.0, ivec2(x, y)).rgb
 
    vec3 i0 = TEX(-1, 0);
    vec3 i1 = TEX( 0, 0);
