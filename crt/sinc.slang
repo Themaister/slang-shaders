@@ -1,12 +1,6 @@
 #version 450
 
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-   mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
-} global;
+#include "common.inc"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -22,7 +16,7 @@ void main()
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 0) uniform sampler2D Source;
 
 #define PI 3.1415926535
 
