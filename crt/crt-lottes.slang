@@ -276,12 +276,6 @@ vec3 outColor = Tri(pos);
   #endif
 if(shadowMask > 0.0)
       outColor.rgb*=Mask(vTexCoord.xy / global.OutputSize.zw * 1.000001);
-//hacky clamp fix
-vec2 bordertest = pos;
-if ( bordertest.x > 1.0 && bordertest.x < 0.0 && bordertest.y > 1.0 && bordertest.y < 0.0)
-outColor.rgb = vec3(0.0);
-else
-outColor.rgb = outColor.rgb;
 
    FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
 }
