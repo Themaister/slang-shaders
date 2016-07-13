@@ -1,12 +1,23 @@
-#include "ntsc-pass2-vertex.inc"
-#include "ntsc-decode-filter-3phase.inc"
+#version 450
+
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+   mat4 MVP;
+   vec4 OutputSize;
+   vec4 OriginalSize;
+   vec4 SourceSize;
+} global;
+
 #include "ntsc-rgbyuv.inc"
+#include "ntsc-decode-filter-3phase.inc"
 
 #define fetch_offset(offset, one_x) \
    texture(Source, vTexCoord + vec2((offset) * (one_x), 0.0)).xyz
 
 #define NTSC_CRT_GAMMA 2.5
 #define NTSC_MONITOR_GAMMA 2.0
+
+#include "ntsc-pass2-vertex.inc"
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
@@ -17,5 +28,5 @@ void main()
 {
 #include "ntsc-pass2-decode.inc"
 vec3 rgb = yiq2rgb(signal);
-return vec4(pow(rgb, NTSC_CRT_GAMMA / NTSC_MONITOR_GAMMA), 1.0);
+FragColor = vec4(pow(rgb, vec3(NTSC_CRT_GAMMA / NTSC_MONITOR_GAMMA)), 1.0);
 }

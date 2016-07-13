@@ -2,7 +2,7 @@ vec3 col = texture(Source, vTexCoord).rgb;
 vec3 yiq = rgb2yiq(col);
 
 #if defined(TWO_PHASE)
-float chroma_phase = PI * (mod(vertex.pix_no.y, 2.0) + global.FrameCount);
+float chroma_phase = PI * (mod(pix_no.y, 2.0) + global.FrameCount);
 #elif defined(THREE_PHASE)
 float chroma_phase = 0.6667 * PI * (mod(pix_no.y, 3.0) + global.FrameCount);
 #endif
@@ -15,5 +15,5 @@ float q_mod = sin(mod_phase);
 yiq.yz *= vec2(i_mod, q_mod); // Modulate.
 yiq *= mix_mat; // Cross-talk.
 yiq.yz *= vec2(i_mod, q_mod); // Demodulate.
-FragCoord = vec4(yiq, 1.0);
+FragColor = vec4(yiq, 1.0);
 

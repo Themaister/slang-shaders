@@ -27,4 +27,5 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-FragCoord = texture(Source, vTexCoord).rgba;
+FragColor = texture(Source, vTexCoord).rgba;
+}
