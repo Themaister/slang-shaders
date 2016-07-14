@@ -16,7 +16,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define contrast 1.0                   // image contrast; default 1.0
 #define luminance 1.0                  // image luminance; default 1.0
 #define bright_boost 0.0               // adds to the total brightness. Negative values decrease it; Use values between 1.0 (totally white) and -1.0 (totally black); default is 0.0
-#define R 0.5//1.0
+#define R 1.0
 #define G 1.0
 #define B 1.0
 #define ZOOM 1.0
@@ -55,7 +55,6 @@ vec3 grayscale(vec3 col)
 
 void main()
 {
-vec2 fragcoord = vTexCoord.xy * (global.SourceSize.xy / global.SourceSize.zw);
    vec3 res = texture(Source, vTexCoord).rgb; // sample the texture
    vec3 gamma = vec3(monitor_gamma / target_gamma); // setup ratio of display's gamma vs desired gamma
    vec3 AvgLumin = vec3(0.5, 0.5, 0.5);
@@ -66,14 +65,14 @@ vec2 fragcoord = vTexCoord.xy * (global.SourceSize.xy / global.SourceSize.zw);
    conColor = clamp(conColor * luminance, 0.0, 1.0); // apply luminance
    conColor += vec3(bright_boost); // apply brightboost
    conColor *= vec3(R, G, B);
-if (fragcoord.y > V_OSMASK && fragcoord.y < (1.0 - V_OSMASK))
+if (vTexCoord.y > V_OSMASK && vTexCoord.y < (1.0 - V_OSMASK))
 conColor = conColor;
 else
 conColor = vec3(0.0);
 
-if (fragcoord.x > H_OSMASK && fragcoord.x < (1.0 - H_OSMASK))
+if (vTexCoord.x > H_OSMASK && vTexCoord.x < (1.0 - H_OSMASK))
 conColor = conColor;
 else
 conColor = vec3(0.0);
-   FragColor = vec4(fragcoord.x);//vec4(conColor, 1.0);
+   FragColor = vec4(conColor, 1.0);
 }
