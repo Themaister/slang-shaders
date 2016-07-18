@@ -129,8 +129,8 @@ void main()
 
     mat4x3 color_matrix0 = mat4x3(c00, c01, c02, c03);
     mat4x3 color_matrix1 = mat4x3(c10, c11, c12, c13);
-
-    vec4 invX_Px    = invX * vec4(fp.x*fp.x*fp.x, fp.x*fp.x, fp.x, 1.0);
+    
+    vec4 invX_Px    = vec4(fp.x*fp.x*fp.x, fp.x*fp.x, fp.x, 1.0) * invX;
     vec3 color0     = color_matrix0 * invX_Px;
     vec3 color1     = color_matrix1 * invX_Px;
 
