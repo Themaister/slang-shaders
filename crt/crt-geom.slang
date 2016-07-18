@@ -170,7 +170,7 @@ vec4 scanlineWeights(float distance, vec4 color)
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
+    vTexCoord = TexCoord * vec2(1.00001);
 
     // Precalculate a bunch of useful values we'll need in the fragment
     // shader.
@@ -178,13 +178,13 @@ void main()
     cosangle = cos(angle);
     stretch  = maxscale();
 
-    ilfac = vec2(1.0,(global.SourceSize.y/200.0));
+    ilfac = vec2(1.0, 1.0000001);//vec2(1.0,(global.SourceSize.y/200.0));
 
     // The size of one texel, in texture-coordinates.
     one = ilfac / global.SourceSize.xy;
 
     // Resulting X pixel-coordinate of the pixel we're drawing.
-    mod_factor = TexCoord.x * global.SourceSize.x * global.OutputSize.x / global.SourceSize.x;
+    mod_factor = vTexCoord.x * global.SourceSize.x * global.OutputSize.x / global.SourceSize.x;
 }
 
 #pragma stage fragment
@@ -408,7 +408,7 @@ void main()
     vec3 dotMaskWeights = mix(
         vec3(1.0, 1.0 - DOTMASK, 1.0),
         vec3(1.0 - DOTMASK, 1.0, 1.0 - DOTMASK),
-        floor(mod(mod_factor, 2.01))
+        floor(mod(mod_factor, 2.0))
     );
       
     mul_res *= dotMaskWeights;
