@@ -1,0 +1,144 @@
+#version 450
+
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+   mat4 MVP;
+   vec4 OutputSize;
+   vec4 OriginalSize;
+   vec4 SourceSize;
+   vec4 OriginalHistorySize1;
+   vec4 OriginalHistorySize2;
+   vec4 OriginalHistorySize3;
+   vec4 OriginalHistorySize4;
+   vec4 OriginalHistorySize5;
+   vec4 OriginalHistorySize6;
+   vec4 OriginalHistorySize7;
+} global;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//config                                                                                                                                  //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define baseline_alpha 0.10	//the alpha value of dots in their "off" state, does not affect the border region of the screen - [0, 1]
+#define response_time 0.333	//simulate response time, higher values result in longer color transition periods - [0, 1]
+
+///////////////////////////////////////////////////////////////////////////
+//                                                                       //
+// Gameboy Classic Shader v0.2.2                                         //
+//                                                                       //
+// Copyright (C) 2013 Harlequin : unknown92835@gmail.com                 //
+//                                                                       //
+// This program is free software: you can redistribute it and/or modify  //
+// it under the terms of the GNU General Public License as published by  //
+// the Free Software Foundation, either version 3 of the License, or     //
+// (at your option) any later version.                                   //
+//                                                                       //
+// This program is distributed in the hope that it will be useful,       //
+// but WITHOUT ANY WARRANTY; without even the implied warranty of        //
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         //
+// GNU General Public License for more details.                          //
+//                                                                       //
+// You should have received a copy of the GNU General Public License     //
+// along with this program.  If not, see <http://www.gnu.org/licenses/>. //
+//                                                                       //
+///////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//vertex shader                                                                                                                           //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+layout(location = 1) out vec2 tex;
+layout(location = 2) out vec2 dot_size;
+layout(location = 3) out vec2 one_texel;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//vertex definitions                                                                                                                      //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define video_scale 		floor(global.OutputSize.y / global.SourceSize.y)		//largest integer scale of input video that will fit in the current output (y axis would typically be limiting on widescreens)
+#define scaled_video_out	(global.SourceSize.xy * vec2(video_scale))				//size of the scaled video
+#define half_pixel		(vec2(0.5) / global.OutputSize.xy)					//it's... half a pixel
+
+void main()
+{
+   gl_Position = global.MVP * Position / vec4(vec2(global.OutputSize.xy / scaled_video_out), 1.0, 1.0 );
+   vTexCoord = TexCoord + half_pixel;
+   tex = floor(global.OriginalHistorySize1.xy * vTexCoord);
+   tex = (tex + 0.5) * global.OriginalHistorySize1.zw;
+   dot_size = 1.0 / global.SourceSize.xy;
+   one_texel = 1.0 / (global.SourceSize.xy * video_scale);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//fragment shader                                                                                                                         //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 1) in vec2 tex;
+layout(location = 2) in vec2 dot_size;
+layout(location = 3) in vec2 one_texel;
+layout(location = 0) out vec4 FragColor;
+layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 3) uniform sampler2D OriginalHistory1;
+layout(set = 0, binding = 4) uniform sampler2D OriginalHistory2;
+layout(set = 0, binding = 5) uniform sampler2D OriginalHistory3;
+layout(set = 0, binding = 6) uniform sampler2D OriginalHistory4;
+layout(set = 0, binding = 7) uniform sampler2D OriginalHistory5;
+layout(set = 0, binding = 8) uniform sampler2D OriginalHistory6;
+layout(set = 0, binding = 9) uniform sampler2D OriginalHistory7;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//fragment definitions                                                                                                                    //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define foreground_color vec3(0.11, 0.4141, 0.41) //tex2D(COLOR_PALETTE, fixed2(0.75, 0.5)).rgb					//hardcoded to look up the foreground color from the right half of the palette image
+//#define rgb_to_alpha(rgb) ( ((rgb.r + rgb.g + rgb.b) / 3.0) + (is_on_dot * vec2(baseline_alpha), 1.0) )		//averages rgb values (allows it to work with color games), modified for contrast and base alpha
+
+
+//frame sampling definitions
+
+#define curr_rgb  abs(1.0 - texture(Source, vTexCoord).rgb)
+#define prev0_rgb abs(1.0 - texture(OriginalHistory1, tex).rgb)
+#define prev1_rgb abs(1.0 - texture(OriginalHistory2, tex).rgb)
+#define prev2_rgb abs(1.0 - texture(OriginalHistory3, tex).rgb)
+#define prev3_rgb abs(1.0 - texture(OriginalHistory4, tex).rgb)
+#define prev4_rgb abs(1.0 - texture(OriginalHistory5, tex).rgb)
+#define prev5_rgb abs(1.0 - texture(OriginalHistory6, tex).rgb)
+#define prev6_rgb abs(1.0 - texture(OriginalHistory7, tex).rgb)
+
+void main()
+{
+  //determine if the corrent texel lies on a dot or in the space between dots
+float is_on_dot;				   
+if ( mod(vTexCoord.x, dot_size.x) > one_texel.x && mod(vTexCoord.y, dot_size.y) > one_texel.y )
+{is_on_dot = 1.0;}
+else
+{is_on_dot = 0.0;}
+
+//sample color from the current and previous frames, apply response time modifier
+//response time effect implmented through an exponential dropoff algorithm
+vec3 input_rgb = curr_rgb;
+    input_rgb += (prev0_rgb - input_rgb) * response_time;
+    input_rgb += (prev1_rgb - input_rgb) * pow(response_time, 2.0);
+    input_rgb += (prev2_rgb - input_rgb) * pow(response_time, 3.0);
+    input_rgb += (prev3_rgb - input_rgb) * pow(response_time, 4.0);
+    input_rgb += (prev4_rgb - input_rgb) * pow(response_time, 5.0);
+    input_rgb += (prev5_rgb - input_rgb) * pow(response_time, 6.0);
+    input_rgb += (prev6_rgb - input_rgb) * pow(response_time, 7.0);
+
+vec2 rgb_to_alpha = vec2((input_rgb.r + input_rgb.g + input_rgb.b) / 3.0) + (is_on_dot * baseline_alpha);
+	
+//apply foreground color and assign alpha value
+vec4 out_color = vec4(foreground_color, rgb_to_alpha);	//apply the foreground color to all texels (the color will be modified by alpha later) and assign alpha based on rgb input
+
+//overlay the matrix
+out_color.a *= is_on_dot;		//if the fragment is not on a dot, set its alpha value to 0
+
+//return fragment color
+   FragColor = vec4(out_color);
+}
