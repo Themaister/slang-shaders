@@ -1,0 +1,6 @@
+shaders = 1
+
+shader0 = interlacing.slang
+filter_linear0 = false
+scale_type_0 = source
+frame_count_mod0 = 4
