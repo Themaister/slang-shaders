@@ -107,7 +107,7 @@ vec2 bkwtrans(vec2 xy)
     
     float a     = (-B + sqrt(B*B - 4.0*A*C))/(2.0*A);
     vec2 uv     = (point - a*sinangle)/cosangle;
-    float r     = R*acos(a);
+    float r     = FIX(R*acos(a));
     
     return uv*r/sin(r/R);
 }
