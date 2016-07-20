@@ -2,17 +2,22 @@
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-   mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
+    mat4 MVP;
+    vec4 OutputSize;
+    vec4 OriginalSize;
+    vec4 SourceSize;
 } global;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//config                                                                                                                                  //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#define blending_mode 0							//0 - only the space between dots is blending, 1 - all texels are blended
-#define adjacent_texel_alpha_blending 0.1755	//the amount of alpha swapped between neighboring texels
+////////////////////////////////////////////////////////////////////////////////
+// Config                                                                     //
+////////////////////////////////////////////////////////////////////////////////
+
+// 0 - only the space between dots is blending
+// 1 - all texels are blended
+#define blending_mode 0             
+
+// The amount of alpha swapped between neighboring texels
+#define adjacent_texel_alpha_blending 0.1755  
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -35,9 +40,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //                                                                       //
 ///////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//vertex shader                                                                                                                           //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Vertex shader                                                              //
+////////////////////////////////////////////////////////////////////////////////
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -53,21 +58,21 @@ layout(location = 7) out vec2 blur_coords_upper_bound;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
-   texel = 1.0 / global.SourceSize.xy;
-   blur_coords_up    = vTexCoord + vec2(0.0, texel.y);
-   blur_coords_down  = vTexCoord + vec2(0.0, -texel.y);
-   blur_coords_right = vTexCoord + vec2(texel.x, 0.0);
-   blur_coords_left  = vTexCoord + vec2(-texel.x, 0.0);
-   blur_coords_lower_bound = vec2(0.0);
-   blur_coords_upper_bound = texel * (global.OutputSize.xy - vec2(2.0));
-   
+    gl_Position = global.MVP * Position;
+    vTexCoord = TexCoord;
+
+    texel = global.SourceSize.zw;
+    blur_coords_down  = vTexCoord + vec2(0.0, texel.y);
+    blur_coords_up    = vTexCoord + vec2(0.0, -texel.y);
+    blur_coords_right = vTexCoord + vec2(texel.x,  0.0);
+    blur_coords_left  = vTexCoord + vec2(-texel.x, 0.0);
+    blur_coords_lower_bound = vec2(0.0);
+    blur_coords_upper_bound = texel * (global.OutputSize.xy - vec2(2.0));
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//fragment shader                                                                                                                         //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Fragment shader                                                            //
+////////////////////////////////////////////////////////////////////////////////
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
@@ -81,40 +86,43 @@ layout(location = 7) in vec2 blur_coords_upper_bound;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//fragment definitions                                                                                                                    //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Fragment definitions                                                       //
+////////////////////////////////////////////////////////////////////////////////
 
 //#define blending_modifier(color) clamp((color.a == 0) + blending_mode, 0.0, 1.0)
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//fragment functions                                                                                                                      //
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 void main()
 {
-//sample the input textures
-  vec4 out_color = texture(Source, vTexCoord).rgba;
+    // A simple blur technique that softens harsh color transitions
+    // Specialized to only blur alpha values and limited to only blurring texels
+    // lying in the spaces between two or more texels
 
-//clamp the blur coords to the input texture size so it doesn't attempt to sample off the texture (it'll retrieve float4(0.0) and darken the edges otherwise)
-    vec2 blur_coords_up_clamped = clamp(blur_coords_up, blur_coords_lower_bound, blur_coords_upper_bound);
-    vec2 blur_coords_down_clamped = clamp(blur_coords_down, blur_coords_lower_bound, blur_coords_upper_bound);
+    // Sample the input textures
+    vec4 out_color = texture(Source, vTexCoord).rgba;
+
+    // Clamp the blur coords to the input texture size so it doesn't attempt to sample off the texture (it'll retrieve float4(0.0) and darken the edges otherwise)
+    vec2 blur_coords_up_clamped    = clamp(blur_coords_up, blur_coords_lower_bound, blur_coords_upper_bound);
+    vec2 blur_coords_down_clamped  = clamp(blur_coords_down, blur_coords_lower_bound, blur_coords_upper_bound);
     vec2 blur_coords_right_clamped = clamp(blur_coords_right, blur_coords_lower_bound, blur_coords_upper_bound);
-    vec2 blur_coords_left_clamped = clamp(blur_coords_left, blur_coords_lower_bound, blur_coords_upper_bound);
+    vec2 blur_coords_left_clamped  = clamp(blur_coords_left, blur_coords_lower_bound, blur_coords_upper_bound);
 
-//sample adjacent texels based on the coordinates above
+    //Sample adjacent texels based on the coordinates above
     vec4 adjacent_texel_1 = texture(Source, blur_coords_up_clamped).rgba;
     vec4 adjacent_texel_2 = texture(Source, blur_coords_down_clamped).rgba;
     vec4 adjacent_texel_3 = texture(Source, blur_coords_right_clamped).rgba;
     vec4 adjacent_texel_4 = texture(Source, blur_coords_left_clamped).rgba;
-	
-//sum the alpha differences between neighboring texels, apply modifiers, then subtract the result from the current fragment alpha value
-    out_color.a -= ( (out_color.a - adjacent_texel_1.a) + 
-		 (out_color.a - adjacent_texel_2.a) + 
-		 (out_color.a - adjacent_texel_3.a) + 
-		 (out_color.a - adjacent_texel_4.a) ) * adjacent_texel_alpha_blending;
-	out_color.a	*= clamp((0.0) + blending_mode, 0.0, 1.0);
 
-//return
-   FragColor = vec4(out_color);
+    // Sum the alpha differences between neighboring texels, apply modifiers, then subtract the result from the current fragment alpha value
+    out_color.a -=  
+    ( 
+        (out_color.a - adjacent_texel_1.a) + 
+        (out_color.a - adjacent_texel_2.a) + 
+        (out_color.a - adjacent_texel_3.a) + 
+        (out_color.a - adjacent_texel_4.a) 
+    ) * adjacent_texel_alpha_blending;
+    
+    out_color.a *= clamp((0.0) + blending_mode, 0.0, 1.0);
+
+    FragColor = out_color;
 }
