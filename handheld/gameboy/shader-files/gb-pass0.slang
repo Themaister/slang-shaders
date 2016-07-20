@@ -71,12 +71,12 @@ layout(location = 3) out vec2 one_texel;
 #define scaled_video_out    (global.SourceSize.xy * vec2(video_scale))       
 
 //it's... half a pixel
-#define half_pixel          (vec2(0.5) / global.OutputSize.xy)                
+#define half_pixel          (vec2(0.5) * global.OutputSize.zw)                
 
 void main()
 {
     // Remaps position to integer scaled output
-    gl_Position = global.MVP * Position / vec4( vec2(global.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
+    gl_Position = global.MVP * Position / vec4( vec2(global.OutputSize.zw * scaled_video_out), 1.0, 1.0 );   
     vTexCoord = TexCoord + half_pixel;
     dot_size = global.SourceSize.zw;
     one_texel = 1.0 / (global.SourceSize.xy * video_scale);
@@ -121,11 +121,9 @@ layout(set = 0, binding = 9) uniform sampler2D OriginalHistory7;
 void main()
 {
     // Determine if the corrent texel lies on a dot or in the space between dots
-    float is_on_dot;                   
+    float is_on_dot = 0.0;                   
     if ( mod(vTexCoord.x, dot_size.x) > one_texel.x && mod(vTexCoord.y, dot_size.y) > one_texel.y )
         is_on_dot = 1.0;
-    else
-        is_on_dot = 0.0;
 
     // Sample color from the current and previous frames, apply response time modifier
     // Response time effect implmented through an exponential dropoff algorithm
