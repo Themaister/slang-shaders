@@ -74,13 +74,13 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 1) in vec2 texel;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D PASS1;
+layout(set = 0, binding = 3) uniform sampler2D PassOutput1;
 
 void main()
 {
 //sample all the relevant textures
-vec4 foreground = texture(PASS1, vTexCoord - screen_offset);
-vec4 background = vec4(0.5);
+vec4 foreground = texture(PassOutput1, vTexCoord - screen_offset);
+vec4 background = vec4(0.5); //hardcoded value rather than LUT
 vec4 shadows    = texture(Source, vTexCoord - (shadow_offset + screen_offset));
 vec4 background_color = bg_color;
 
