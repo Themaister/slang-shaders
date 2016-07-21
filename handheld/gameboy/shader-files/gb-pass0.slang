@@ -7,12 +7,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 OriginalSize;
    vec4 SourceSize;
    vec4 OriginalHistorySize1;
-   vec4 OriginalHistorySize2;
-   vec4 OriginalHistorySize3;
-   vec4 OriginalHistorySize4;
-   vec4 OriginalHistorySize5;
-   vec4 OriginalHistorySize6;
-   vec4 OriginalHistorySize7;
 } global;
 
 ////////////////////////////////////////////////////////////////////////////////
