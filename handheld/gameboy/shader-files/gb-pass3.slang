@@ -39,12 +39,12 @@ layout(location = 3) out vec2 upper_bound;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
-   
-   texel = global.SourceSize.zw;
-   lower_bound = vec2(0.0);
-   upper_bound = vec2(texel * (global.OutputSize.xy - 1.0));
+    gl_Position = global.MVP * Position;
+    vTexCoord = TexCoord;
+
+    texel = global.SourceSize.zw;
+    lower_bound = vec2(0.0);
+    upper_bound = vec2(texel * (global.OutputSize.xy - 1.0));
 }
 
 #pragma stage fragment
@@ -98,16 +98,16 @@ void main()
                                 0.10164546793794160274995705611009,      
                                 0.08167444001912718529866079800870 );
 
-    //sample the current fragment and apply its weight
+    // Sample the current fragment and apply its weight
     vec4 out_color = texture(Source, clamp(vTexCoord, lower_bound, upper_bound)) * weights[0];
 
-    //iterate across the offsets in both directions sampling texels and adding their weighted alpha values to the total
+    // Iterate across the offsets in both directions sampling texels
+    // and adding their weighted alpha values to the total
     for (int i = 1; i < 5; i++)
     {
         out_color.a += texture(Source, clamp(vTexCoord + vec2(0.0, offsets[i] * texel.y), lower_bound, upper_bound)).a * weights[i];
         out_color.a += texture(Source, clamp(vTexCoord - vec2(0.0, offsets[i] * texel.y), lower_bound, upper_bound)).a * weights[i];
     }
 
-    //return the new value
-    FragColor = vec4(out_color.rgb, 1.0);
+    FragColor = out_color;
 }

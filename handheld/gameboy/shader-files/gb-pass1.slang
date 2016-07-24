@@ -14,7 +14,8 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 // 0 - only the space between dots is blending
 // 1 - all texels are blended
-#define blending_mode 0             
+/* TODO/FIXME - When set to zero, frame will be a solid green color */
+#define blending_mode 1             
 
 // The amount of alpha swapped between neighboring texels
 #define adjacent_texel_alpha_blending 0.1755  

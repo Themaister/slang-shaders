@@ -59,7 +59,7 @@ layout(location = 3) out vec2 one_texel;
 
 
 // Largest integer scale of input video that will fit in the current output (y axis would typically be limiting on widescreens)
-#define video_scale         floor(global.OutputSize.y / global.SourceSize.y)        
+#define video_scale         floor(global.OutputSize.y * global.SourceSize.w)        
 
 // Size of the scaled video
 #define scaled_video_out    (global.SourceSize.xy * vec2(video_scale))       
@@ -130,7 +130,8 @@ void main()
     input_rgb += (prev5_rgb - input_rgb) * pow(response_time, 6.0);
     input_rgb += (prev6_rgb - input_rgb) * pow(response_time, 7.0);
 
-    float rgb_to_alpha = (input_rgb.r + input_rgb.g + input_rgb.b) / 3.0 + (is_on_dot * baseline_alpha);
+    float rgb_to_alpha = (input_rgb.r + input_rgb.g + input_rgb.b) * 0.333333333
+                        + (is_on_dot * baseline_alpha);
 
     // Apply foreground color and assign alpha value
     // Apply the foreground color to all texels -
