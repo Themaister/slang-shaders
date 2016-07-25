@@ -1,5 +1,5 @@
 shaders = 1
 
-shader0 = crt-lottes.slang
+shader0 = shaders/crt-lottes.slang
 filter_linear0 = false
 scale_type_0 = source
