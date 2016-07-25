@@ -108,7 +108,7 @@ mat4x4 get_color_matrix(vec2 co, vec2 dx)
 
 vec3 filter_lanczos(vec4 coeffs, mat4x4 color_matrix)
 {
-    vec4 col        = coeffs * color_matrix;
+    vec4 col        = color_matrix * coeffs;
     vec4 sample_min = min(color_matrix[1], color_matrix[2]);
     vec4 sample_max = max(color_matrix[1], color_matrix[2]);
 
@@ -156,7 +156,7 @@ void main()
     float scan_weight = 1.0 - pow(cos(vTexCoord.y * 2.0 * PI * global.SourceSize.y) * 0.5 + 0.5, scan_beam) * SCANLINE_STRENGTH;
 
     float mask   = 1.0 - MASK_STRENGTH;    
-    vec2 mod_fac = floor(vTexCoord * global.OutputSize.xy * global.SourceSize.zw * (global.SourceSize.xy * vec2(MASK_SIZE, MASK_DOT_HEIGHT * MASK_SIZE)));
+    vec2 mod_fac = floor(vTexCoord * global.OutputSize.xy * global.SourceSize.xy / (global.SourceSize.xy * vec2(MASK_SIZE, MASK_DOT_HEIGHT * MASK_SIZE)));
     int dot_no   = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * MASK_STAGGER) / MASK_DOT_WIDTH, 3.0));
     vec3 mask_weight;
 
