@@ -52,6 +52,7 @@ layout(location = 1) in vec2 TexCoord;
 layout(location = 0) out vec2 vTexCoord;
 layout(location = 2) out vec2 dot_size;
 layout(location = 3) out vec2 one_texel;
+layout(location = 4) out vec2 HistCoord;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Vertex definitions                                                         //
@@ -70,8 +71,10 @@ layout(location = 3) out vec2 one_texel;
 void main()
 {
     // Remaps position to integer scaled output
-    gl_Position = global.MVP * Position / vec4( vec2(global.OutputSize.zw * scaled_video_out), 1.0, 1.0 );   
+    gl_Position = global.MVP * Position / vec4( vec2(global.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
     vTexCoord = TexCoord + half_pixel;
+	HistCoord = floor(global.OriginalHistorySize1.xy * vTexCoord);
+	HistCoord = (HistCoord + 0.5) * global.OriginalHistorySize1.zw;
     dot_size = global.SourceSize.zw;
     one_texel = 1.0 / (global.SourceSize.xy * video_scale);
 }
@@ -84,6 +87,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 2) in vec2 dot_size;
 layout(location = 3) in vec2 one_texel;
+layout(location = 4) in vec2 HistCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D OriginalHistory1;
@@ -104,19 +108,19 @@ layout(set = 0, binding = 9) uniform sampler2D OriginalHistory7;
 
 // Frame sampling definitions
 #define curr_rgb  abs(1.0 - texture(Source,           vTexCoord).rgb)
-#define prev0_rgb abs(1.0 - texture(OriginalHistory1, vTexCoord).rgb)
-#define prev1_rgb abs(1.0 - texture(OriginalHistory2, vTexCoord).rgb)
-#define prev2_rgb abs(1.0 - texture(OriginalHistory3, vTexCoord).rgb)
-#define prev3_rgb abs(1.0 - texture(OriginalHistory4, vTexCoord).rgb)
-#define prev4_rgb abs(1.0 - texture(OriginalHistory5, vTexCoord).rgb)
-#define prev5_rgb abs(1.0 - texture(OriginalHistory6, vTexCoord).rgb)
-#define prev6_rgb abs(1.0 - texture(OriginalHistory7, vTexCoord).rgb)
+#define prev0_rgb abs(1.0 - texture(OriginalHistory1, HistCoord).rgb)
+#define prev1_rgb abs(1.0 - texture(OriginalHistory2, HistCoord).rgb)
+#define prev2_rgb abs(1.0 - texture(OriginalHistory3, HistCoord).rgb)
+#define prev3_rgb abs(1.0 - texture(OriginalHistory4, HistCoord).rgb)
+#define prev4_rgb abs(1.0 - texture(OriginalHistory5, HistCoord).rgb)
+#define prev5_rgb abs(1.0 - texture(OriginalHistory6, HistCoord).rgb)
+#define prev6_rgb abs(1.0 - texture(OriginalHistory7, HistCoord).rgb)
 
 void main()
 {
     // Determine if the corrent texel lies on a dot or in the space between dots
     float is_on_dot = 0.0;                   
-    if ( mod(vTexCoord.x, dot_size.x) > one_texel.x && mod(vTexCoord.y, dot_size.y) > one_texel.y )
+    if ( mod(vTexCoord.x, dot_size.x) > one_texel.x && mod(vTexCoord.y, dot_size.y * 1.001) > one_texel.y )
         is_on_dot = 1.0;
 
     // Sample color from the current and previous frames, apply response time modifier
