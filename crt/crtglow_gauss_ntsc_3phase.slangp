@@ -28,6 +28,7 @@ filter_linear3 = false
 scale_type3 = viewport
 scale3 = 1.0
 srgb_framebuffer3 = true
+alias3 = "CRTPass"
 
 shader4 = shaders/glow/threshold.slang
 filter_linear4 = false
