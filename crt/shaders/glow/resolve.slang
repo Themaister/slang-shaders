@@ -40,7 +40,6 @@ void main()
     vec3 source = BLOOM_STRENGTH * texture(Source, vTexCoord).rgb;
 #else
 
-    /* TODO/FIXME - In slang, how do I get the equivalent of PASSPREV4.tex_coord? */
     vec3 source = 1.15 * texture(CRT_PASS, vTexCoord).rgb;
     vec3 bloom  = texture(Source, vTexCoord).rgb;
     source     += BLOOM_STRENGTH * bloom;
