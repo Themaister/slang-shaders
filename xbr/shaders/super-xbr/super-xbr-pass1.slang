@@ -34,7 +34,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
     vec4 OriginalSize;
     vec4 SourceSize;
     uint FrameCount;
-    vec4 OriginalHistorySize1;
 } global;
 
 #pragma stage vertex
@@ -53,7 +52,7 @@ void main()
 layout(location = 0)    in vec2 vTexCoord;
 layout(location = 0)    out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D OriginalHistory1;
+layout(set = 0, binding = 3) uniform sampler2D Original;
 
 #define wp1  1.0
 #define wp2  0.0
@@ -121,29 +120,29 @@ void main()
     vec2 fp  = fract(vTexCoord*global.SourceSize.xy);
     vec2 dir = fp - vec2(0.5, 0.5);
     if ((dir.x*dir.y) > 0.0) 
-        FragColor = (fp.x > 0.5) ? texture(Source, vTexCoord) : texture(OriginalHistory1, vTexCoord);
+        FragColor = (fp.x > 0.5) ? texture(Source, vTexCoord) : texture(Original, vTexCoord);
 
     vec2 g1 = (fp.x>0.5) ? vec2(0.5*global.SourceSize.z, 0.0) : vec2(0.0, 0.5*global.SourceSize.w);
     vec2 g2 = (fp.x>0.5) ? vec2(0.0, 0.5*global.SourceSize.w) : vec2(0.5*global.SourceSize.z, 0.0);
 
-    vec3 P0 = texture(OriginalHistory1, vTexCoord -3.0*g1        ).xyz;
-    vec3 P1 = texture(          Source, vTexCoord         -3.0*g2).xyz;
-    vec3 P2 = texture(          Source, vTexCoord         +3.0*g2).xyz;
-    vec3 P3 = texture(OriginalHistory1, vTexCoord +3.0*g1        ).xyz;
+    vec3 P0 = texture(Original, vTexCoord -3.0*g1        ).xyz;
+    vec3 P1 = texture(  Source, vTexCoord         -3.0*g2).xyz;
+    vec3 P2 = texture(  Source, vTexCoord         +3.0*g2).xyz;
+    vec3 P3 = texture(Original, vTexCoord +3.0*g1        ).xyz;
 
-    vec3  B = texture(          Source, vTexCoord -2.0*g1     -g2).xyz;
-    vec3  C = texture(OriginalHistory1, vTexCoord     -g1 -2.0*g2).xyz;
-    vec3  D = texture(          Source, vTexCoord -2.0*g1     +g2).xyz;
-    vec3  E = texture(OriginalHistory1, vTexCoord     -g1        ).xyz;
-    vec3  F = texture(          Source, vTexCoord             -g2).xyz;
-    vec3  G = texture(OriginalHistory1, vTexCoord     -g1 +2.0*g2).xyz;
-    vec3  H = texture(          Source, vTexCoord             +g2).xyz;
-    vec3  I = texture(OriginalHistory1, vTexCoord     +g1        ).xyz;
+    vec3  B = texture(  Source, vTexCoord -2.0*g1     -g2).xyz;
+    vec3  C = texture(Original, vTexCoord     -g1 -2.0*g2).xyz;
+    vec3  D = texture(  Source, vTexCoord -2.0*g1     +g2).xyz;
+    vec3  E = texture(Original, vTexCoord     -g1        ).xyz;
+    vec3  F = texture(  Source, vTexCoord             -g2).xyz;
+    vec3  G = texture(Original, vTexCoord     -g1 +2.0*g2).xyz;
+    vec3  H = texture(  Source, vTexCoord             +g2).xyz;
+    vec3  I = texture(Original, vTexCoord     +g1        ).xyz;
 
-    vec3 F4 = texture(OriginalHistory1, vTexCoord     +g1 -2.0*g2).xyz;
-    vec3 I4 = texture(          Source, vTexCoord +2.0*g1     -g2).xyz;
-    vec3 H5 = texture(OriginalHistory1, vTexCoord     +g1 +2.0*g2).xyz;
-    vec3 I5 = texture(          Source, vTexCoord +2.0*g1     +g2).xyz;
+    vec3 F4 = texture(Original, vTexCoord     +g1 -2.0*g2).xyz;
+    vec3 I4 = texture(  Source, vTexCoord +2.0*g1     -g2).xyz;
+    vec3 H5 = texture(Original, vTexCoord     +g1 +2.0*g2).xyz;
+    vec3 I5 = texture(  Source, vTexCoord +2.0*g1     +g2).xyz;
 
     float b = RGBtoYUV( B );
     float c = RGBtoYUV( C );
