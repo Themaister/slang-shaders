@@ -1,16 +1,22 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
+	uint FrameCount;
+	float NTSC_CRT_GAMMA;
+	float NTSC_DISPLAY_GAMMA;
+} registers;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-   mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
-   uint FrameCount;
+	mat4 MVP;
 } global;
 
-#define NTSC_CRT_GAMMA 2.5
-#define NTSC_DISPLAY_GAMMA 2.1
+#pragma parameter NTSC_CRT_GAMMA "NTSC CRT Gamma" 2.5 0.0 10.0 0.1
+#pragma parameter NTSC_DISPLAY_GAMMA "NTSC Display Gamma" 2.1 0.0 10.0 0.1
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -23,8 +29,8 @@ void main()
 {
    gl_Position = global.MVP * Position;
    vTexCoord = TexCoord;
-   pix_no = TexCoord * global.SourceSize.xy;
-   one = 1.0 / global.SourceSize.xy;
+   pix_no = TexCoord * registers.SourceSize.xy;
+   one = 1.0 / registers.SourceSize.xy;
 }
 
 #pragma stage fragment
@@ -34,7 +40,7 @@ layout(location = 2) in vec2 pix_no;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-#define TEX(off) pow(texture(Source, vTexCoord + vec2(0.0, (off) * one.y)).rgb, vec3(NTSC_CRT_GAMMA))
+#define TEX(off) pow(texture(Source, vTexCoord + vec2(0.0, (off) * one.y)).rgb, vec3(registers.NTSC_CRT_GAMMA))
 
 
 void main()
@@ -58,5 +64,5 @@ void main()
    scanline += frame3 * exp(-5.0 * dist3 * dist3);
    scanline += frame4 * exp(-5.0 * dist4 * dist4);
 
-FragColor = vec4(pow(1.15 * scanline, vec3(1.0 / NTSC_DISPLAY_GAMMA)), 1.0);
+FragColor = vec4(pow(1.15 * scanline, vec3(1.0 / registers.NTSC_DISPLAY_GAMMA)), 1.0);
 }
