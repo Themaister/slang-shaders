@@ -533,7 +533,7 @@ This is mostly relevant for LUT textures, shader parameters and accessing other 
 If a shader pass has a `#pragma name NAME` associated with it, meaning is given to the shader:
  - NAME, is a sampler2D.
  - NAMESize is a vec4 size uniform associated with NAME.
- - NAMEFeedback is a sampler2D for the previous pass.
+ - NAMEFeedback is a sampler2D for the previous frame.
  - NAMEFeedbackSize is a vec4 size uniform associated with NAMEFeedback.
 
 #### Example slang shader
@@ -573,10 +573,63 @@ void main()
 }
 ```
 
+### Push constants vs uniform blocks
+Push constants are fast-access uniform data which on some GPUs will improve performance over plain UBOs.
+It is encouraged to use push constant data as much as possible.
+
+```
+layout(push_constant) uniform Push
+{
+   vec4 SourceSize;
+   vec4 FinalViewportSize;
+} registers;
+```
+
+However, be aware that there is a limit to how large push constant blocks can be used.
+Vulkan puts a minimum required size of 128 bytes, which equals 8 vec4s.
+It is an error to use more than 128 bytes.
+If you're running out of space, you can move the MVP to a UBO instead, which frees up 64 bytes.
+Always prioritize push constants for data used in fragment shaders as there are many more fragment threads than vertex.
+Also note that like UBOs, the push constant space is shared across vertex and fragment.
+
+If you need more than 8 vec4s, you can spill uniforms over to plain UBOs,
+but more than 8 vec4s should be quite rare in practice.
+
+E.g.:
+
+```
+layout(binding = 0, std140) uniform UBO
+{
+   mat4 MVP; // Only used in vertex
+   vec4 SpilledUniform;
+} global;
+
+layout(push_constant) uniform Push
+{
+   vec4 SourceSize;
+   vec4 BlurPassSize;
+   // ...
+} registers;
+```
+
+### Samplers
+Which samplers are used for textures are specified by the preset format.
+The sampler remains constant throughout the frame, there is currently no way to select samplers on a frame-by-frame basic.
+This is mostly to make it possible to use the spec in GLES2 as GLES2 has no concept of separate samplers and images.
+
+### sRGB
+The input to the filter chain will not be of an sRGB format.
+This is due to many reasons, the main one being that it is very difficult for the frontend to get "free" passthrough of sRGB. It is possible to have a first pass which linearizes the input to a proper sRGB render target. In this way, custom gammas can be used as well.
+
+Similarly, the final pass will not be an sRGB backbuffer for similar reasons.
+
 ### Caveats
+
+#### Frag Coord
 TexCoord also replaces `gl_FragCoord`. Do not use `gl_FragCoord` as it doesn't consider the viewports correctly.
 If you need `gl_FragCoord` use `vTexCoord * OutputSize.xy` instead.
 
+#### Derivatives
 Be careful with derivatives of vTexCoord. The screen might have been rotated by the vertex shader, which will also rotate the derivatives, especially in the final pass which hits the backbuffer.
 However, derivatives are fortunately never really needed, since w = 1 (we render flat 2D quads),
 which means derivatives of varyings are constant. You can do some trivial replacements which will be faster and more robust.
@@ -586,6 +639,141 @@ dFdx(vTexCoord) = vec2(OutputSize.z, 0.0);
 dFdy(vTexCoord) = vec2(0.0, OutputSize.w);
 fwidth(vTexCoord) = max(OutputSize.z, OutputSize.w);
 ```
+To avoid issues with rotation or unexpected derivatives in case derivatives are really needed,
+off-screen passes will not have rotation and
+dFdx and dFdy will behave as expected.
+
+#### Correctly sampling textures
+A common mistake made by shaders is that they aren't careful enough about sampling textures correctly.
+There are three major cases to consider
+
+##### Bilinear sampling
+If bilinear is used, it is always safe to sample a texture.
+
+##### Nearest, with integer scale
+If the OutputSize / InputSize is integer,
+the interpolated vTexCoord will always fall inside the texel safely, so no special precautions have to be used.
+For very particular shaders which rely on nearest neighbor sampling, using integer scale to a framebuffer and upscaling that
+with more stable upscaling filters like bicubic for example is usually a great choice.
+
+##### Nearest, with non-integer scale
+Sometimes, it is necessary to upscale images to the backbuffer which have an arbitrary size.
+Bilinear is not always good enough here, so we must deal with a complicated case.
+
+If we interpolate vTexCoord over a frame with non-integer scale, it is possible that we end up just between two texels.
+Nearest neighbor will have to find a texel which is nearest, but there is no clear "nearest" texel. In this scenario, we end up having lots of failure cases which are typically observed as weird glitches in the image which change based on the resolution.
+
+To correctly sample nearest textures with non-integer scale, we must pre-quantize our texture coordinates.
+Here's a snippet which lets us safely sample a nearest filtered texture and emulate bilinear filtering.
+
+```
+   vec2 uv = vTexCoord * global.SourceSize.xy - 0.5; // Shift by 0.5 since the texel sampling points are in the texel center.
+   vec2 a = fract(uv);
+   vec2 tex = (floor(uv) + 0.5) * global.SourceSize.zw; // Build a sampling point which is in the center of the texel.
+
+   // Sample the bilinear footprint.
+   vec4 t0 = textureLodOffset(Source, tex, 0.0, ivec2(0, 0));
+   vec4 t1 = textureLodOffset(Source, tex, 0.0, ivec2(1, 0));
+   vec4 t2 = textureLodOffset(Source, tex, 0.0, ivec2(0, 1));
+   vec4 t3 = textureLodOffset(Source, tex, 0.0, ivec2(1, 1));
+
+   // Bilinear filter.
+   vec4 result = mix(mix(t0, t1, a.x), mix(t2, t3, a.x), a.y);
+```
+
+The concept of splitting up the integer texel along with the fractional texel helps us safely
+do arbitrary non-integer scaling safely.
+The uv variable could also be passed pre-computed from vertex to avoid the extra computation in fragment.
+
+### Preset format (.slangp)
+
+The present format is essentially unchanged from the old .cgp and .glslp, except the new preset format is called .slangp.
 
 ## Porting guide from legacy Cg spec
 
+### Common functions
+ - mul(mat, vec) -> mat * vec
+ - lerp() -> mix()
+ - ddx() -> dFdx()
+ - ddy() -> dFdy()
+ - tex2D() -> texture()
+ - frac() -> fract()
+
+### Types
+
+ - floatN -> vecN
+ - boolN -> bvecN
+ - intN -> ivecN
+ - uintN -> uvecN
+ - float4x4 -> mat4
+
+### Builtin uniforms and misc
+
+ - modelViewProj -> MVP
+ - IN.video\_size -> SourceSize.xy
+ - IN.texture\_size -> SourceSize.xy (no POT shenanigans, so they are the same)
+ - IN.output\_size -> OutputSize.xy
+ - IN.frame\_count -> FrameCount (uint instead of float)
+ - \*.tex\_coord -> TexCoord (no POT shenanigans, so they are all the same)
+ - \*.lut\_tex\_coord -> TexCoord
+ - ORIG -> `Original`
+ - PASS# -> PassOutput#
+ - PASSPREV# -> No direct analog, PassOutput(CurrentPass - #), but prefer aliases
+
+### Cg semantics
+
+ - POSITION -> gl\_Position
+ - float2 texcoord : TEXCOORD0 -> layout(location = 1) in vec2 TexCoord;
+ - float4 varying : TEXCOORD# -> layout(location = #) out vec4 varying;
+ - uniform float4x4 modelViewProj -> uniform UBO { mat4 MVP; };
+
+Output structs should be flattened into separate varyings.
+
+E.g. instead of
+```
+struct VertexData
+{
+   float pos : POSITION;
+   float4 tex0 : TEXCOORD0;
+   float4 tex1 : TEXCOORD1;
+};
+
+void main_vertex(out VertexData vout)
+{
+   vout.pos = ...;
+   vout.tex0 = ...;
+   vout.tex1 = ...;
+}
+
+void main_fragment(in VertexData vout)
+{
+   ...
+}
+```
+
+do this
+
+```
+#pragma stage vertex
+layout(location = 0) out vec4 tex0;
+layout(location = 1) out vec4 tex1;
+void main()
+{
+   gl_Position = ...;
+   tex0 = ...;
+   tex1 = ...;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec4 tex0;
+layout(location = 1) in vec4 tex1;
+void main()
+{
+}
+```
+
+Instead of returning a float4 from main\_fragment, have an output in fragment:
+
+```
+layout(location = 0) out vec4 FragColor;
+```
