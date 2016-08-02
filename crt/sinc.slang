@@ -9,7 +9,7 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
+   gl_Position = MVP * Position;
    vTexCoord = TexCoord;
 }
 

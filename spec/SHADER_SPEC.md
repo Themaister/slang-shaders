@@ -310,6 +310,7 @@ The main two types of data passed to shaders are read-only and can be classified
 
  - `uniform sampler2D`: This is used for input textures, framebuffer results and lookup-textures.
  - `uniform Block { };`: This is used for any constant data which is passed to the shader.
+ - `layout(push_constant) uniform Push {} name;`: This is used for any push constant data which is passed to the shader.
 
 ### Resource usage rules
 
@@ -319,26 +320,140 @@ Certain rules must be adhered to in order to make it easier for the frontend to 
  - layout(binding = #N) must be declared for all UBOs and sampler2Ds.
  - All resources must use different bindings.
  - There can be only one UBO.
+ - There can be only use push constant block.
+ - It is possible to have one regular UBO and one push constant UBO.
  - If a UBO is used in both vertex and fragment, their binding number must match.
- - If a UBO is used in both vertex and fragment, members with the same name must have the same offset.
+ - If a UBO is used in both vertex and fragment, members with the same name must have the same offset/binary interface.
    This problem is easily avoided by having the same UBO visible to both vertex and fragment as "common" code.
- - sampler2D cannot be used in vertex.
+ - If a push constant block is used in both vertex and fragment, members with the same name must have the same offset/binary interface.
+ - sampler2D cannot be used in vertex, although the size parameters of samplers can be used in vertex.
  - Other resource types such as SSBOs, images, atomic counters, etc, etc, are not allowed.
- - Every member of the UBOs as well as every texture must be meaningful to the frontend in some way, or error is generated.
+ - Every member of the UBOs and push constant blocks as well as every texture must be meaningful
+   to the frontend in some way, or an error is generated.
 
-### Builtin pragmas and extensions
+### Initial preprocess of slang files
 
+The very first line of a `.slang` file must contain a `#version` statement.
 
-### Example shader
+The first process which takes place is dealing with `#include` statements.
+A slang file is preprocessed by scanning through the slang and resolving all `#include` statements.
+The include process does not consider any preprocessor defines or conditional expressions.
+The include path must always be relative, and it will be relative to the file path of the current file.
+Nested includes are allowed, but includes in a cycle are undefined as preprocessor guards are not considered.
+
+E.g.:
+```
+#include "common.inc"
+```
+
+After includes have been resolved, the frontend scans through all lines of the shader and considers `#pragma` statements.
+These pragmas build up ancillary reflection information and otherwise meaningful metadata.
+
+#### `#pragma stage`
+This pragma controls which part of a `.slang` file are visible to certain shader stages.
+Currently, two variants of this pragma are supported:
+
+ - `#pragma stage vertex`
+ - `#pragma stage fragment`
+
+If no `#pragma stage` has been encountered yet, lines of code in a shader belong to all shader stages.
+If a `#pragma stage` statement has been encountered, that stage is considered active, and the following lines of shader code will only be used when building source for that particular shader stage. A new `#pragma stage` can override which stage is active.
+
+#### `#pragma name`
+This pragma lets a shader set its identifier. This identifier can be used to create simple aliases for other passes.
+
+E.g.:
+```
+#pragma name HorizontalPass
+```
+
+#### `#pragma format`
+This pragma controls the format of the framebuffer which this shader will render to.
+The default render target format is `R8G8B8A8_UNORM`.
+
+Supported render target formats are listed below. From a portability perspective,
+please be aware that GLES2 has abysmal render target format support,
+and GLES3/GL3 may have restricted floating point render target support.
+
+If rendering to uint/int formats, make sure your fragment shader output target is uint/int.
+
+#### 8-bit
+ - `R8_UNORM`
+ - `R8_UINT`
+ - `R8_SINT`
+ - `R8G8_UNORM`
+ - `R8G8_UINT`
+ - `R8G8_SINT`
+ - `R8G8B8A8_UNORM`
+ - `R8G8B8A8_UINT`
+ - `R8G8B8A8_SINT`
+ - `R8G8B8A8_SRGB`
+
+#### 10-bit
+ - `A2B10G10R10_UNORM_PACK32`
+ - `A2B10G10R10_UINT_PACK32`
+
+#### 16-bit
+ - `R16_UINT`
+ - `R16_SINT`
+ - `R16_SFLOAT`
+ - `R16G16_UINT`
+ - `R16G16_SINT`
+ - `R16G16_SFLOAT`
+ - `R16G16B16A16_UINT`
+ - `R16G16B16A16_SINT`
+ - `R16G16B16A16_SFLOAT`
+
+#### 32-bit
+ - `R32_UINT`
+ - `R32_SINT`
+ - `R32_SFLOAT`
+ - `R32G32_UINT`
+ - `R32G32_SINT`
+ - `R32G32_SFLOAT`
+ - `R32G32B32A32_UINT`
+ - `R32G32B32A32_SINT`
+ - `R32G32B32A32_SFLOAT`
+
+E.g.:
+```
+#pragma format R16_SFLOAT
+```
+
+### Example slang shader
 
 ```
-#version 450
+#version 450 // 450 or 310 es are recommended
 
 layout(set = 0, binding = 0, std140) uniform UBO
 {
    mat4 MVP;
    vec4 SourceSize;
+   float ColorMod;
 };
+
+#pragma name StockShader
+#pragma format R8G8B8A8_UNORM
+#pragma parameter ColorMod "Color intensity" 1.0 0.1 2.0 0.1
+
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+void main()
+{
+   gl_Position = MVP * Position;
+   vTexCoord = TexCoord;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 0) out vec4 FragColor;
+layout(binding = 1) uniform sampler2D Source;
+void main()
+{
+   FragColor = texture(Source, vTexCoord) * ColorMod;
+}
 ```
 
 ## Porting guide from legacy Cg spec
