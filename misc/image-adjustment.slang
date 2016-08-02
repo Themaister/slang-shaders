@@ -1,29 +1,53 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+	vec4 SourceSize;
+	float target_gamma;
+	float monitor_gamma;
+	float overscan_percent_x;
+	float overscan_percent_y;
+	float saturation;
+	float contrast;
+	float luminance;
+	float black_level;
+	float bright_boost;
+	float R;
+	float G;
+	float B;
+	float ZOOM;
+	float XPOS;
+	float YPOS;
+	float TOPMASK;
+	float BOTMASK;
+	float LMASK;
+	float RMASK;
+} registers;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
 } global;
 
-#define overscan_percent_x 0.0         // crop width of image by X%; default is 0.0
-#define overscan_percent_y 0.0         // crop height of image by X%; default is 0.0
-#define saturation 1.0                 // color saturation; default 1.0
-#define monitor_gamma 2.2              // gamma setting of your current display; LCD monitors typically have a gamma of 2.2
-#define target_gamma 2.4               // the gamma you want the image to have; CRT TVs typically have a gamma of 2.4
-#define contrast 1.0                   // image contrast; default 1.0
-#define luminance 1.0                  // image luminance; default 1.0
-#define bright_boost 0.0               // adds to the total brightness. Negative values decrease it; Use values between 1.0 (totally white) and -1.0 (totally black); default is 0.0
-#define R 1.0
-#define G 1.0
-#define B 1.0
-#define ZOOM 1.0
-#define XPOS 0.0
-#define YPOS 0.0
-#define V_OSMASK 0.0
-#define H_OSMASK 0.0
+#pragma parameter target_gamma "Target Gamma" 2.4 0.1 5.0 0.1
+#pragma parameter monitor_gamma "Monitor Gamma" 2.2 0.1 5.0 0.1
+#pragma parameter overscan_percent_x "Horizontal Overscan %" 0.0 -25.0 25.0 1.0
+#pragma parameter overscan_percent_y "Vertical Overscan %" 0.0 -25.0 25.0 1.0
+#pragma parameter saturation "Saturation" 1.0 0.0 5.0 0.1
+#pragma parameter contrast "Contrast" 1.0 0.0 7.5 0.1
+#pragma parameter luminance "Luminance" 1.0 0.0 2.0 0.1
+#pragma parameter black_level "Black Level" 0.00 -0.30 0.30 0.01
+#pragma parameter bright_boost "Brightness Boost" 0.0 -1.0 1.0 0.1
+#pragma parameter R "Red Channel" 1.0 0.0 2.0 0.05
+#pragma parameter G "Green Channel" 1.0 0.0 2.0 0.05
+#pragma parameter B "Blue Channel" 1.0 0.0 2.0 0.05
+#pragma parameter ZOOM "Zoom Factor" 1.0 0.0 4.0 0.01
+#pragma parameter XPOS "X Modifier" 0.0 -2.0 2.0 0.005
+#pragma parameter YPOS "Y Modifier" 0.0 -2.0 2.0 0.005
+#pragma parameter TOPMASK "Overscan Mask Top" 0.0 0.0 1.0 0.0025
+#pragma parameter BOTMASK "Overscan Mask Bottom" 0.0 0.0 1.0 0.0025
+#pragma parameter LMASK "Overscan Mask Left" 0.0 0.0 1.0 0.0025
+#pragma parameter RMASK "Overscan Mask Right" 0.0 0.0 1.0 0.0025
 
 //   Image Adjustment
 //   Author: hunterk
@@ -37,9 +61,9 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vec2 shift = 0.5 * global.SourceSize.zw / global.SourceSize.xy;
-   vec2 overscan_coord = ((TexCoord - shift) / ZOOM) * (1.0 - vec2(overscan_percent_x / 100.0, overscan_percent_y / 100.0)) + shift;
-   vTexCoord = overscan_coord + vec2(XPOS, YPOS);
+   vec2 shift = vec2(0.5);
+   vec2 overscan_coord = ((TexCoord - shift) / registers.ZOOM) * (1.0 - vec2(registers.overscan_percent_x / 100.0, registers.overscan_percent_y / 100.0)) + shift;
+   vTexCoord = overscan_coord + vec2(registers.XPOS, registers.YPOS);
 }
 
 #pragma stage fragment
@@ -56,21 +80,21 @@ vec3 grayscale(vec3 col)
 void main()
 {
    vec3 res = texture(Source, vTexCoord).rgb; // sample the texture
-   vec3 gamma = vec3(monitor_gamma / target_gamma); // setup ratio of display's gamma vs desired gamma
+   vec3 gamma = vec3(registers.monitor_gamma / registers.target_gamma); // setup ratio of display's gamma vs desired gamma
    vec3 AvgLumin = vec3(0.5, 0.5, 0.5);
    vec3 intensity = grayscale(res); // find luminance
-   vec3 satColor = mix(intensity, res, saturation); // apply saturation
-   vec3 conColor = mix(AvgLumin, satColor, contrast);   // apply contrast
+   vec3 satColor = mix(intensity, res, registers.saturation); // apply saturation
+   vec3 conColor = mix(AvgLumin, satColor, registers.contrast);   // apply contrast
    conColor = pow(conColor, 1.0 / vec3(gamma)); // Apply gamma correction
-   conColor = clamp(conColor * luminance, 0.0, 1.0); // apply luminance
-   conColor += vec3(bright_boost); // apply brightboost
-   conColor *= vec3(R, G, B);
-if (vTexCoord.y > V_OSMASK && vTexCoord.y < (1.0 - V_OSMASK))
+   conColor = clamp(conColor * registers.luminance, 0.0, 1.0); // apply luminance
+   conColor += vec3(registers.bright_boost); // apply brightboost
+   conColor *= vec3(registers.R, registers.G, registers.B);
+if (vTexCoord.y > registers.TOPMASK && vTexCoord.y < (1.0 - registers.BOTMASK))
 conColor = conColor;
 else
 conColor = vec3(0.0);
 
-if (vTexCoord.x > H_OSMASK && vTexCoord.x < (1.0 - H_OSMASK))
+if (vTexCoord.x > registers.LMASK && vTexCoord.x < (1.0 - registers.RMASK))
 conColor = conColor;
 else
 conColor = vec3(0.0);
