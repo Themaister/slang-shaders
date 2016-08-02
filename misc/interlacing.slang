@@ -1,17 +1,24 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
+	uint FrameCount;
+	float percent;
+	float enable_480i;
+	float top_field_first;
+} registers;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
-   uint FrameCount;
 } global;
 
-#define percent 0.0
-#define enable_480i 1.0
-#define top_field_first 1.0
+#pragma parameter percent "Interlacing Scanline Bright %" 0.0 0.0 1.0 0.05
+#pragma parameter enable_480i "Enable 480i Mode" 1.0 0.0 1.0 1.0
+#pragma parameter top_field_first "Top Field First Enable" 0.0 0.0 1.0 1.0
 
 /*
    Interlacing
@@ -42,17 +49,17 @@ void main()
 {
    vec4 res = texture(Source, vTexCoord).rgba;
    float y = 0.0;
-   float tick = global.FrameCount;
+   float tick = registers.FrameCount;
 
    // assume anything with a vertical resolution greater than 400 lines is interlaced
-   if (global.SourceSize.y > 400.0)
-   {y = global.SourceSize.y * (vTexCoord.y + 0.5 / global.SourceSize.y) + ((tick * 1.00) * enable_480i) + top_field_first;}
+   if (registers.SourceSize.y > 400.0)
+   {y = registers.SourceSize.y * vTexCoord.y + (tick * registers.enable_480i) + registers.top_field_first;}
    else
-   {y = 2.0 * global.SourceSize.y * vTexCoord.y + top_field_first;}
+   {y = 2.0 * registers.SourceSize.y * vTexCoord.y + registers.top_field_first;}
 
    if (mod(y, 1.99999) > 0.99999)
    {res = res;}
    else
-   {res = vec4(percent) * res;}
+   {res = vec4(registers.percent) * res;}
    FragColor = res;
 }
