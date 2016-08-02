@@ -493,7 +493,7 @@ The input of textures get their meaning from their name.
    There is no limit on #, except larger numbers will consume more VRAM.
    OriginalHistory0 is an alias for Original, OriginalHistory1 is the previous frame and so on.
  - PassOutput#: This accesses the output from pass # in this frame.
-   PassOutput# must be causal, it is an error to access PassOutputN in pass M if M >= N.
+   PassOutput# must be causal, it is an error to access PassOutputN in pass M if N >= M.
    PassOutput# will typically be aliased to a more readable value.
  - PassFeedback#: This accesses PassOutput# from the previous frame.
    Any pass can read the feedback of any feedback, since it is causal.
