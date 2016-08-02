@@ -62,7 +62,7 @@ The good part is that we can use whatever GLSL version we want when writing shad
 
 In runtime, we can have a vendor-neutral mature compiler,
 [https://github.com/KhronosGroup/glslang](glslang) which compiles our Vulkan GLSL to SPIR-V.
-Using [https://github.com/ARM-software/spir2cross](spir2cross), we can then do reflection on the SPIR-V binary to deduce our filter chain layout.
+Using [https://github.com/KhronosGroup/SPIRV-Cross](SPIRV-Cross), we can then do reflection on the SPIR-V binary to deduce our filter chain layout.
 We can also disassemble back to our desired GLSL dialect in the GL backend based on which GL version we're running,
 which effectively means we can completely sidestep all our current problems with a pure GLSL based shading system.
 
@@ -74,7 +74,8 @@ as an extension in their GLSL frontend.
 
 This was considered, but there are several convenience problems with having a shading spec around pure SPIR-V.
 The first problem is metadata. In GLSL, we can quite easily extend with custom #pragmas or similar, but there is no trivial way to do this in SPIR-V
-outside writing custom tools to emit special metadata as debug information or similar.
+outside writing custom tools to emit special metadata as debug information or similar with OpSource.
+
 We could also have this metadata outside in a separate file, but juggling more files means more churn, which we should try to avoid.
 The other problem is convenience. If RetroArch only accepts SPIR-V, we would need an explicit build step outside RetroArch first before we could
 test a shader. This gets very annoying during shader development,
@@ -221,9 +222,10 @@ The biggest hurdle to overcome is how we describe our pipeline layout. The pipel
 There are three main types of inputs in this shader system.
 
  - Texture samplers (sampler2D)
+ - Look-up textures for static input data
  - Uniform data describing dimensions of textures
  - Uniform ancillary data for render target dimensions, backbuffer target dimensions, frame count, etc
- - Uniform User-defined parameters
+ - Uniform user-defined parameters
  - Uniform MVP for vertex shader
 
 #### Deduction by name
@@ -294,3 +296,49 @@ If the LUT is small enough, we could realize it via plain old uniforms as well p
 
 This particular feature could be very interesting for generic polyphase lookup banks with different LUT files for different filters.
 
+## Vulkan GLSL specification
+
+This part of the spec considers how Vulkan GLSL shaders are written. The frontend uses the glslang frontend to compile GLSL sources.
+This ensures that we do not end up with vendor-specific extensions.
+The #version string should be as recent as possible, e.g. `#version 450` or `#version 310 es`.
+It is recommended to use 310 es since it allows mediump which can help on mobile.
+Note that after the Vulkan GLSL is turned into SPIR-V, the original #version string does not matter anymore.
+Also note that SPIR-V cannot be generated from legacy shader versions such as #version 100 (ES 2.0) or #version 120 (GL 2.1).
+
+The frontend will use reflection on the resulting SPIR-V file in order to deduce what each element in the UBO or what each texture means.
+The main two types of data passed to shaders are read-only and can be classified as:
+
+ - `uniform sampler2D`: This is used for input textures, framebuffer results and lookup-textures.
+ - `uniform Block { };`: This is used for any constant data which is passed to the shader.
+
+### Resource usage rules
+
+Certain rules must be adhered to in order to make it easier for the frontend to dynamically set up bindings to resources.
+
+ - All resources must be using descriptor set #0, or don't use layout(set = #N) at all.
+ - layout(binding = #N) must be declared for all UBOs and sampler2Ds.
+ - All resources must use different bindings.
+ - There can be only one UBO.
+ - If a UBO is used in both vertex and fragment, their binding number must match.
+ - If a UBO is used in both vertex and fragment, members with the same name must have the same offset.
+   This problem is easily avoided by having the same UBO visible to both vertex and fragment as "common" code.
+ - sampler2D cannot be used in vertex.
+ - Other resource types such as SSBOs, images, atomic counters, etc, etc, are not allowed.
+ - Every member of the UBOs as well as every texture must be meaningful to the frontend in some way, or error is generated.
+
+### Builtin pragmas and extensions
+
+
+### Example shader
+
+```
+#version 450
+
+layout(set = 0, binding = 0, std140) uniform UBO
+{
+   mat4 MVP;
+   vec4 SourceSize;
+};
+```
+
+## Porting guide from legacy Cg spec
