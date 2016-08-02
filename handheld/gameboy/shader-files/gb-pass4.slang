@@ -93,9 +93,10 @@ layout(location = 1) in vec2 texel;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 1) uniform sampler2D Source;
 layout(set = 0, binding = 2) uniform sampler2D PassOutput1;
+layout(set = 0, binding = 3) uniform sampler2D BACKGROUND;
+layout(set = 0, binding = 4) uniform sampler2D COLOR_PALETTE;
 
-//#define bg_color tex2D(COLOR_PALETTE, vec2(0.25, 0.5)) 
-#define bg_color vec4(0.625, 0.664, 0.25, 0.5)
+#define bg_color texture(COLOR_PALETTE, vec2(0.25, 0.5)) 
 
 // Sample the background color from the palette
 #define shadow_alpha (contrast * shadow_opacity)
@@ -117,7 +118,7 @@ void main()
     
     // Sample all the relevant textures
     vec4 foreground = texture(PassOutput1, tex - screen_offset);
-    vec4 background = vec4(0.5); // Hardcoded value rather than LUT
+    vec4 background = texture(BACKGROUND, vTexCoord);
     vec4 shadows    = texture(Source, vTexCoord - (shadow_offset + screen_offset));
     vec4 background_color = bg_color;
 

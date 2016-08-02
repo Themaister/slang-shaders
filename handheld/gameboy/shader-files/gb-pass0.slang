@@ -97,12 +97,13 @@ layout(set = 0, binding = 6) uniform sampler2D OriginalHistory4;
 layout(set = 0, binding = 7) uniform sampler2D OriginalHistory5;
 layout(set = 0, binding = 8) uniform sampler2D OriginalHistory6;
 layout(set = 0, binding = 9) uniform sampler2D OriginalHistory7;
+layout(set = 0, binding = 10) uniform sampler2D COLOR_PALETTE;
 
 ////////////////////////////////////////////////////////////////////////////////
 //fragment definitions                                                        //
 ////////////////////////////////////////////////////////////////////////////////
 
-#define foreground_color vec3(0.11, 0.4141, 0.41) //tex2D(COLOR_PALETTE, fixed2(0.75, 0.5)).rgb                 //hardcoded to look up the foreground color from the right half of the palette image
+#define foreground_color texture(COLOR_PALETTE, vec2(0.75, 0.5)).rgb                 //hardcoded to look up the foreground color from the right half of the palette image
 //#define rgb_to_alpha(rgb) ( ((rgb.r + rgb.g + rgb.b) / 3.0) + (is_on_dot * vec2(baseline_alpha), 1.0) )       //averages rgb values (allows it to work with color games), modified for contrast and base alpha
 
 
@@ -144,7 +145,7 @@ void main()
 
     // Overlay the matrix
     // If the fragment is not on a dot, set its alpha value to 0
-    out_color.a *= is_on_dot;       
+    out_color.a *= is_on_dot;
 
     FragColor = out_color;
 }

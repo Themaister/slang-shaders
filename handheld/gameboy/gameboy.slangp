@@ -30,9 +30,9 @@ scale_type4 = source
 scale4 = 1.0
 alias4 = "PASS4"
 
-//LUTs commented out until added to the spec
-//textures = COLOR_PALETTE;BACKGROUND
-//COLOR_PALETTE = resources/palette.png
-//COLOR_PALETTE_linear = false
-//BACKGROUND = resources/background.png
-//BACKGROUND_linear = true
+
+textures = COLOR_PALETTE;BACKGROUND
+COLOR_PALETTE = resources/palette.png
+COLOR_PALETTE_linear = false
+BACKGROUND = resources/background.png
+BACKGROUND_linear = true
