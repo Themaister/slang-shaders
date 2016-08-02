@@ -1,11 +1,17 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
+	float blending_mode;
+	float adjacent_texel_alpha_blending;
+} registers;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
-    vec4 OutputSize;
-    vec4 OriginalSize;
-    vec4 SourceSize;
 } global;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -15,10 +21,10 @@ layout(std140, set = 0, binding = 0) uniform UBO
 // 0 - only the space between dots is blending
 // 1 - all texels are blended
 /* TODO/FIXME - When set to zero, frame will be a solid green color */
-#define blending_mode 1             
+#pragma parameter blending_mode "Blending Mode" 1.0 0.0 1.0 1.0            
 
 // The amount of alpha swapped between neighboring texels
-#define adjacent_texel_alpha_blending 0.1755  
+#pragma parameter adjacent_texel_alpha_blending "Neighbor Blending" 0.1755 0.0 1.0 0.05
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -62,13 +68,13 @@ void main()
     gl_Position = global.MVP * Position;
     vTexCoord = TexCoord;
 
-    texel = global.SourceSize.zw;
+    texel = registers.SourceSize.zw;
     blur_coords_down  = vTexCoord + vec2(0.0, texel.y);
     blur_coords_up    = vTexCoord + vec2(0.0, -texel.y);
     blur_coords_right = vTexCoord + vec2(texel.x,  0.0);
     blur_coords_left  = vTexCoord + vec2(-texel.x, 0.0);
     blur_coords_lower_bound = vec2(0.0);
-    blur_coords_upper_bound = texel * (global.OutputSize.xy - vec2(2.0));
+    blur_coords_upper_bound = texel * (registers.OutputSize.xy - vec2(2.0));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +97,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 // Fragment definitions                                                       //
 ////////////////////////////////////////////////////////////////////////////////
 
-//#define blending_modifier(color) clamp((color.a == 0) + blending_mode, 0.0, 1.0)
+//#define blending_modifier(color) clamp((color.a == 0) + registers.blending_mode, 0.0, 1.0)
 
 void main()
 {
@@ -121,9 +127,9 @@ void main()
         (out_color.a - adjacent_texel_2.a) + 
         (out_color.a - adjacent_texel_3.a) + 
         (out_color.a - adjacent_texel_4.a) 
-    ) * adjacent_texel_alpha_blending;
+    ) * registers.adjacent_texel_alpha_blending;
     
-    out_color.a *= clamp((0.0) + blending_mode, 0.0, 1.0);
+    out_color.a *= clamp((0.0) + registers.blending_mode, 0.0, 1.0);
 
     FragColor = out_color;
 }

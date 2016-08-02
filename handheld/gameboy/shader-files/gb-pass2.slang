@@ -1,11 +1,15 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
+} registers;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
-    vec4 OutputSize;
-    vec4 OriginalSize;
-    vec4 SourceSize;
 } global;
 
 ///////////////////////////////////////////////////////////////////////////
@@ -42,9 +46,9 @@ void main()
     gl_Position = global.MVP * Position;
     vTexCoord = TexCoord;
 
-    texel = global.SourceSize.zw;
+    texel = registers.SourceSize.zw;
     lower_bound = vec2(0.0);
-    upper_bound = vec2(texel * (global.OutputSize.xy - 1.0));
+    upper_bound = vec2(texel * (registers.OutputSize.xy - 1.0));
 }
 
 #pragma stage fragment

@@ -1,12 +1,18 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
+	vec4 OriginalHistorySize1;
+	float baseline_alpha;
+	float response_time;
+} registers;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
-   vec4 OriginalHistorySize1;
 } global;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -15,11 +21,11 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 // The alpha value of dots in their "off" state
 // Does not affect the border region of the screen - [0, 1]
-#define baseline_alpha 0.10 
+#pragma parameter baseline_alpha "Baseline Alpha" 0.10 0.0 1.0 0.01
 
 // Simulate response time
 // Higher values result in longer color transition periods - [0, 1]
-#define response_time 0.333 
+#pragma parameter response_time "LCD Response Time" 0.333 0.0 0.777 0.111
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -60,23 +66,23 @@ layout(location = 4) out vec2 HistCoord;
 
 
 // Largest integer scale of input video that will fit in the current output (y axis would typically be limiting on widescreens)
-#define video_scale         floor(global.OutputSize.y * global.SourceSize.w)        
+#define video_scale         floor(registers.OutputSize.y * registers.SourceSize.w)        
 
 // Size of the scaled video
-#define scaled_video_out    (global.SourceSize.xy * vec2(video_scale))       
+#define scaled_video_out    (registers.SourceSize.xy * vec2(video_scale))       
 
 //it's... half a pixel
-#define half_pixel          (vec2(0.5) * global.OutputSize.zw)                
+#define half_pixel          (vec2(0.5) * registers.OutputSize.zw)                
 
 void main()
 {
     // Remaps position to integer scaled output
-    gl_Position = global.MVP * Position / vec4( vec2(global.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
+    gl_Position = global.MVP * Position / vec4( vec2(registers.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
     vTexCoord = TexCoord + half_pixel;
-	HistCoord = floor(global.OriginalHistorySize1.xy * vTexCoord);
-	HistCoord = (HistCoord + 0.5) * global.OriginalHistorySize1.zw;
-    dot_size = global.SourceSize.zw;
-    one_texel = 1.0 / (global.SourceSize.xy * video_scale);
+	HistCoord = floor(registers.OriginalHistorySize1.xy * vTexCoord);
+	HistCoord = (HistCoord + 0.5) * registers.OriginalHistorySize1.zw;
+    dot_size = registers.SourceSize.zw;
+    one_texel = 1.0 / (registers.SourceSize.xy * video_scale);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -104,7 +110,7 @@ layout(set = 0, binding = 10) uniform sampler2D COLOR_PALETTE;
 ////////////////////////////////////////////////////////////////////////////////
 
 #define foreground_color texture(COLOR_PALETTE, vec2(0.75, 0.5)).rgb                 //hardcoded to look up the foreground color from the right half of the palette image
-//#define rgb_to_alpha(rgb) ( ((rgb.r + rgb.g + rgb.b) / 3.0) + (is_on_dot * vec2(baseline_alpha), 1.0) )       //averages rgb values (allows it to work with color games), modified for contrast and base alpha
+//#define rgb_to_alpha(rgb) ( ((rgb.r + rgb.g + rgb.b) / 3.0) + (is_on_dot * vec2(registers.baseline_alpha), 1.0) )       //averages rgb values (allows it to work with color games), modified for contrast and base alpha
 
 
 // Frame sampling definitions
@@ -127,16 +133,16 @@ void main()
     // Sample color from the current and previous frames, apply response time modifier
     // Response time effect implmented through an exponential dropoff algorithm
     vec3 input_rgb = curr_rgb;
-    input_rgb += (prev0_rgb - input_rgb) * response_time;
-    input_rgb += (prev1_rgb - input_rgb) * pow(response_time, 2.0);
-    input_rgb += (prev2_rgb - input_rgb) * pow(response_time, 3.0);
-    input_rgb += (prev3_rgb - input_rgb) * pow(response_time, 4.0);
-    input_rgb += (prev4_rgb - input_rgb) * pow(response_time, 5.0);
-    input_rgb += (prev5_rgb - input_rgb) * pow(response_time, 6.0);
-    input_rgb += (prev6_rgb - input_rgb) * pow(response_time, 7.0);
+    input_rgb += (prev0_rgb - input_rgb) * registers.response_time;
+    input_rgb += (prev1_rgb - input_rgb) * pow(registers.response_time, 2.0);
+    input_rgb += (prev2_rgb - input_rgb) * pow(registers.response_time, 3.0);
+    input_rgb += (prev3_rgb - input_rgb) * pow(registers.response_time, 4.0);
+    input_rgb += (prev4_rgb - input_rgb) * pow(registers.response_time, 5.0);
+    input_rgb += (prev5_rgb - input_rgb) * pow(registers.response_time, 6.0);
+    input_rgb += (prev6_rgb - input_rgb) * pow(registers.response_time, 7.0);
 
     float rgb_to_alpha = (input_rgb.r + input_rgb.g + input_rgb.b) * 0.333333333
-                        + (is_on_dot * baseline_alpha);
+                        + (is_on_dot * registers.baseline_alpha);
 
     // Apply foreground color and assign alpha value
     // Apply the foreground color to all texels -
