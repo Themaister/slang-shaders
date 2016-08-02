@@ -306,7 +306,7 @@ Note that after the Vulkan GLSL is turned into SPIR-V, the original #version str
 Also note that SPIR-V cannot be generated from legacy shader versions such as #version 100 (ES 2.0) or #version 120 (GL 2.1).
 
 The frontend will use reflection on the resulting SPIR-V file in order to deduce what each element in the UBO or what each texture means.
-The main two types of data passed to shaders are read-only and can be classified as:
+The main types of data passed to shaders are read-only and can be classified as:
 
  - `uniform sampler2D`: This is used for input textures, framebuffer results and lookup-textures.
  - `uniform Block { };`: This is used for any constant data which is passed to the shader.
@@ -419,16 +419,133 @@ E.g.:
 ```
 #pragma format R16_SFLOAT
 ```
+#### `#pragma parameter`
 
-### Example slang shader
+Shader parameters allow shaders to take user-defined inputs as uniform values.
+This makes shaders more configurable.
+
+The format is:
+```
+#pragma parameter IDENTIFIER "DESCRIPTION" INITIAL MINIMUM MAXIMUM [STEP]
+```
+The step parameter is optional.
+INITIAL, MINIMUM and MAXIMUM are floating point values.
+IDENTIFIER is the meaningful string which is the name of the uniform which will be used in a UBO or push constant block.
+DESCRIPTION is a string which is human readable representation of IDENTIFIER.
+
+E.g:
+```
+layout(push_constant) uniform Push {
+   float DummyVariable;
+} registers;
+#pragma parameter DummyVariable "This is a dummy variable" 1.0 0.2 2.0 0.1
+```
+
+### I/O interface variables
+
+The slang shader spec specifies two vertex inputs and one fragment output.
+Varyings between vertex and fragment shaders are user-defined.
+
+#### Vertex inputs
+Two attributes are provided and must be present in a shader.
+It is only the layout(location = #N) which is actually significant.
+The particular names of input and output variables are ignored, but should be consistent for readability.
+
+##### `layout(location = 0) in vec4 Position;`
+This attribute is a 2D position in the form `vec4(x, y, 0.0, 1.0);`.
+Shaders should not try to extract meaning from the x, y.
+`gl_Position` must be assigned as:
 
 ```
-#version 450 // 450 or 310 es are recommended
+gl_Position = MVP * Position;
+```
+##### `layout(location = 1) in vec2 TexCoord;`
+The texture coordinate is semantically such that (0.0, 0.0) is top-left and (1.0, 1.0) is bottom right.
+If TexCoord is passed to a varying unmodified, the interpolated varying will be `uv = 0.5 / OutputSize` when rendering the upper left pixel as expected and `uv = 1.0 - 0.5 / OutputSize` when rendering the bottom-right pixel.
+
+#### Vertex/Fragment interface
+Vertex outputs and fragment inputs link by location, and not name.
+
+E.g.:
+```
+// Vertex
+layout(location = 0) out vec4 varying;
+// Fragment
+layout(location = 0) in vec4 some_other_name;
+```
+will still link fine, although using same names are encouraged for readability.
+
+#### Fragment outputs
+
+##### `layout(location = 0) out vec4 FragColor;`
+Fragment shaders must have a single output to location = 0.
+Multiple render targets are not allowed. The type of the output depends on the render target format.
+int/uint type must be used if UINT/INT render target formats are used, otherwise float type.
+
+### Builtin variables
+
+#### Builtin texture variables
+The input of textures get their meaning from their name.
+
+ - Original: This accesses the input of the filter chain, accessible from any pass.
+ - Source: This accesses the input from previous shader pass, or Original if accessed in the first pass of the filter chain.
+ - OriginalHistory#: This accesses the input # frames back in time.
+   There is no limit on #, except larger numbers will consume more VRAM.
+   OriginalHistory0 is an alias for Original, OriginalHistory1 is the previous frame and so on.
+ - PassOutput#: This accesses the output from pass # in this frame.
+   PassOutput# must be causal, it is an error to access PassOutputN in pass M if M >= N.
+   PassOutput# will typically be aliased to a more readable value.
+ - PassFeedback#: This accesses PassOutput# from the previous frame.
+   Any pass can read the feedback of any feedback, since it is causal.
+   PassFeedback# will typically be aliased to a more readable value.
+ - User#: This accesses look-up textures.
+   However, the direct use of User# is discouraged and should always be accessed via aliases.
+
+#### Builtin texture size uniform variables
+
+If a member of a UBO or a push constant block is called ???Size# where ???# is the name of a texture variable,
+that member must be a vec4, which will receive these values:
+ - X: Horizontal size of texture
+ - Y: Vertical size of texture
+ - Z: 1.0 / (Horizontal size of texture)
+ - W: 1.0 / (Vertical size of texture)
+
+It is valid to use a size variable without declaring the texture itself. This is useful for vertex shading.
+It is valid (although probably not useful) for a variable to be present in both a push constant block and a UBO block at the same time.
+
+#### Builtin uniform variables
+
+Other than uniforms related to textures, there are other special uniforms available.
+These builtin variables may be part of a UBO block and/or a push constant block.
+
+ - MVP: mat4 model view projection matrix.
+ - OutputSize: a vec4(x, y, 1.0 / x, 1.0 / y) variable describing the render target size (x, y) for this pass.
+ - FinalViewportSize: a vec4(x, y, 1.0 / x, 1.0 / y) variable describing the render target size for the final pass.
+   Accessible from any pass.
+ - FrameCount: a uint variable taking a value which increases by one every frame.
+   This value could be pre-wrapped by modulo if specified in preset.
+   This is useful for creating time-dependent effects.
+
+#### Aliases
+Aliases can give meaning to arbitrary names in a slang file.
+This is mostly relevant for LUT textures, shader parameters and accessing other passes by name.
+
+If a shader pass has a `#pragma name NAME` associated with it, meaning is given to the shader:
+ - NAME, is a sampler2D.
+ - NAMESize is a vec4 size uniform associated with NAME.
+ - NAMEFeedback is a sampler2D for the previous pass.
+ - NAMEFeedbackSize is a vec4 size uniform associated with NAMEFeedback.
+
+#### Example slang shader
+
+```
+#version 450
+// 450 or 310 es are recommended
 
 layout(set = 0, binding = 0, std140) uniform UBO
 {
    mat4 MVP;
-   vec4 SourceSize;
+   vec4 SourceSize; // Not used here, but doesn't hurt
    float ColorMod;
 };
 
@@ -456,4 +573,19 @@ void main()
 }
 ```
 
+### Caveats
+TexCoord also replaces `gl_FragCoord`. Do not use `gl_FragCoord` as it doesn't consider the viewports correctly.
+If you need `gl_FragCoord` use `vTexCoord * OutputSize.xy` instead.
+
+Be careful with derivatives of vTexCoord. The screen might have been rotated by the vertex shader, which will also rotate the derivatives, especially in the final pass which hits the backbuffer.
+However, derivatives are fortunately never really needed, since w = 1 (we render flat 2D quads),
+which means derivatives of varyings are constant. You can do some trivial replacements which will be faster and more robust.
+
+```
+dFdx(vTexCoord) = vec2(OutputSize.z, 0.0);
+dFdy(vTexCoord) = vec2(0.0, OutputSize.w);
+fwidth(vTexCoord) = max(OutputSize.z, OutputSize.w);
+```
+
 ## Porting guide from legacy Cg spec
+
