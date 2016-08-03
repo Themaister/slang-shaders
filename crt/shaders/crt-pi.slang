@@ -1,5 +1,26 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+    float CURVATURE_X;
+    float CURVATURE_Y;
+    float MASK_BRIGHTNESS;
+    float SCANLINE_WEIGHT;
+    float SCANLINE_GAP_BRIGHTNESS;
+    float BLOOM_FACTOR;
+    float INPUT_GAMMA;
+    float OUTPUT_GAMMA;
+} param;
+
+#pragma parameter CURVATURE_X             "Screen curvature - horizontal" 0.10 0.0 1.0  0.01
+#pragma parameter CURVATURE_Y             "Screen curvature - vertical"   0.15 0.0 1.0  0.01
+#pragma parameter MASK_BRIGHTNESS         "Mask brightness"               0.70 0.0 1.0  0.01
+#pragma parameter SCANLINE_WEIGHT         "Scanline weight"               6.0  0.0 15.0 0.1
+#pragma parameter SCANLINE_GAP_BRIGHTNESS "Scanline gap brightness"       0.12 0.0 1.0  0.01
+#pragma parameter BLOOM_FACTOR            "Bloom factor"                  1.5  0.0 5.0  0.01
+#pragma parameter INPUT_GAMMA             "Input gamma"                   2.4  0.0 5.0  0.01
+#pragma parameter OUTPUT_GAMMA            "Output gamma"                  2.2  0.0 5.0  0.01
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
@@ -8,14 +29,24 @@ layout(std140, set = 0, binding = 0) uniform UBO
     vec4 SourceSize;
 } global;
 
-#define CURVATURE_X             0.10
-#define CURVATURE_Y             0.25
-#define MASK_BRIGHTNESS         0.70
-#define SCANLINE_WEIGHT         6.0
-#define SCANLINE_GAP_BRIGHTNESS 0.12
-#define BLOOM_FACTOR            1.5
-#define INPUT_GAMMA             2.4
-#define OUTPUT_GAMMA            2.2
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+layout(location = 1) out float filterWidth;
+
+void main()
+{
+    gl_Position = global.MVP * Position;
+    vTexCoord = TexCoord;
+    filterWidth = (global.SourceSize.y * global.OutputSize.w) * 0.333333333;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 1) in float filterWidth;
+layout(location = 0) out vec4 FragColor;
+layout(set = 0, binding = 2) uniform sampler2D Source;
 
 /* MASK_TYPE: 0 = none, 1 = green/magenta, 2 = trinitron(ish) */
 #define MASK_TYPE 2
@@ -26,7 +57,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //#define GAMMA
 //#define SHARPER
 #define MULTISAMPLE
-
 
 /*
     crt-pi - A Raspberry Pi friendly CRT shader.
@@ -68,27 +98,8 @@ MASK_TYPE defines what, if any, shadow mask to use. MASK_BRIGHTNESS defines how
 much the mask type darkens the screen.
 */
 
-#pragma stage vertex
-layout(location = 0) in vec4 Position;
-layout(location = 1) in vec2 TexCoord;
-layout(location = 0) out vec2 vTexCoord;
-layout(location = 1) out float filterWidth;
-
-void main()
-{
-    gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
-    filterWidth = (global.SourceSize.y * global.OutputSize.w) * 0.333333333;
-}
-
-#pragma stage fragment
-layout(location = 0) in vec2 vTexCoord;
-layout(location = 1) in float filterWidth;
-layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
-
 #if defined(CURVATURE)
-vec2 CURVATURE_DISTORTION = vec2(CURVATURE_X, CURVATURE_Y);
+vec2 CURVATURE_DISTORTION = vec2(param.CURVATURE_X, param.CURVATURE_Y);
 // Barrel distortion shrinks the display area a bit, this will allow us to counteract that.
 vec2 barrelScale = 1.0 - (0.23 * CURVATURE_DISTORTION);
 
@@ -113,7 +124,7 @@ vec2 Distort(vec2 coord)
 
 float CalcScanLineWeight(float dist)
 {
-    return max(1.0-dist*dist*SCANLINE_WEIGHT, SCANLINE_GAP_BRIGHTNESS);
+    return max(1.0-dist*dist*param.SCANLINE_WEIGHT, param.SCANLINE_GAP_BRIGHTNESS);
 }
 
 float CalcScanLine(float dy)
@@ -179,33 +190,33 @@ void main()
 #if defined(GAMMA) && defined(FAKE_GAMMA)
     colour = colour * colour;
 #elif defined(GAMMA)
-    colour = pow(colour, vec3(INPUT_GAMMA));
+    colour = pow(colour, vec3(param.INPUT_GAMMA));
 #endif
     
     /* Apply scanlines */
-    scanLineWeight *= BLOOM_FACTOR;
+    scanLineWeight *= param.BLOOM_FACTOR;
     colour *= scanLineWeight;
 
 #if defined(GAMMA) && defined(FAKE_GAMMA)
     colour = sqrt(colour);
 #elif defined(GAMMA)
-    colour = pow(colour, vec3(1.0/OUTPUT_GAMMA));
+    colour = pow(colour, vec3(1.0/param.OUTPUT_GAMMA));
 #endif
 
 
 #endif /* SCANLINES */
 
 #if MASK_TYPE == 1
-    float whichMask = fract(gl_FragCoord.x * 0.5);
+    float whichMask = fract((vTexCoord.x * global.OutputSize.x) * 0.5);
     vec3 mask       = vec3(1.0);
 
-    if (whichMask < 0.5) mask.rb = vec2(MASK_BRIGHTNESS);
-    else                 mask.g  = MASK_BRIGHTNESS;
+    if (whichMask < 0.5) mask.rb = vec2(param.MASK_BRIGHTNESS);
+    else                 mask.g  = param.MASK_BRIGHTNESS;
 
     colour *= mask;
 #elif MASK_TYPE == 2
-    float whichMask = fract(gl_FragCoord.x * 0.3333333);
-    vec3 mask       = vec3(MASK_BRIGHTNESS);
+    float whichMask = fract((vTexCoord.x * global.OutputSize.x)  * 0.3333333);
+    vec3 mask       = vec3(param.MASK_BRIGHTNESS);
     
     if      (whichMask < 0.3333333) mask.r = 1.0;
     else if (whichMask < 0.6666666) mask.g = 1.0;
