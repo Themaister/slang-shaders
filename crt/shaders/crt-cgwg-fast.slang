@@ -1,8 +1,4 @@
 #version 450
-/* COMPATIBILITY 
-   - HLSL compilers
-   - Cg   compilers
-*/
 
 /*
     cgwg's CRT shader
@@ -24,6 +20,13 @@
         under the GPL."
     )
 */
+
+layout(push_constant) uniform Push
+{
+    float CRTCGWG_GAMMA;
+} param;
+
+#pragma parameter CRTCGWG_GAMMA "CRTcgwg Gamma" 2.7 0.0 10.0 0.01
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -55,11 +58,11 @@ layout(location = 10) out vec2 ratio_scale;
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
+    vTexCoord   = TexCoord;
 
-    vec2 delta = 1.0 / global.SourceSize.xy;
-    float dx = delta.x;
-    float dy = delta.y;
+    vec2 delta = global.SourceSize.zw;
+    float dx   = delta.x;
+    float dy   = delta.y;
 
     c01 = vTexCoord + vec2(-dx, 0.0);
     c11 = vTexCoord + vec2(0.0, 0.0);
@@ -88,9 +91,6 @@ layout(location = 10)   in vec2 ratio_scale;
 layout(location = 0)    out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-/* Config */
-#define CRTCGWG_GAMMA 2.7
-
 #define TEX2D(c) texture(Source ,(c))
 #define PI 3.141592653589
 
@@ -115,8 +115,8 @@ void main()
     vec3 wid  = 2.0 * pow(col,  vec3(4.0, 4.0, 4.0)) + 2.0;
     vec3 wid2 = 2.0 * pow(col2, vec3(4.0, 4.0, 4.0)) + 2.0;
 
-    col  = pow(col,  vec3(CRTCGWG_GAMMA, CRTCGWG_GAMMA, CRTCGWG_GAMMA));
-    col2 = pow(col2, vec3(CRTCGWG_GAMMA, CRTCGWG_GAMMA, CRTCGWG_GAMMA));
+    col  = pow(col,  vec3(param.CRTCGWG_GAMMA));
+    col2 = pow(col2, vec3(param.CRTCGWG_GAMMA));
 
     vec3 sqrt1 = inversesqrt(0.5 * wid);
     vec3 sqrt2 = inversesqrt(0.5 * wid2);

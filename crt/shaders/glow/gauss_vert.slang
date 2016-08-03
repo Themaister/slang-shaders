@@ -1,5 +1,12 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+    float BOOST;
+} param;
+
+#pragma parameter BOOST "Color Boost" 1.0 0.5 1.5 0.02
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
@@ -48,8 +55,6 @@ vec3 beam(vec3 color, float dist)
 #endif
 }
 
-#define COLOR_BOOST 1.0
-
 void main()
 {
     vec2  texel = floor(data_pix_no);
@@ -67,6 +72,6 @@ void main()
     scanline += beam(top,    dist0);
     scanline += beam(bottom, dist1);
 
-    FragColor = vec4(COLOR_BOOST * scanline * 0.869565217391304, 1.0);
+    FragColor = vec4(param.BOOST * scanline * 0.869565217391304, 1.0);
 }
 

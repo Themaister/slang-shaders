@@ -43,6 +43,17 @@
     THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+layout(push_constant) uniform Push
+{
+    float FIR_GAIN;
+    float FIR_INVGAIN;
+    float PHASE_NOISE;
+} param;
+
+#pragma parameter FIR_GAIN    "FIR lowpass gain"               1.5 0.0 5.0 0.1
+#pragma parameter FIR_INVGAIN "Inverse gain for luma recovery" 1.1 0.0 5.0 0.1
+#pragma parameter PHASE_NOISE "Phase noise"                    1.0 0.0 5.0 0.1
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
@@ -68,29 +79,11 @@ layout(location = 0) in  vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-
-/* Config options */
-
-/* FIR lowpass gain  */
-#define FIR_GAIN     1.5
-
-/* Inverse gain for luma recovery (correct for stripes) */
-#define FIR_INVGAIN  1.1
-
-/* phase noise (2.5 for crappy cable) */
-#define PHASE_NOISE  1.0
-
-
-
-
 /* Subcarrier frequency */
 #define FSC          4433618.75
 
 /* Line frequency */
 #define FLINE        15625
-
-
-
 
 #define VISIBLELINES 312
 
@@ -140,13 +133,12 @@ float FIR[FIRTAPS] = float[FIRTAPS] (
 
 /* subcarrier counts per scan line = FSC/FLINE = 283.7516 */
 /* We save the reciprocal of this only to optimize it */
-float counts_per_scanline_reciprocal = 0.00352420920269701;
+float counts_per_scanline_reciprocal = 1.0 / (FSC/FLINE);
 
 float width_ratio;
 float height_ratio;
 float altv;
 float invx;
-
 
 /* http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-rand-for-opengl-es-2-0/ */
 float rand(vec2 co)
@@ -160,7 +152,8 @@ float rand(vec2 co)
     return fract(sin(sn) * c);
 }
 
-float modulated(vec2 xy, float sinwt, float coswt) {
+float modulated(vec2 xy, float sinwt, float coswt) 
+{
     vec3 rgb = fetch(0, xy, invx).xyz;
     vec3 yuv = RGB_to_YUV * rgb;
 
@@ -178,14 +171,13 @@ vec2 modem_uv(vec2 xy, float ofs) {
     vec3 yuv = RGB_to_YUV * rgb;
     float signal = clamp(yuv.x + yuv.y * sinwt + yuv.z * coswt, 0.0, 1.0);
     
-    if (PHASE_NOISE != 0)
+    if (param.PHASE_NOISE != 0)
     {
         /* .yy is horizontal noise, .xx looks bad, .xy is classic noise */
-        vec2 seed = vTexCoord.yy + global.FrameCount;
-
-        wt    = wt + PHASE_NOISE * (rand(seed) - 0.5);
-        sinwt = sin(wt);
-        coswt = cos(wt + altv);
+        vec2 seed = xy.yy * global.FrameCount;
+        wt        = wt + param.PHASE_NOISE * (rand(seed) - 0.5);
+        sinwt     = sin(wt);
+        coswt     = cos(wt + altv);
     }
 
     return vec2(signal * sinwt, signal * coswt);
@@ -203,7 +195,7 @@ void main()
     vec2 filtered = vec2(0.0, 0.0);
     for (int i = 0; i < FIRTAPS; i++) {
         vec2 uv   = modem_uv(xy, i - FIRTAPS*0.5);
-        filtered += FIR_GAIN * uv * FIR[i];
+        filtered += param.FIR_GAIN * uv * FIR[i];
     }
 
     float t  = xy.x * global.SourceSize.x;
@@ -212,7 +204,7 @@ void main()
     float sinwt = sin(wt);
     float coswt = cos(wt + altv);
 
-    float luma = modulated(xy, sinwt, coswt) - FIR_INVGAIN * (filtered.x * sinwt + filtered.y * coswt);
+    float luma = modulated(xy, sinwt, coswt) - param.FIR_INVGAIN * (filtered.x * sinwt + filtered.y * coswt);
     vec3 yuv_result = vec3(luma, filtered.x, filtered.y);
 
     FragColor = vec4(YUV_to_RGB * yuv_result, 1.0);
