@@ -36,6 +36,7 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D LUT;
+layout(set = 0, binding = 4) uniform samlper2D Original;
 
 void main()
 {
@@ -49,7 +50,7 @@ void main()
 	vec3 p2 = texture(Original, vTexCoord + vec2(dx, dy) * quad).rgb;
 	vec3 p3 = texture(Original, vTexCoord + vec2(dx, 0.0) * quad).rgb;
 	vec3 p4 = texture(Original, vTexCoord + vec2(0.0, dy) * quad).rgb;
-	vec4x3 pixels = vec4x3(p1, p2, p3, p4);
+	mat3x4 pixels = mat3x4(p1, p2, p3, p4);
 
 	vec2 index = texture(Source, vTexCoord).xy * vec2(255.0, 15.0 * (SCALE * SCALE));
 	index.y += dot(floor(fp * SCALE), vec2(1.0, SCALE));
