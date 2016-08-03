@@ -1,17 +1,3 @@
-#version 450
-
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-} registers;
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-   mat4 MVP;
-} global;
-
 /*
 * Copyright (C) 2003 Maxim Stepin ( maxst@hiend3d.com )
 *
