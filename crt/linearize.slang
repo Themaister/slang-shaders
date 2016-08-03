@@ -1,8 +1,10 @@
 #version 450
+#include "parameters.inc"
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
+   float GAMMA;
 } global;
 
 #pragma stage vertex
@@ -23,7 +25,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 vec3 gamma(vec3 v)
 {
-   return pow(v, vec3(2.2));
+   return pow(v, vec3(global.GAMMA));
 }
 
 void main()

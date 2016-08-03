@@ -1,6 +1,7 @@
 #version 450
 
 #include "common.inc"
+#include "parameters.inc"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -9,7 +10,7 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
+   gl_Position = MVP * Position;
    vTexCoord = TexCoord;
 }
 
@@ -20,7 +21,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 vec3 invgamma(vec3 v)
 {
-   return pow(v, vec3(1.0 / 2.2));
+   return pow(clamp(v, vec3(0.0), vec3(1.0)), vec3(1.0 / global.OUT_GAMMA));
 }
 
 float luma(vec3 col)
@@ -49,5 +50,5 @@ void main()
       dist.y * l1 +
       dist.z * l2;
 
-   FragColor = vec4(invgamma(color), 1.0);
+   FragColor = vec4(invgamma(global.BOOST * color), 1.0);
 }
