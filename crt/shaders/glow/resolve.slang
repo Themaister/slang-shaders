@@ -1,5 +1,14 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+    float BLOOM_STRENGTH;
+    float OUTPUT_GAMMA;
+} param;
+
+#pragma parameter BLOOM_STRENGTH "Glow Strength" 0.45 0.0 0.8 0.05
+#pragma parameter OUTPUT_GAMMA "Monitor Gamma" 2.2 1.8 2.6 0.02
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
@@ -29,9 +38,6 @@ layout(set = 0, binding = 2) uniform sampler2D CRTPass;
 // For debugging
 #define BLOOM_ONLY 0
 
-#define BLOOM_STRENGTH  0.45
-#define OUTPUT_GAMMA    2.2
-
 #define CRT_PASS CRTPass
 
 void main() 
@@ -42,7 +48,7 @@ void main()
 
     vec3 source = 1.15 * texture(CRT_PASS, vTexCoord).rgb;
     vec3 bloom  = texture(Source, vTexCoord).rgb;
-    source     += BLOOM_STRENGTH * bloom;
+    source     += param.BLOOM_STRENGTH * bloom;
 #endif
-    FragColor = vec4(pow(clamp(source, 0.0, 1.0), vec3(1.0 / OUTPUT_GAMMA)), 1.0);
+    FragColor = vec4(pow(clamp(source, 0.0, 1.0), vec3(1.0 / param.OUTPUT_GAMMA)), 1.0);
 }

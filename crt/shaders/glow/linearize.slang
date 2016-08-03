@@ -1,5 +1,12 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+    float INPUT_GAMMA;
+} param;
+
+#pragma parameter INPUT_GAMMA "Input Gamma" 2.4 2.0 2.6 0.02
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
     mat4 MVP;
@@ -24,11 +31,9 @@ layout(location = 0) in  vec2  vTexCoord;
 layout(location = 0) out vec4  FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-#define INPUT_GAMMA 2.4
-
 void main() 
 {
     vec3 color = texture(Source, vTexCoord).rgb;
     
-    FragColor  = vec4(pow(color, vec3(INPUT_GAMMA)), 1.0);
+    FragColor  = vec4(pow(color, vec3(param.INPUT_GAMMA)), 1.0);
 }

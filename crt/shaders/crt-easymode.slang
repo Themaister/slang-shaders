@@ -1,11 +1,50 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+    float BRIGHT_BOOST;
+    float DILATION;
+    float GAMMA_INPUT;
+    float GAMMA_OUTPUT;
+    float MASK_SIZE;
+    float MASK_STAGGER;
+    float MASK_STRENGTH;
+    float MASK_DOT_HEIGHT;
+    float MASK_DOT_WIDTH;
+    float SCANLINE_CUTOFF;
+    float SCANLINE_BEAM_WIDTH_MAX;
+    float SCANLINE_BEAM_WIDTH_MIN;
+    float SCANLINE_BRIGHT_MAX;
+    float SCANLINE_BRIGHT_MIN;
+    float SCANLINE_STRENGTH;
+    float SHARPNESS_H;
+    float SHARPNESS_V;
+} param;
+
+#pragma parameter SHARPNESS_H "Sharpness Horizontal" 0.5 0.0 1.0 0.05
+#pragma parameter SHARPNESS_V "Sharpness Vertical" 1.0 0.0 1.0 0.05
+#pragma parameter MASK_STRENGTH "Mask Strength" 0.3 0.0 1.0 0.01
+#pragma parameter MASK_DOT_WIDTH "Mask Dot Width" 1.0 1.0 100.0 1.0
+#pragma parameter MASK_DOT_HEIGHT "Mask Dot Height" 1.0 1.0 100.0 1.0
+#pragma parameter MASK_STAGGER "Mask Stagger" 0.0 0.0 100.0 1.0
+#pragma parameter MASK_SIZE "Mask Size" 1.0 1.0 100.0 1.0
+#pragma parameter SCANLINE_STRENGTH "Scanline Strength" 1.0 0.0 1.0 0.05
+#pragma parameter SCANLINE_BEAM_WIDTH_MIN "Scanline Beam Width Min." 1.5 0.5 5.0 0.5
+#pragma parameter SCANLINE_BEAM_WIDTH_MAX "Scanline Beam Width Max." 1.5 0.5 5.0 0.5
+#pragma parameter SCANLINE_BRIGHT_MIN "Scanline Brightness Min." 0.35 0.0 1.0 0.05
+#pragma parameter SCANLINE_BRIGHT_MAX "Scanline Brightness Max." 0.65 0.0 1.0 0.05
+#pragma parameter SCANLINE_CUTOFF "Scanline Cutoff" 400.0 1.0 1000.0 1.0
+#pragma parameter GAMMA_INPUT "Gamma Input" 2.0 0.1 5.0 0.1
+#pragma parameter GAMMA_OUTPUT "Gamma Output" 1.8 0.1 5.0 0.1
+#pragma parameter BRIGHT_BOOST "Brightness Boost" 1.2 1.0 2.0 0.01
+#pragma parameter DILATION "Dilation" 1.0 0.0 1.0 1.0
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-   mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
+    mat4 MVP;
+    vec4 OutputSize;
+    vec4 OriginalSize;
+    vec4 SourceSize;
 } global;
 
 #pragma stage vertex
@@ -15,8 +54,8 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord   = TexCoord;
+    gl_Position = global.MVP * Position;
+    vTexCoord   = TexCoord;
 }
 
 /*
@@ -53,24 +92,6 @@ layout(location = 0) in  vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-#define SHARPNESS_H                 0.5 
-#define SHARPNESS_V                 1.0 
-#define MASK_STRENGTH               0.3 
-#define MASK_DOT_WIDTH              1.0 
-#define MASK_DOT_HEIGHT             1.0 
-#define MASK_STAGGER                0.0 
-#define MASK_SIZE                   1.0 
-#define SCANLINE_STRENGTH           1.0 
-#define SCANLINE_BEAM_WIDTH_MIN     1.5
-#define SCANLINE_BEAM_WIDTH_MAX     1.5 
-#define SCANLINE_BRIGHT_MIN         0.35
-#define SCANLINE_BRIGHT_MAX         0.65 
-#define SCANLINE_CUTOFF             400.0 
-#define GAMMA_INPUT                 2.0 
-#define GAMMA_OUTPUT                1.8 
-#define BRIGHT_BOOST                1.2 
-#define DILATION                    1.0 
-
 #define FIX(c) max(abs(c), 1e-5)
 #define PI 3.141592653589
 
@@ -81,7 +102,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 vec4 dilate(vec4 col)
 {
-    vec4 x = mix(vec4(1.0), col, DILATION);
+    vec4 x = mix(vec4(1.0), col, param.DILATION);
 
     return col * x;
 }
@@ -129,7 +150,7 @@ void main()
     vec3 col, col2;
 
 #if ENABLE_LANCZOS
-    curve_x = curve_distance(dist.x, SHARPNESS_H * SHARPNESS_H);
+    curve_x = curve_distance(dist.x, param.SHARPNESS_H * param.SHARPNESS_H);
 
     vec4 coeffs = PI * vec4(1.0 + curve_x, curve_x, 1.0 - curve_x, 2.0 - curve_x);
 
@@ -140,38 +161,38 @@ void main()
     col  = filter_lanczos(coeffs, get_color_matrix(tex_co, dx));
     col2 = filter_lanczos(coeffs, get_color_matrix(tex_co + dy, dx));
 #else
-    curve_x = curve_distance(dist.x, SHARPNESS_H);
+    curve_x = curve_distance(dist.x, param.SHARPNESS_H);
 
     col  = mix(TEX2D(tex_co).rgb,      TEX2D(tex_co + dx).rgb,      curve_x);
     col2 = mix(TEX2D(tex_co + dy).rgb, TEX2D(tex_co + dx + dy).rgb, curve_x);
 #endif
 
-    col = mix(col, col2, curve_distance(dist.y, SHARPNESS_V));
-    col = pow(col, vec3(GAMMA_INPUT / (DILATION + 1.0)));
+    col = mix(col, col2, curve_distance(dist.y, param.SHARPNESS_V));
+    col = pow(col, vec3(param.GAMMA_INPUT / (param.DILATION + 1.0)));
 
     float luma        = dot(vec3(0.2126, 0.7152, 0.0722), col);
     float bright      = (max(col.r, max(col.g, col.b)) + luma) * 0.5;
-    float scan_bright = clamp(bright, SCANLINE_BRIGHT_MIN, SCANLINE_BRIGHT_MAX);
-    float scan_beam   = clamp(bright * SCANLINE_BEAM_WIDTH_MAX, SCANLINE_BEAM_WIDTH_MIN, SCANLINE_BEAM_WIDTH_MAX);
-    float scan_weight = 1.0 - pow(cos(vTexCoord.y * 2.0 * PI * global.SourceSize.y) * 0.5 + 0.5, scan_beam) * SCANLINE_STRENGTH;
+    float scan_bright = clamp(bright, param.SCANLINE_BRIGHT_MIN, param.SCANLINE_BRIGHT_MAX);
+    float scan_beam   = clamp(bright * param.SCANLINE_BEAM_WIDTH_MAX, param.SCANLINE_BEAM_WIDTH_MIN, param.SCANLINE_BEAM_WIDTH_MAX);
+    float scan_weight = 1.0 - pow(cos(vTexCoord.y * 2.0 * PI * global.SourceSize.y) * 0.5 + 0.5, scan_beam) * param.SCANLINE_STRENGTH;
 
-    float mask   = 1.0 - MASK_STRENGTH;    
-    vec2 mod_fac = floor(vTexCoord * global.OutputSize.xy * global.SourceSize.xy / (global.SourceSize.xy * vec2(MASK_SIZE, MASK_DOT_HEIGHT * MASK_SIZE)));
-    int dot_no   = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * MASK_STAGGER) / MASK_DOT_WIDTH, 3.0));
+    float mask   = 1.0 - param.MASK_STRENGTH;    
+    vec2 mod_fac = floor(vTexCoord * global.OutputSize.xy * global.SourceSize.xy / (global.SourceSize.xy * vec2(param.MASK_SIZE, param.MASK_DOT_HEIGHT * param.MASK_SIZE)));
+    int dot_no   = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * param.MASK_STAGGER) / param.MASK_DOT_WIDTH, 3.0));
     vec3 mask_weight;
 
     if      (dot_no == 0) mask_weight = vec3(1.0,  mask, mask);
     else if (dot_no == 1) mask_weight = vec3(mask, 1.0,  mask);
     else                  mask_weight = vec3(mask, mask, 1.0);
 
-    if (global.SourceSize.y >= SCANLINE_CUTOFF) 
+    if (global.SourceSize.y >= param.SCANLINE_CUTOFF) 
         scan_weight = 1.0;
 
     col2 = col.rgb;
     col *= vec3(scan_weight);
     col  = mix(col, col2, scan_bright);
     col *= mask_weight;
-    col  = pow(col, vec3(1.0 / GAMMA_OUTPUT));
+    col  = pow(col, vec3(1.0 / param.GAMMA_OUTPUT));
 
-    FragColor = vec4(col * BRIGHT_BOOST, 1.0);
+    FragColor = vec4(col * param.BRIGHT_BOOST, 1.0);
 }
