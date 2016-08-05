@@ -90,6 +90,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 2) in vec2 dot_size;
 layout(location = 3) in vec2 one_texel;
+layout(location = 4) in vec2 HistCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D OriginalHistory1;
