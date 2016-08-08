@@ -163,5 +163,5 @@ void main()
                           edr.z, px.z, 0.0, 0.0,
                           edr.w, px.w, 0.0, 0.0
                           );
-   FragColor = vec4(texture(Source, vTexCoord).rgb, 1.0);
+   FragColor = vec4(remapTo01(info, maximo));
 }
