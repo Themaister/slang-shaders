@@ -99,10 +99,10 @@ void main()
 	vec3	w8	=	yuv * texture(Source, t3.yw).rgb;
 	vec3	w9	=	yuv * texture(Source, t3.zw).rgb;
 
-	vec3	pattern_1	=	vec3(diff(w5, w1),	diff(w5, w4),	diff(w5, w7));
-	vec3	pattern_2	=	vec3(diff(w5, w2),	false,	diff(w5, w8));
-	vec3	pattern_3	=	vec3(diff(w5, w3),	diff(w5, w6),	diff(w5, w9));
-	vec4	cross		=	vec4(diff(w4, w2), diff(w2, w6), diff(w8, w4), diff(w6, w8));
+	vec3	pattern_1	=	vec3(diff(w5, w1),	diff(w5, w2),	diff(w5, w3));
+	vec3	pattern_2	=	vec3(diff(w5, w4),	false,	diff(w5, w6));
+	vec3	pattern_3	=	vec3(diff(w5, w7),	diff(w5, w8),	diff(w5, w9));
+	vec4	cross		=	vec4(diff(w4, w2),	diff(w2, w6),	diff(w8, w4),	diff(w6, w8));
 	
 	vec2	index;
 	index.x	=	dot(pattern_1, vec3(1, 2, 4)) +
