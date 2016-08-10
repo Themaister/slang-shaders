@@ -3,7 +3,7 @@
 
 /*
    
-  *******  Super XBR Shader - pass1  *******
+  *******  Super XBR Shader - pass0  *******
    
   Copyright (c) 2015 Hyllian - sergiogdb@gmail.com
 
@@ -40,29 +40,46 @@ layout(std140, set = 0, binding = 0) uniform UBO
 layout(location = 0) in  vec4 Position;
 layout(location = 1) in  vec2 TexCoord;
 layout(location = 0) out vec2 vTexCoord;
+layout(location = 1) out vec4 t1;     
+layout(location = 2) out vec4 t2;
+layout(location = 3) out vec4 t3;
+layout(location = 4) out vec4 t4;
+
 
 /*    VERTEX_SHADER    */
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
+    vTexCoord  = TexCoord;
+
+    vec2    ps = vec2(global.SourceSize.z, global.SourceSize.w);
+    float   dx = ps.x;
+    float   dy = ps.y;
+
+    t1 = vTexCoord.xyxy + vec4(-dx, -dy, 2.0*dx, 2.0*dy);
+    t2 = vTexCoord.xyxy + vec4(  0, -dy,     dx, 2.0*dy);
+    t3 = vTexCoord.xyxy + vec4(-dx,   0, 2.0*dx,     dy);
+    t4 = vTexCoord.xyxy + vec4(  0,   0,     dx,     dy);
 }
 
 #pragma stage fragment
 layout(location = 0)    in vec2 vTexCoord;
+layout(location = 1)    in vec4 t1;     
+layout(location = 2)    in vec4 t2;
+layout(location = 3)    in vec4 t3;
+layout(location = 4)    in vec4 t4;
 layout(location = 0)    out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D Original;
 
 #define wp1  1.0
 #define wp2  0.0
 #define wp3  0.0
-#define wp4  4.0
-#define wp5  0.0
+#define wp4  2.0
+#define wp5 -1.0
 #define wp6  0.0
 
-#define weight1 (XBR_WEIGHT*1.75068/10.0)
-#define weight2 (XBR_WEIGHT*1.29633/10.0/2.0)
+#define weight1 (XBR_WEIGHT*1.29633/10.0)
+#define weight2 (XBR_WEIGHT*1.75068/10.0/2.0)
 
 vec3 Y = vec3(.2126, .7152, .0722);
 
@@ -116,33 +133,25 @@ vec3 max4(vec3 a, vec3 b, vec3 c, vec3 d)
 
 void main()
 {
-    //Skip pixels on wrong grid
-    vec2 fp  = fract(vTexCoord*global.SourceSize.xy);
-    vec2 dir = fp - vec2(0.5, 0.5);
-    if ((dir.x*dir.y) > 0.0) 
-        FragColor = (fp.x > 0.5) ? texture(Source, vTexCoord) : texture(Original, vTexCoord);
+    vec3 P0 = texture(Source, t1.xy).xyz;
+    vec3 P1 = texture(Source, t1.zy).xyz;
+    vec3 P2 = texture(Source, t1.xw).xyz;
+    vec3 P3 = texture(Source, t1.zw).xyz;
 
-    vec2 g1 = (fp.x>0.5) ? vec2(0.5*global.SourceSize.z, 0.0) : vec2(0.0, 0.5*global.SourceSize.w);
-    vec2 g2 = (fp.x>0.5) ? vec2(0.0, 0.5*global.SourceSize.w) : vec2(0.5*global.SourceSize.z, 0.0);
+    vec3  B = texture(Source, t2.xy).xyz;
+    vec3  C = texture(Source, t2.zy).xyz;
+    vec3 H5 = texture(Source, t2.xw).xyz;
+    vec3 I5 = texture(Source, t2.zw).xyz;
 
-    vec3 P0 = texture(Original, vTexCoord -3.0*g1        ).xyz;
-    vec3 P1 = texture(  Source, vTexCoord         -3.0*g2).xyz;
-    vec3 P2 = texture(  Source, vTexCoord         +3.0*g2).xyz;
-    vec3 P3 = texture(Original, vTexCoord +3.0*g1        ).xyz;
+    vec3  D = texture(Source, t3.xy).xyz;
+    vec3 F4 = texture(Source, t3.zy).xyz;
+    vec3  G = texture(Source, t3.xw).xyz;
+    vec3 I4 = texture(Source, t3.zw).xyz;
 
-    vec3  B = texture(  Source, vTexCoord -2.0*g1     -g2).xyz;
-    vec3  C = texture(Original, vTexCoord     -g1 -2.0*g2).xyz;
-    vec3  D = texture(  Source, vTexCoord -2.0*g1     +g2).xyz;
-    vec3  E = texture(Original, vTexCoord     -g1        ).xyz;
-    vec3  F = texture(  Source, vTexCoord             -g2).xyz;
-    vec3  G = texture(Original, vTexCoord     -g1 +2.0*g2).xyz;
-    vec3  H = texture(  Source, vTexCoord             +g2).xyz;
-    vec3  I = texture(Original, vTexCoord     +g1        ).xyz;
-
-    vec3 F4 = texture(Original, vTexCoord     +g1 -2.0*g2).xyz;
-    vec3 I4 = texture(  Source, vTexCoord +2.0*g1     -g2).xyz;
-    vec3 H5 = texture(Original, vTexCoord     +g1 +2.0*g2).xyz;
-    vec3 I5 = texture(  Source, vTexCoord +2.0*g1     +g2).xyz;
+    vec3  E = texture(Source, t4.xy).xyz;
+    vec3  F = texture(Source, t4.zy).xyz;
+    vec3  H = texture(Source, t4.xw).xyz;
+    vec3  I = texture(Source, t4.zw).xyz;
 
     float b = RGBtoYUV( B );
     float c = RGBtoYUV( C );
@@ -158,12 +167,13 @@ void main()
     float h5 = RGBtoYUV( H5 ); float p2 = RGBtoYUV( P2 );
     float f4 = RGBtoYUV( F4 ); float p3 = RGBtoYUV( P3 );
 
+
     /* Calc edgeness in diagonal directions. */
-    float d_edge  = (d_wd( d, b, g, e, c, p2, h, f, p1, h5, i, f4, i5, i4 ) -
-                     d_wd( c, f4, b, f, i4, p0, e, i, p3, d, h, i5, g, h5 ));
+    float d_edge  = (d_wd( d, b,  g, e, c,  p2, h, f, p1, h5, i, f4, i5, i4 ) - 
+                     d_wd( c, f4, b, f, i4, p0, e, i, p3, d,  h, i5, g,  h5 ));
 
     /* Calc edgeness in horizontal/vertical directions. */
-    float hv_edge = (hv_wd(f, i, e, h, c, i5, b, h5) - 
+    float hv_edge = (hv_wd(f, i, e, h, c, i5, b, h5) -
                      hv_wd(e, f, h, i, d, f4, g, i4));
 
     float limits = XBR_EDGE_STR + 0.000001;
@@ -187,5 +197,5 @@ void main()
     vec3 max_sample = max4( E, F, H, I ) - (1-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
     color = clamp(color, min_sample, max_sample);
 
-    FragColor = vec4(color, 1.0);  
+    FragColor = vec4(color, 1.0);
 }
