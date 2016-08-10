@@ -1,7 +1,7 @@
 shaders = 3
-shader0 = linearize.slang
-shader1 = sinc.slang
-shader2 = scanline.slang
+shader0 = shaders/crt-slangtest/linearize.slang
+shader1 = shaders/crt-slangtest/cubic.slang
+shader2 = shaders/crt-slangtest/scanline.slang
 
 filter_linear0 = false 
 scale_type0 = source
