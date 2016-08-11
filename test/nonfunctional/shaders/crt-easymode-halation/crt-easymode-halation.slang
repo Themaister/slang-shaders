@@ -104,7 +104,7 @@ float get_scanline_weight(float pos, float beam, float strength)
 {
     float weight = 1.0 - pow(cos(pos * 2.0 * PI) * 0.5 + 0.5, beam);
     
-    return weight * strength * 2.0 + (1.0 - strength);;
+    return weight * strength * 2.0 + (1.0 - strength);
 }
 
 vec2 curve_coordinate(vec2 co, float curvature)
@@ -223,7 +223,7 @@ void main()
     mask_weight   *= mix(1.0, mask_mul, mask_dither);
     mask_weight    = mix(vec3(1.0), mask_weight, clamp(param.MASK_TYPE, 0.0, 1.0));
 
-    vec3 col2 = (col * mask_weight) * param.BRIGHTNESS;
+    vec3 col2         = (col * mask_weight) * param.BRIGHTNESS;
     float scan_weight = get_scanline_weight(scan_pos - sample_offset, scan_beam, scan_strength);
     col               = clamp(col2 * scan_weight, 0.0, 1.0);
     scan_weight       = get_scanline_weight(scan_pos, scan_beam, scan_strength);
