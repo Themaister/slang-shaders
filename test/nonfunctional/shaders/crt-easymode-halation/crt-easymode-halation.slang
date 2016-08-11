@@ -204,8 +204,8 @@ void main()
     float mask_dither     = fract(mask_config.x) * 10.0;
 
     vec2 mod_fac = floor(
-        vTexCoord * global.OutputSize.xy * global.SourceSize.xy / 
-        (global.SourceSize.xy * vec2(param.MASK_SIZE, mask_dot_height * param.MASK_SIZE))
+        vTexCoord * global.OutputSize.xy / 
+        (vec2(param.MASK_SIZE, mask_dot_height * param.MASK_SIZE))
     );
 
     int dot_no = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * mask_stagger) / mask_dot_width, mask_colors));
