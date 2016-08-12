@@ -1,4 +1,4 @@
-shaders = 1
+shaders = 2
 
 shader0 = shaders/aa-shader-4.0.slang
 filter_linear0 = false
@@ -7,4 +7,4 @@ scale0 = 1.0
 
 shader1 = ../sharpen/shaders/adaptive-sharpen.slang
 filter_linear1 = false
-scale_type_1 = source
+scale_type1 = source
