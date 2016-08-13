@@ -1,10 +1,5 @@
 #version 450
 
-layout(push_constant) uniform Push
-{
-	float display_gamma;
-} params;
-
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
@@ -19,10 +14,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
    Author: hunterk
    License: Public domain
 */
-// Shader that replicates the LCD dynamics from a GameBoy Advance
+// Shader that replicates the LCD dynamics from an Original Nintendo DS
 
-#pragma parameter display_gamma "Light Intensity" 1.8 1.0 2.5 0.05
-
+#define display_gamma 2.25
 #define target_gamma 2.2
 #define sat 1.0
 #define lum 1.0
@@ -30,13 +24,13 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.84
-#define g 0.67
+#define r 0.77
+#define g 0.65
 #define b 0.74
-#define rg 0.08
-#define rb 0.17
-#define gr 0.16
-#define gb 0.09
+#define rg 0.09
+#define rb 0.09
+#define gr 0.23
+#define gb 0.11
 #define br 0.0
 #define bg 0.26
 #define overscan_percent_x 0.0
@@ -77,5 +71,5 @@ mat4 adjust = mat4((1.0 - sat) * 0.3086 + sat, (1.0 - sat) * 0.3086, (1.0 - sat)
 	color *= adjust;
 	screen = clamp(screen * lum, 0.0, 1.0);
 	screen = color * screen;
-	FragColor = pow(screen, vec4(1.0 / params.display_gamma));
+	FragColor = pow(screen, vec4(1.0 / display_gamma));
 }
