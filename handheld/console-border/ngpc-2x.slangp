@@ -1,6 +1,6 @@
 shaders = "2"
 
-shader0 = "../lcd-cgwg/lcd-grid.slang"
+shader0 = "../shaders/lcd-cgwg/lcd-grid.slang"
 filter_linear0 = "false"
 wrap_mode0 = "clamp_to_border"
 scale_type_x0 = "source"
