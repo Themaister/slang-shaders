@@ -28,7 +28,7 @@ void main()
 {
 	gl_Position	=	global.MVP * Position;
 	vec2 scale	=	(params.OutputSize.xy * params.SourceSize.zw) / params.SCALE;
-	vec2 middle	=	0.5;
+	vec2 middle	=	vec2(0.5, 0.5);
 	vec2 diff	=	TexCoord.xy - middle;
 	vTexCoord	=	middle + diff * scale;
 
