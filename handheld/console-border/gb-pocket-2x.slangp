@@ -30,18 +30,19 @@ scale_type4 = source
 scale4 = 1.0
 alias4 = "PASS4"
 
-shader5 = shader-files/border.slang
+shader5 = shader-files/gb-pass-5.slang
+scale_type5 = source
+scale5 = 1.0
 
-parameters = "border_on_top;box_scale;in_res_x;in_res_y;border_zoom_x;border_zoom_y;adjacent_texel_alpha_blending;pixel_opacity;shadow_opacity"
-box_scale = "2.0"
-in_res_x = "279.0"
-in_res_y = "158.0"
-border_zoom_x = "1.05"
-border_zoom_y = "1.18"
-adjacent_texel_alpha_blending = "0.38"
+parameters = "video_scale;SCALE;OUT_X;OUT_Y;adjacent_texel_alpha_blending;pixel_opacity;shadow_opacity;console_border_enable"
+video_scale = "3.0"
+SCALE = "0.6667"
+OUT_X = "1600.0"
+OUT_Y = "800.0"
+adjacent_texel_alpha_blending = "0.18"
 pixel_opacity = "0.90"
 shadow_opacity = "0.90"
-border_on_top = "0.0"
+console_border_enable = "1.0"
 
 textures = COLOR_PALETTE;BACKGROUND;BORDER
 COLOR_PALETTE = resources/pocket-palette.png

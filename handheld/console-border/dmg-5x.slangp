@@ -26,22 +26,21 @@ alias3 = "PASS3"
 
 shader4 = ../shaders/gameboy/shader-files/gb-pass4.slang
 filter_linear4 = false
-scale_type4 = source
+scale_type4 = viewport
 scale4 = 1.0
 alias4 = "PASS4"
 
-shader5 = shader-files/border.slang
+shader5 = shader-files/gb-pass-5.slang
 
-parameters = "border_on_top;box_scale;in_res_x;in_res_y;border_zoom_x;border_zoom_y;adjacent_texel_alpha_blending;pixel_opacity;shadow_opacity"
-box_scale = "5.0"
-in_res_x = "279.0"
-in_res_y = "158.0"
-border_zoom_x = "0.42"
-border_zoom_y = "0.48"
-adjacent_texel_alpha_blending = "0.38"
-pixel_opacity = "0.90"
-shadow_opacity = "0.90"
-border_on_top = "0.0"
+parameters = "video_scale;SCALE;OUT_X;OUT_Y;adjacent_texel_alpha_blending;pixel_opacity;shadow_opacity;console_border_enable"
+video_scale = "4.0"
+SCALE = "1.25"
+OUT_X = "4000.0"
+OUT_Y = "2000.0"
+adjacent_texel_alpha_blending = "0.14"
+pixel_opacity = "0.80"
+shadow_opacity = "0.80"
+console_border_enable = "1.0"
 
 textures = COLOR_PALETTE;BACKGROUND;BORDER
 COLOR_PALETTE = resources/dmg-palette.png
