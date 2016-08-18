@@ -12,6 +12,7 @@
 //  this shader: One does a viewport-scale bloom, and the other skips it.  The
 //  latter benefits from a higher bloom_approx_scale_x, so save both separately:
 const float bloom_approx_size_x = 320.0;
+const float bloom_approx_scale_x = 320.0; //dunno why this is necessary
 const float bloom_approx_size_x_for_fake = 400.0;
 //  Copy the viewport-relative scales of the phosphor mask resize passes
 //  (MASK_RESIZE and the pass immediately preceding it):
