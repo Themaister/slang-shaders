@@ -345,5 +345,5 @@ void main()
         color = vec3(color_r.r, color_g.g, color_b.b);
     }
     //  Encode and output the blurred image:
-   FragColor = vec4(1.0);//vec4(color, 1.0);
+   FragColor = vec4(color, 1.0);
 }
