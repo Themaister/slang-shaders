@@ -94,5 +94,5 @@ void main()
 {
 	vec3 color = tex2Dblur9fast(Source, tex_uv, blur_dxdy);
     //  Encode and output the blurred image:
-   FragColor = vec4(1.0);//encode_output(vec4(color, 1.0));
+   FragColor = encode_output(vec4(color, 1.0));
 }
