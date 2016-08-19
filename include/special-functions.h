@@ -1,7 +1,3 @@
-#ifndef SPECIAL_FUNCTIONS_H
-#define SPECIAL_FUNCTIONS_H
-
-
 /////////////////////////////////  MIT LICENSE  ////////////////////////////////
 
 //  Copyright (C) 2014 TroggleMonkey
@@ -494,5 +490,3 @@ float normalized_ligamma(const float s, const float z)
 	const float gamma_s_inv = 1.0/gamma_impl(s, s_inv);
 	return normalized_ligamma_impl(s, z, s_inv, gamma_s_inv);
 }
-
-#endif  //  SPECIAL_FUNCTIONS_H

@@ -1,6 +1,3 @@
-#ifndef GAMMA_MANAGEMENT_H
-#define GAMMA_MANAGEMENT_H
-
 ///////////////////////////////  BASE CONSTANTS  ///////////////////////////////
 
 //  Set standard gamma constants, but allow users to override them:
@@ -161,5 +158,3 @@ vec4 encode_output(const vec4 color)
 //#define tex2D_linearize(C, D, E) decode_input(vec4(texture(C, D, E)))
 //vec4 tex2D_linearize(const sampler2D tex, const vec2 tex_coords, const int texel_off)
 //{   return decode_input(vec4(texture(tex, tex_coords, texel_off)));    }
-
-#endif  //  GAMMA_MANAGEMENT_H

@@ -215,6 +215,220 @@ vec4 tex2Dlod0try(const sampler2D tex, const vec2 tex_uv)
 
 ////////////////////////////  RESAMPLING FUNCTIONS  ////////////////////////////
 
+vec3 downsample_vertical_sinc_tiled(const sampler2D texture,
+    const vec2 tex_uv, const vec2 texture_size, const float dr,
+    const float magnification_scale, const float tile_size_uv_r)
+{
+    //  Requires:   1.) dr == du == 1.0/texture_size.x or
+    //                  dr == dv == 1.0/texture_size.y
+    //                  (whichever direction we're resampling in).
+    //                  It's a scalar to save register space.
+    //              2.) tile_size_uv_r is the number of texels an input tile
+    //                  takes up in the input texture, in the direction we're
+    //                  resampling this pass.
+    //              3.) magnification_scale must be <= 1.0.
+    //  Returns:    Return a [Lanczos] sinc-resampled pixel of a vertically
+    //              downsized input tile embedded in an input texture.  (The
+    //              vertical version is special-cased though: It assumes the
+    //              tile size equals the [static] texture size, since it's used
+    //              on an LUT texture input containing one tile.  For more
+    //              generic use, eliminate the "static" in the parameters.)
+    //  The "r" in "dr," "tile_size_uv_r," etc. refers to the dimension
+    //  we're resizing along, e.g. "dy" in this case.
+    #ifdef USE_SINGLE_STATIC_LOOP
+        //  A static loop can be faster, but it might blur too much from using
+        //  more samples than it should.
+        const int samples = int(max_sinc_resize_samples_m4);
+    #else
+        const int samples = int(get_dynamic_loop_size(magnification_scale));
+    #endif
+
+    //  Get the first sample location (scalar tile uv coord along the resized
+    //  dimension) and distance from the output location (in texels):
+    const float input_tiles_per_texture_r = 1.0/tile_size_uv_r;
+    //  true = vertical resize:
+    const vec2 first_texel_tile_r_and_dist = get_first_texel_tile_uv_and_dist(
+        tex_uv, texture_size, dr, input_tiles_per_texture_r, samples, true);
+    const vec4 first_texel_tile_uv_rrrr = first_texel_tile_r_and_dist.xxxx;
+    const vec4 first_dist_unscaled = first_texel_tile_r_and_dist.yyyy;
+    //  Get the tile sample offset:
+    const float tile_dr = dr * input_tiles_per_texture_r;
+
+    //  Sum up each weight and weighted sample color, varying the looping
+    //  strategy based on our expected dynamic loop capabilities.  See the
+    //  loop body macros above.
+    int i_base = 0;
+    vec4 weight_sum = vec4(0.0);
+    vec3 pixel_color = vec3(0.0);
+    const int i_step = 4;
+    #ifdef BREAK_LOOPS_INTO_PIECES
+        if(samples - i_base >= 64)
+        {
+            for(int i = 0; i < 64; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 64;
+        }
+        if(samples - i_base >= 32)
+        {
+            for(int i = 0; i < 32; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 32;
+        }
+        if(samples - i_base >= 16)
+        {
+            for(int i = 0; i < 16; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 16;
+        }
+        if(samples - i_base >= 8)
+        {
+            for(int i = 0; i < 8; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 8;
+        }
+        if(samples - i_base >= 4)
+        {
+            for(int i = 0; i < 4; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 4;
+        }
+        //  Do another 4-sample block for a total of 128 max samples.
+        if(samples - i_base > 0)
+        {
+            for(int i = 0; i < 4; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+        }
+    #else
+        for(int i = 0; i < samples; i += i_step)
+        {
+            VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+        }
+    #endif
+    //  Normalize so the weight_sum == 1.0, and return:
+    const vec2 weight_sum_reduce = weight_sum.xy + weight_sum.zw;
+    const vec3 scalar_weight_sum = vec3(weight_sum_reduce.x + 
+        weight_sum_reduce.y);
+    return (pixel_color/scalar_weight_sum);
+}
+
+vec3 downsample_horizontal_sinc_tiled(const sampler2D texture,
+    const vec2 tex_uv, const vec2 texture_size, const float dr,
+    const float magnification_scale, const float tile_size_uv_r)
+{
+    //  Differences from downsample_horizontal_sinc_tiled:
+    //  1.) The dr and tile_size_uv_r parameters are not static consts.
+    //  2.) The "vertical" parameter to get_first_texel_tile_uv_and_dist is
+    //      set to false instead of true.
+    //  3.) The horizontal version of the loop body is used.
+    //  TODO: If we can get guaranteed compile-time dead code elimination,
+    //  we can combine the vertical/horizontal downsampling functions by:
+    //  1.) Add an extra static const bool parameter called "vertical."
+    //  2.) Supply it with the result of get_first_texel_tile_uv_and_dist().
+    //  3.) Use a conditional assignment in the loop body macro.  This is the
+    //      tricky part: We DO NOT want to incur the extra conditional
+    //      assignment in the inner loop at runtime!
+    //  The "r" in "dr," "tile_size_uv_r," etc. refers to the dimension
+    //  we're resizing along, e.g. "dx" in this case.
+    #ifdef USE_SINGLE_STATIC_LOOP
+        //  If we have to load all samples, we might as well use them.
+        const int samples = int(max_sinc_resize_samples_m4);
+    #else
+        const int samples = int(get_dynamic_loop_size(magnification_scale));
+    #endif
+
+    //  Get the first sample location (scalar tile uv coord along resized
+    //  dimension) and distance from the output location (in texels):
+    const float input_tiles_per_texture_r = 1.0/tile_size_uv_r;
+    //  false = horizontal resize:
+    const vec2 first_texel_tile_r_and_dist = get_first_texel_tile_uv_and_dist(
+        tex_uv, texture_size, dr, input_tiles_per_texture_r, samples, false);
+    const vec4 first_texel_tile_uv_rrrr = first_texel_tile_r_and_dist.xxxx;
+    const vec4 first_dist_unscaled = first_texel_tile_r_and_dist.yyyy;
+    //  Get the tile sample offset:
+    const float tile_dr = dr * input_tiles_per_texture_r;
+
+    //  Sum up each weight and weighted sample color, varying the looping
+    //  strategy based on our expected dynamic loop capabilities.  See the
+    //  loop body macros above.
+    int i_base = 0;
+    vec4 weight_sum = vec4(0.0);
+    vec3 pixel_color = vec3(0.0);
+    const int i_step = 4;
+    #ifdef BREAK_LOOPS_INTO_PIECES
+        if(samples - i_base >= 64)
+        {
+            for(int i = 0; i < 64; i += i_step)
+            {
+                HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 64;
+        }
+        if(samples - i_base >= 32)
+        {
+            for(int i = 0; i < 32; i += i_step)
+            {
+                HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 32;
+        }
+        if(samples - i_base >= 16)
+        {
+            for(int i = 0; i < 16; i += i_step)
+            {
+                HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 16;
+        }
+        if(samples - i_base >= 8)
+        {
+            for(int i = 0; i < 8; i += i_step)
+            {
+                HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 8;
+        }
+        if(samples - i_base >= 4)
+        {
+            for(int i = 0; i < 4; i += i_step)
+            {
+                HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 4;
+        }
+        //  Do another 4-sample block for a total of 128 max samples.
+        if(samples - i_base > 0)
+        {
+            for(int i = 0; i < 4; i += i_step)
+            {
+                HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+        }
+    #else
+        for(int i = 0; i < samples; i += i_step)
+        {
+            HORIZONTAL_SINC_RESAMPLE_LOOP_BODY;
+        }
+    #endif
+    //  Normalize so the weight_sum == 1.0, and return:
+    const vec2 weight_sum_reduce = weight_sum.xy + weight_sum.zw;
+    const vec3 scalar_weight_sum = vec3(weight_sum_reduce.x +
+        weight_sum_reduce.y);
+    return (pixel_color/scalar_weight_sum);
+}
+
+
 ////////////////////////////  TILE SIZE CALCULATION  ///////////////////////////
 
 vec2 get_resized_mask_tile_size(const vec2 estimated_viewport_size,
@@ -317,6 +531,147 @@ vec2 get_resized_mask_tile_size(const vec2 estimated_viewport_size,
     return final_resized_tile_size;
 }
 
+
+/////////////////////////  FINAL MASK SAMPLING HELPERS  ////////////////////////
+
+vec4 get_mask_sampling_parameters(const vec2 mask_resize_texture_size,
+    const vec2 mask_resize_video_size, const vec2 true_viewport_size,
+    out vec2 mask_tiles_per_screen)
+{
+    //  Requires:   1.) Requirements of get_resized_mask_tile_size() must be
+    //                  met, particularly regarding global constants.
+    //              The function parameters must be defined as follows:
+    //              1.) mask_resize_texture_size == MASK_RESIZE.texture_size
+    //                  if get_mask_sample_mode() is 0 (otherwise anything)
+    //              2.) mask_resize_video_size == MASK_RESIZE.video_size
+    //                  if get_mask_sample_mode() is 0 (otherwise anything)
+    //              3.) true_viewport_size == IN.output_size for a pass set to
+    //                  1.0 viewport scale (i.e. it must be correct)
+    //  Returns:    Return a vec4 containing:
+    //                  xy: tex_uv coords for the start of the mask tile
+    //                  zw: tex_uv size of the mask tile from start to end
+    //              mask_tiles_per_screen is an out parameter containing the
+    //              number of mask tiles that will fit on the screen.
+    //  First get the final resized tile size.  The viewport size and mask
+    //  resize viewport scale must be correct, but don't solemnly swear they
+    //  were correct in both mask resize passes unless you know it's true.
+    //  (We can better ensure a correct tile aspect ratio if the parameters are
+    //  guaranteed correct in all passes...but if we lie, we'll get inconsistent
+    //  sizes across passes, resulting in broken texture coordinates.)
+    const float mask_sample_mode = get_mask_sample_mode();
+    const vec2 mask_resize_tile_size = get_resized_mask_tile_size(
+        true_viewport_size, mask_resize_video_size, false);
+    if(mask_sample_mode < 0.5)
+    {
+        //  Sample MASK_RESIZE: The resized tile is a fracttion of the texture
+        //  size and starts at a nonzero offset to allow for border texels:
+        const vec2 mask_tile_uv_size = mask_resize_tile_size /
+            mask_resize_texture_size;
+        const vec2 skipped_tiles = mask_start_texels/mask_resize_tile_size;
+        const vec2 mask_tile_start_uv = skipped_tiles * mask_tile_uv_size;
+        //  mask_tiles_per_screen must be based on the *true* viewport size:
+        mask_tiles_per_screen = true_viewport_size / mask_resize_tile_size;
+        return vec4(mask_tile_start_uv, mask_tile_uv_size);
+    }
+    else
+    {
+        //  If we're tiling at the original size (1:1 pixel:texel), redefine a
+        //  "tile" to be the full texture containing many triads.  Otherwise,
+        //  we're hardware-resampling an LUT, and the texture truly contains a
+        //  single unresized phosphor mask tile anyway.
+        const vec2 mask_tile_uv_size = vec2(1.0);
+        const vec2 mask_tile_start_uv = vec2(0.0);
+        if(mask_sample_mode > 1.5)
+        {
+            //  Repeat the full LUT at a 1:1 pixel:texel ratio without resizing:
+            mask_tiles_per_screen = true_viewport_size/mask_texture_large_size;
+        }
+        else
+        {
+            //  Hardware-resize the original LUT:
+            mask_tiles_per_screen = true_viewport_size / mask_resize_tile_size;
+        }
+        return vec4(mask_tile_start_uv, mask_tile_uv_size);
+    }
+}
+
+vec2 fix_tiling_discontinuities_normalized(const vec2 tile_uv,
+    vec2 duv_dx, vec2 duv_dy)
+{
+    //  Requires:   1.) duv_dx == ddx(tile_uv)
+    //              2.) duv_dy == ddy(tile_uv)
+    //              3.) tile_uv contains tile-relative uv coords in [0, 1],
+    //                  such that (0.5, 0.5) is the center of a tile, etc.
+    //                  ("Tile" can mean texture, the video embedded in the
+    //                  texture, or some other "tile" embedded in a texture.)
+    //  Returns:    Return new tile_uv coords that contain no discontinuities
+    //              across a 2x2 pixel quad.
+    //  Description:
+    //  When uv coords wrap from 1.0 to 0.0, they create a discontinuity in the
+    //  derivatives, which we assume happened if the absolute difference between
+    //  any fragment in a 2x2 block is > ~half a tile.  If the current block has
+    //  a u or v discontinuity and the current fragment is in the first half of
+    //  the tile along that axis (i.e. it wrapped from 1.0 to 0.0), add a tile
+    //  to that coord to make the 2x2 block continuous.  (It will now have a
+    //  coord > 1.0 in the padding area beyond the tile.)  This function takes
+    //  derivatives as parameters so the caller can reuse them.
+    //  In case we're using high-quality (nVidia-style) derivatives, ensure
+    //  diagonically opposite fragments see each other for correctness:
+    duv_dx = abs(duv_dx) + abs(ddy(duv_dx));
+    duv_dy = abs(duv_dy) + abs(ddx(duv_dy));
+    const vec2 pixel_in_first_half_tile = vec2(tile_uv < vec2(0.5));
+    const vec2 jump_exists = vec2(duv_dx + duv_dy > vec2(0.5));
+    return tile_uv + jump_exists * pixel_in_first_half_tile;
+}
+
+vec2 convert_phosphor_tile_uv_wrap_to_tex_uv(const vec2 tile_uv_wrap,
+    const vec4 mask_tile_start_uv_and_size)
+{
+    //  Requires:   1.) tile_uv_wrap contains tile-relative uv coords, where the
+    //                  tile spans from [0, 1], such that (0.5, 0.5) is at the
+    //                  tile center.  The input coords can range from [0, inf],
+    //                  and their fracttional parts map to a repeated tile.
+    //                  ("Tile" can mean texture, the video embedded in the
+    //                  texture, or some other "tile" embedded in a texture.)
+    //              2.) mask_tile_start_uv_and_size.xy contains tex_uv coords
+    //                  for the start of the embedded tile in the full texture.
+    //              3.) mask_tile_start_uv_and_size.zw contains the [fracttional]
+    //                  tex_uv size of the embedded tile in the full texture.
+    //  Returns:    Return tex_uv coords (used for texture sampling)
+    //              corresponding to tile_uv_wrap.
+    if(get_mask_sample_mode() < 0.5)
+    {
+        //  Manually repeat the resized mask tile to fill the screen:
+        //  First get fracttional tile_uv coords.  Using fract/fmod on coords
+        //  confuses anisotropic filtering; fix it as user options dictate.
+        //  derived-settings-and-constants.h disables incompatible options.
+        #ifdef ANISOTROPIC_TILING_COMPAT_TILE_FLAT_TWICE
+            vec2 tile_uv = fract(tile_uv_wrap * 0.5) * 2.0;
+        #else
+            vec2 tile_uv = fract(tile_uv_wrap);
+        #endif
+        #ifdef ANISOTROPIC_TILING_COMPAT_FIX_DISCONTINUITIES
+            const vec2 tile_uv_dx = ddx(tile_uv);
+            const vec2 tile_uv_dy = ddy(tile_uv);
+            tile_uv = fix_tiling_discontinuities_normalized(tile_uv,
+                tile_uv_dx, tile_uv_dy);
+        #endif
+        //  The tile is embedded in a padded FBO, and it may start at a
+        //  nonzero offset if border texels are used to avoid artifacts:
+        const vec2 mask_tex_uv = mask_tile_start_uv_and_size.xy +
+            tile_uv * mask_tile_start_uv_and_size.zw;
+        return mask_tex_uv;
+    }
+    else
+    {
+        //  Sample from the input phosphor mask texture with hardware tiling.
+        //  If we're tiling at the original size (mode 2), the "tile" is the
+        //  whole texture, and it contains a large number of triads mapped with
+        //  a 1:1 pixel:texel ratio.  OTHERWISE, the texture contains a single
+        //  unresized tile.  tile_uv_wrap already has correct coords for both!
+        return tile_uv_wrap;
+    }
+}
 
 
 #endif  //  PHOSPHOR_MASK_RESIZING_H

@@ -1,5 +1,4 @@
-#ifndef BLUR_FUNCTIONS_H
-#define BLUR_FUNCTIONS_H
+#define BLUR_FUNCTIONS
 
 /////////////////////////////////  MIT LICENSE  ////////////////////////////////
 
@@ -280,41 +279,3 @@ vec3 tex2Dblur3x3resize(const sampler2D texture, const vec2 tex_uv,
 {
     return tex2Dblur3x3resize(texture, tex_uv, dxdy, blur3_std_dev);
 }
-
-vec3 tex2Dblur9fast(const sampler2D tex, const vec2 tex_uv,
-    const vec2 dxdy, const float sigma)
-{
-    //  Requires:   Same as tex2Dblur11()
-    //  Returns:    A 1D 9x Gaussian blurred texture lookup using 1 nearest
-    //              neighbor and 4 linear taps.  It may be mipmapped depending
-    //              on settings and dxdy.
-    //  First get the texel weights and normalization factor as above.
-    const float denom_inv = 0.5/(sigma*sigma);
-    const float w0 = 1.0;
-    const float w1 = exp(-1.0 * denom_inv);
-    const float w2 = exp(-4.0 * denom_inv);
-    const float w3 = exp(-9.0 * denom_inv);
-    const float w4 = exp(-16.0 * denom_inv);
-    const float weight_sum_inv = 1.0 / (w0 + 2.0 * (w1 + w2 + w3 + w4));
-    //  Calculate combined weights and linear sample ratios between texel pairs.
-    const float w12 = w1 + w2;
-    const float w34 = w3 + w4;
-    const float w12_ratio = w2/w12;
-    const float w34_ratio = w4/w34;
-    //  Statically normalize weights, sum weighted samples, and return:
-    vec3 sum = vec3(0.0);
-    sum += w34 * tex2D_linearize(tex, tex_uv - (3.0 + w34_ratio) * dxdy).rgb;
-    sum += w12 * tex2D_linearize(tex, tex_uv - (1.0 + w12_ratio) * dxdy).rgb;
-    sum += w0 * tex2D_linearize(tex, tex_uv).rgb;
-    sum += w12 * tex2D_linearize(tex, tex_uv + (1.0 + w12_ratio) * dxdy).rgb;
-    sum += w34 * tex2D_linearize(tex, tex_uv + (3.0 + w34_ratio) * dxdy).rgb;
-    return sum * weight_sum_inv;
-}
-
-vec3 tex2Dblur9fast(const sampler2D tex, const vec2 tex_uv,
-    const vec2 dxdy)
-{
-    return tex2Dblur9fast(tex, tex_uv, dxdy, blur9_std_dev);
-}
-
-#endif  //  BLUR_FUNCTIONS_H

@@ -1,3 +1,6 @@
+#ifndef SCANLINE_FUNCTIONS_H
+#define SCANLINE_FUNCTIONS_H
+
 /////////////////////////////  GPL LICENSE NOTICE  /////////////////////////////
 
 //  crt-royale: A full-featured CRT shader, with cheese.
@@ -351,3 +354,5 @@ vec3 scanline_contrib(vec3 dist, vec3 color,
         }
     }
 }
+
+#endif  //  SCANLINE_FUNCTIONS_H

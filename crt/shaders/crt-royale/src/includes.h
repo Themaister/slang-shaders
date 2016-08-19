@@ -8,3 +8,4 @@
 #include "blur-functions.h" //#include "../../../../include/blur-functions.h" <-move includes into crt-royale's src directory until it's actually working
 #include "scanline-functions.h"
 #include "bloom-functions.h"
+#include "phosphor-mask-resizing.h"

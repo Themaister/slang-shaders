@@ -1,7 +1,6 @@
 #ifndef SPECIAL_FUNCTIONS_H
 #define SPECIAL_FUNCTIONS_H
 
-
 /////////////////////////////////  MIT LICENSE  ////////////////////////////////
 
 //  Copyright (C) 2014 TroggleMonkey
@@ -167,6 +166,7 @@ float erf(const float x)
 	#endif
 }
 
+
 ///////////////////////////  COMPLETE GAMMA FUNCTION  //////////////////////////
 
 vec4 gamma_impl(const vec4 s, const vec4 s_inv)
@@ -262,6 +262,7 @@ float gamma(const float s)
     //  Float version:
 	return gamma_impl(s, 1.0/s);
 }
+
 
 ////////////////  INCOMPLETE GAMMA FUNCTIONS (RESTRICTED INPUT)  ///////////////
 
@@ -416,12 +417,11 @@ vec4 normalized_ligamma_impl(const vec4 s, const vec4 z,
     //                  http://oai.cwi.nl/oai/asset/20433/20433B.pdf
 	//  Evaluate both branches: Real branches test slower even when available.
 	const vec4 thresh = vec4(0.775075);
-	bvec4 z_is_large = greaterThan(z , thresh);
-	vec4 z_size_check = vec4(z_is_large.x ? 1.0 : 0.0, z_is_large.y ? 1.0 : 0.0, z_is_large.z ? 1.0 : 0.0, z_is_large.w ? 1.0 : 0.0);
+	const bool4 z_is_large = z > thresh;
 	const vec4 large_z = vec4(1.0) - uigamma_large_z_impl(s, z) * gamma_s_inv;
 	const vec4 small_z = ligamma_small_z_impl(s, z, s_inv) * gamma_s_inv;
 	//  Combine the results from both branches:
-	return large_z * vec4(z_size_check) + small_z * vec4(z_size_check);
+	return large_z * vec4(z_is_large) + small_z * vec4(!z_is_large);
 }
 
 vec3 normalized_ligamma_impl(const vec3 s, const vec3 z,
@@ -429,11 +429,10 @@ vec3 normalized_ligamma_impl(const vec3 s, const vec3 z,
 {
     //  vec3 version:
 	const vec3 thresh = vec3(0.775075);
-	bvec3 z_is_large = greaterThan(z , thresh);
-	vec3 z_size_check = vec3(z_is_large.x ? 1.0 : 0.0, z_is_large.y ? 1.0 : 0.0, z_is_large.z ? 1.0 : 0.0);
+	const bool3 z_is_large = z > thresh;
 	const vec3 large_z = vec3(1.0) - uigamma_large_z_impl(s, z) * gamma_s_inv;
 	const vec3 small_z = ligamma_small_z_impl(s, z, s_inv) * gamma_s_inv;
-	return large_z * vec3(z_size_check) + small_z * vec3(z_size_check);
+	return large_z * vec3(z_is_large) + small_z * vec3(!z_is_large);
 }
 
 vec2 normalized_ligamma_impl(const vec2 s, const vec2 z,
@@ -441,11 +440,10 @@ vec2 normalized_ligamma_impl(const vec2 s, const vec2 z,
 {
     //  vec2 version:
 	const vec2 thresh = vec2(0.775075);
-	bvec2 z_is_large = greaterThan(z , thresh);
-	vec2 z_size_check = vec2(z_is_large.x ? 1.0 : 0.0, z_is_large.y ? 1.0 : 0.0);
+	const bool2 z_is_large = z > thresh;
 	const vec2 large_z = vec2(1.0) - uigamma_large_z_impl(s, z) * gamma_s_inv;
 	const vec2 small_z = ligamma_small_z_impl(s, z, s_inv) * gamma_s_inv;
-	return large_z * vec2(z_size_check) + small_z * vec2(z_size_check);
+	return large_z * vec2(z_is_large) + small_z * vec2(!z_is_large);
 }
 
 float normalized_ligamma_impl(const float s, const float z,
@@ -453,11 +451,10 @@ float normalized_ligamma_impl(const float s, const float z,
 {
     //  Float version:
 	const float thresh = 0.775075;
-	float z_size_check = 0.0;
-	if (z > thresh) z_size_check = 1.0;
+	const bool z_is_large = z > thresh;
 	const float large_z = 1.0 - uigamma_large_z_impl(s, z) * gamma_s_inv;
 	const float small_z = ligamma_small_z_impl(s, z, s_inv) * gamma_s_inv;
-	return large_z * float(z_size_check) + small_z * float(z_size_check);
+	return large_z * float(z_is_large) + small_z * float(!z_is_large);
 }
 
 //  Normalized lower incomplete gamma function for small s:
@@ -495,4 +492,7 @@ float normalized_ligamma(const float s, const float z)
 	return normalized_ligamma_impl(s, z, s_inv, gamma_s_inv);
 }
 
+
 #endif  //  SPECIAL_FUNCTIONS_H
+
+
