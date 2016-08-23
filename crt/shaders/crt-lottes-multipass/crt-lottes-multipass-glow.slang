@@ -14,6 +14,7 @@ layout(push_constant) uniform Push
 	float bloomAmount;
 	float hardBloomScan;
 	float shape;
+	float glowFactor;
 } params;
 
 #pragma parameter hardScan "hardScan" -8.0 -20.0 0.0 1.0
@@ -21,10 +22,11 @@ layout(push_constant) uniform Push
 #pragma parameter warpY "warpY" 0.041 0.0 0.125 0.01
 #pragma parameter maskDark "maskDark" 0.5 0.0 2.0 0.1
 #pragma parameter maskLight "maskLight" 1.5 0.0 2.0 0.1
-#pragma parameter shadowMask "shadowMask" 3.0 0.0 4.0 1.0
+#pragma parameter shadowMask "shadowMask" 1.0 0.0 4.0 1.0
 #pragma parameter hardBloomScan "bloom-y soft" -2.0 -4.0 -1.0 0.1
 #pragma parameter bloomAmount "bloom amount" 0.15 0.0 1.0 0.05
 #pragma parameter shape "filter kernel shape" 2.0 0.0 10.0 0.05
+#pragma parameter glowFactor "Glow Strength" 0.2 0.0 1.0 0.01
 
 #define DO_BLOOM
 
@@ -69,6 +71,7 @@ layout(set = 0, binding = 6) uniform sampler2D horz5plus2;
 layout(set = 0, binding = 7) uniform sampler2D horz7minus1;
 layout(set = 0, binding = 8) uniform sampler2D horz7;
 layout(set = 0, binding = 9) uniform sampler2D horz7plus1;
+layout(set = 0, binding = 10) uniform sampler2D HALATION_BLUR;
 
 // Linear to sRGB.
 // Assuming using sRGB typed textures this should not be needed.
@@ -223,6 +226,9 @@ void main()
 
     if (params.shadowMask > 0.0)
         outColor.rgb *= Mask(vTexCoord.xy / params.OutputSize.zw * 1.000001);
+		
+	if (params.glowFactor > 0.0)
+		outColor = mix(outColor, pow(texture(HALATION_BLUR, pos).rgb, mix(vec3(0.75), vec3(0.1), params.glowFactor)), params.glowFactor);
 
     FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
 }
