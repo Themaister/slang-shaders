@@ -44,7 +44,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float border_size;
     float border_darkness;
     float border_compress;
-    float interlace_bff;
     float interlace_1080i;
 } params;
 
@@ -92,5 +91,4 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #pragma parameter border_size "border_size" 0.015 0.0000001 0.5 0.005
 #pragma parameter border_darkness "border_darkness" 2.0 0.0 16.0 0.0625
 #pragma parameter border_compress "border_compress" 2.5 1.0 64.0 0.0625
-#pragma parameter interlace_bff "interlace_bff" 0.0 0.0 1.0 1.0
 #pragma parameter interlace_1080i "interlace_1080i" 0.0 0.0 1.0 1.0

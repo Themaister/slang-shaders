@@ -6,6 +6,14 @@ layout(push_constant) uniform Push
 	uint FrameCount;
 } registers;
 
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+	mat4 MVP;
+    float interlace_bff;
+} params;
+
+#pragma parameter interlace_bff "interlace_bff" 0.0 0.0 1.0 1.0
+
 /////////////////////////////  GPL LICENSE NOTICE  /////////////////////////////
 
 //  crt-royale: A full-featured CRT shader, with cheese.
@@ -34,7 +42,7 @@ layout(push_constant) uniform Push
 #define FIRST_PASS
 #define SIMULATE_CRT_ON_LCD
 
-#include "params.inc"
+//#include "params.inc"
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 

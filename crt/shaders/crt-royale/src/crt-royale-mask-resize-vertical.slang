@@ -6,12 +6,9 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-} params;
+} registers;
 
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
+#include "params.inc"
 
 /////////////////////////////  GPL LICENSE NOTICE  /////////////////////////////
 
@@ -40,7 +37,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "includes.h"
 #include "phosphor-mask-resizing.h"
 
 #pragma stage vertex
@@ -52,12 +48,12 @@ layout(location = 2) out vec2 resize_magnification_scale;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
+   gl_Position = params.MVP * Position;
    tex_uv = TexCoord;
    
     //  First estimate the viewport size (the user will get the wrong number of
     //  triads if it's wrong and mask_specify_num_triads is 1.0/true).
-    const float viewport_y = params.OutputSize.y / mask_resize_viewport_scale.y;
+    const float viewport_y = registers.OutputSize.y / mask_resize_viewport_scale.y;
     const float aspect_ratio = geom_aspect_ratio_x / geom_aspect_ratio_y;
     const vec2 estimated_viewport_size =
         vec2(viewport_y * aspect_ratio, viewport_y);
@@ -66,23 +62,23 @@ void main()
     //  we're not swearing it's correct (if we did, the x result would influence
     //  the y result to maintain the tile aspect ratio).
     const vec2 estimated_mask_resize_output_size =
-        vec2(params.OutputSize.y * aspect_ratio, params.OutputSize.y);
+        vec2(registers.OutputSize.y * aspect_ratio, registers.OutputSize.y);
     //  Find the final intended [y] size of our resized phosphor mask tiles,
     //  then the tile size for the current pass (resize y only):
     const vec2 mask_resize_tile_size = get_resized_mask_tile_size(
         estimated_viewport_size, estimated_mask_resize_output_size, false);
     const vec2 pass_output_tile_size = vec2(min(
-        mask_resize_src_lut_size.x, params.OutputSize.x), mask_resize_tile_size.y);
+        mask_resize_src_lut_size.x, registers.OutputSize.x), mask_resize_tile_size.y);
 
     //  We'll render resized tiles until filling the output FBO or meeting a
     //  limit, so compute [wrapped] tile uv coords based on the output uv coords
     //  and the number of tiles that will fit in the FBO.
-    const vec2 output_tiles_this_pass = params.OutputSize.xy / pass_output_tile_size;
+    const vec2 output_tiles_this_pass = registers.OutputSize.xy / pass_output_tile_size;
     const vec2 output_video_uv = tex_uv;
     const vec2 tile_uv_wrap = output_video_uv * output_tiles_this_pass;
 
     //  The input LUT is just a single mask tile, so texture uv coords are the
-    //  same as tile uv coords (save frac() for the fragment shader).  The
+    //  same as tile uv coords (save fract() for the fragment shader).  The
     //  magnification scale is also straightforward:
     src_tex_uv_wrap = tile_uv_wrap;
     resize_magnification_scale =
@@ -116,7 +112,7 @@ void main()
             tile_uv_wrap.y <= mask_resize_num_tiles)
         {
             const float src_dy = 1.0/mask_resize_src_lut_size.y;
-            const vec2 src_tex_uv = frac(src_tex_uv_wrap);
+            const vec2 src_tex_uv = fract(src_tex_uv_wrap);
             vec3 pixel_color;
             //  If mask_type is static, this branch will be resolved statically.
             if(mask_type < 0.5)
@@ -170,7 +166,7 @@ void main()
             tile_uv_wrap.y <= mask_resize_num_tiles)
         {
             const float src_dy = 1.0/mask_resize_src_lut_size.y;
-            const vec2 src_tex_uv = frac(src_tex_uv_wrap);
+            const vec2 src_tex_uv = fract(src_tex_uv_wrap);
             vec3 pixel_color;
             //  If mask_type is static, this branch will be resolved statically.
             if(mask_type < 0.5)

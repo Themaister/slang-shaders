@@ -41,6 +41,45 @@
 #endif  //  No else needed: Dynamic loops assumed.
 
 
+    #define CALCULATE_R_COORD_FOR_4_SAMPLES                                    \
+        const vec4 true_i = vec4(i_base + i) + vec4(0.0, 1.0, 2.0, 3.0); \
+        const vec4 tile_uv_r = fract(                                         \
+            first_texel_tile_uv_rrrr + true_i * tile_dr);                      \
+        const vec4 tex_uv_r = tile_uv_r * tile_size_uv_r;
+
+    #define VERTICAL_SINC_RESAMPLE_LOOP_BODY                                   \
+        CALCULATE_R_COORD_FOR_4_SAMPLES;                                       \
+        const vec3 new_sample0 = tex2Dlod0try(texture,                       \
+            vec2(tex_uv.x, tex_uv_r.x)).rgb;                                 \
+        const vec3 new_sample1 = tex2Dlod0try(texture,                       \
+            vec2(tex_uv.x, tex_uv_r.y)).rgb;                                 \
+        const vec3 new_sample2 = tex2Dlod0try(texture,                       \
+            vec2(tex_uv.x, tex_uv_r.z)).rgb;                                 \
+        const vec3 new_sample3 = tex2Dlod0try(texture,                       \
+            vec2(tex_uv.x, tex_uv_r.w)).rgb;                                 \
+        UPDATE_COLOR_AND_WEIGHT_SUMS;
+		
+	#define UPDATE_COLOR_AND_WEIGHT_SUMS                                       \
+        const vec4 dist = magnification_scale *                              \
+            abs(first_dist_unscaled - true_i);                                 \
+        const vec4 pi_dist = pi * dist;                                      \
+        CALCULATE_SINC_RESAMPLE_WEIGHTS;                                       \
+        pixel_color += new_sample0 * weights.xxx;                              \
+        pixel_color += new_sample1 * weights.yyy;                              \
+        pixel_color += new_sample2 * weights.zzz;                              \
+        pixel_color += new_sample3 * weights.www;                              \
+        weight_sum += weights;
+		
+	#ifdef PHOSPHOR_MASK_RESIZE_LANCZOS_WINDOW
+        #define CALCULATE_SINC_RESAMPLE_WEIGHTS                                \
+            const vec4 pi_dist_over_lobes = pi_over_lobes * dist;            \
+            const vec4 weights = min(sin(pi_dist) * sin(pi_dist_over_lobes) /\
+                (pi_dist*pi_dist_over_lobes), vec4(1.0));
+    #else
+        #define CALCULATE_SINC_RESAMPLE_WEIGHTS                                \
+            const vec4 weights = min(sin(pi_dist)/pi_dist, vec4(1.0));
+    #endif
+
 //////////////////////////////////  CONSTANTS  /////////////////////////////////
 
 //  The larger the resized tile, the fewer samples we'll need for downsizing.
@@ -56,9 +95,8 @@ const float max_sinc_resize_samples_float = 2.0 * mask_sinc_lobes *
 //  Vectorized loops sample in multiples of 4.  Round up to be safe:
 const float max_sinc_resize_samples_m4 = ceil(
     max_sinc_resize_samples_float * 0.25) * 4.0;
-
-
-/////////////////////////  RESAMPLING FUNCTION HELPERS  ////////////////////////
+	
+	/////////////////////////  RESAMPLING FUNCTION HELPERS  ////////////////////////
 
 float get_dynamic_loop_size(const float magnification_scale)
 {
@@ -113,8 +151,9 @@ vec2 get_first_texel_tile_uv_and_dist(const vec2 tex_uv,
         first_texel_uv_wrap_2D * input_tiles_per_texture_r;
     //  Project wrapped coordinates to the [0, 1] range.  We'll do this with all
     //  samples,but the first texel is special, since it might be negative.
-    const vec2 coord_negative =
-        vec2(first_texel_tile_uv_wrap_2D < vec2(0.0));
+    vec2 coord_negative = vec2(0.0);
+        if(first_texel_tile_uv_wrap_2D.x < 0.0) coord_negative.x = first_texel_tile_uv_wrap_2D.x;
+		if(first_texel_tile_uv_wrap_2D.x < 0.0) coord_negative.y = first_texel_tile_uv_wrap_2D.y;
     const vec2 first_texel_tile_uv_2D =
         fract(first_texel_tile_uv_wrap_2D) + coord_negative;
     //  Pack the first texel's tile_uv coord and texel distance in 1D:
@@ -140,81 +179,7 @@ vec4 tex2Dlod0try(const sampler2D tex, const vec2 tex_uv)
         #endif
     #endif
 }
-
-
-//////////////////////////////  LOOP BODY MACROS  //////////////////////////////
-
-//  Using inline functions can exceed the temporary register limit, so we're
-//  stuck with #define macros (I'm TRULY sorry).  They're declared here instead
-//  of above to be closer to the actual invocation sites.  Steps:
-//  1.) Get the exact texel location.
-//  2.) Sample the phosphor mask (already assumed encoded in linear RGB).
-//  3.) Get the distance from the current pixel and sinc weight:
-//          sinc(dist) = sin(pi * dist)/(pi * dist)
-//      We can also use the slower/smoother Lanczos instead:
-//          L(x) = sinc(dist) * sinc(dist / lobes)
-//  4.) Accumulate the weight sum in weights, and accumulate the weighted texels
-//      in pixel_color (we'll normalize outside the loop at the end).
-//  We vectorize the loop to help reduce the Lanczos window's cost.
-
-    //  The r coord is the coord in the dimension we're resizing along (u or v),
-    //  and first_texel_tile_uv_rrrr is a vec4 of the first texel's u or v
-    //  tile_uv coord in [0, 1].  tex_uv_r will contain the tile_uv u or v coord
-    //  for four new texel samples.
-    #define CALCULATE_R_COORD_FOR_4_SAMPLES                                    \
-        const vec4 true_i = vec4(i_base + i) + vec4(0.0, 1.0, 2.0, 3.0); \
-        const vec4 tile_uv_r = fract(                                         \
-            first_texel_tile_uv_rrrr + true_i * tile_dr);                      \
-        const vec4 tex_uv_r = tile_uv_r * tile_size_uv_r;
-
-    #ifdef PHOSPHOR_MASK_RESIZE_LANCZOS_WINDOW
-        #define CALCULATE_SINC_RESAMPLE_WEIGHTS                                \
-            const vec4 pi_dist_over_lobes = pi_over_lobes * dist;            \
-            const vec4 weights = min(sin(pi_dist) * sin(pi_dist_over_lobes) /\
-                (pi_dist*pi_dist_over_lobes), vec4(1.0));
-    #else
-        #define CALCULATE_SINC_RESAMPLE_WEIGHTS                                \
-            const vec4 weights = min(sin(pi_dist)/pi_dist, vec4(1.0));
-    #endif
-
-    #define UPDATE_COLOR_AND_WEIGHT_SUMS                                       \
-        const vec4 dist = magnification_scale *                              \
-            abs(first_dist_unscaled - true_i);                                 \
-        const vec4 pi_dist = pi * dist;                                      \
-        CALCULATE_SINC_RESAMPLE_WEIGHTS;                                       \
-        pixel_color += new_sample0 * weights.xxx;                              \
-        pixel_color += new_sample1 * weights.yyy;                              \
-        pixel_color += new_sample2 * weights.zzz;                              \
-        pixel_color += new_sample3 * weights.www;                              \
-        weight_sum += weights;
-
-    #define VERTICAL_SINC_RESAMPLE_LOOP_BODY                                   \
-        CALCULATE_R_COORD_FOR_4_SAMPLES;                                       \
-        const vec3 new_sample0 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv.x, tex_uv_r.x)).rgb;                                 \
-        const vec3 new_sample1 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv.x, tex_uv_r.y)).rgb;                                 \
-        const vec3 new_sample2 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv.x, tex_uv_r.z)).rgb;                                 \
-        const vec3 new_sample3 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv.x, tex_uv_r.w)).rgb;                                 \
-        UPDATE_COLOR_AND_WEIGHT_SUMS;
-
-    #define HORIZONTAL_SINC_RESAMPLE_LOOP_BODY                                 \
-        CALCULATE_R_COORD_FOR_4_SAMPLES;                                       \
-        const vec3 new_sample0 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv_r.x, tex_uv.y)).rgb;                                 \
-        const vec3 new_sample1 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv_r.y, tex_uv.y)).rgb;                                 \
-        const vec3 new_sample2 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv_r.z, tex_uv.y)).rgb;                                 \
-        const vec3 new_sample3 = tex2Dlod0try(texture,                       \
-            vec2(tex_uv_r.w, tex_uv.y)).rgb;                                 \
-        UPDATE_COLOR_AND_WEIGHT_SUMS;
-
-
-////////////////////////////  RESAMPLING FUNCTIONS  ////////////////////////////
-
+	
 ////////////////////////////  TILE SIZE CALCULATION  ///////////////////////////
 
 vec2 get_resized_mask_tile_size(const vec2 estimated_viewport_size,
@@ -317,7 +282,115 @@ vec2 get_resized_mask_tile_size(const vec2 estimated_viewport_size,
     return final_resized_tile_size;
 }
 
+////////////////////////////  RESAMPLING FUNCTIONS  ////////////////////////////
 
+vec3 downsample_vertical_sinc_tiled(const sampler2D texture,
+    const vec2 tex_uv, const vec2 texture_size, const float dr,
+    const float magnification_scale, const float tile_size_uv_r)
+{
+    //  Requires:   1.) dr == du == 1.0/texture_size.x or
+    //                  dr == dv == 1.0/texture_size.y
+    //                  (whichever direction we're resampling in).
+    //                  It's a scalar to save register space.
+    //              2.) tile_size_uv_r is the number of texels an input tile
+    //                  takes up in the input texture, in the direction we're
+    //                  resampling this pass.
+    //              3.) magnification_scale must be <= 1.0.
+    //  Returns:    Return a [Lanczos] sinc-resampled pixel of a vertically
+    //              downsized input tile embedded in an input texture.  (The
+    //              vertical version is special-cased though: It assumes the
+    //              tile size equals the [static] texture size, since it's used
+    //              on an LUT texture input containing one tile.  For more
+    //              generic use, eliminate the "static" in the parameters.)
+    //  The "r" in "dr," "tile_size_uv_r," etc. refers to the dimension
+    //  we're resizing along, e.g. "dy" in this case.
+    #ifdef USE_SINGLE_STATIC_LOOP
+        //  A static loop can be faster, but it might blur too much from using
+        //  more samples than it should.
+        const int samples = int(max_sinc_resize_samples_m4);
+    #else
+        const int samples = int(get_dynamic_loop_size(magnification_scale));
+    #endif
+
+    //  Get the first sample location (scalar tile uv coord along the resized
+    //  dimension) and distance from the output location (in texels):
+    const float input_tiles_per_texture_r = 1.0/tile_size_uv_r;
+    //  true = vertical resize:
+    const vec2 first_texel_tile_r_and_dist = get_first_texel_tile_uv_and_dist(
+        tex_uv, texture_size, dr, input_tiles_per_texture_r, samples, true);
+    const vec4 first_texel_tile_uv_rrrr = first_texel_tile_r_and_dist.xxxx;
+    const vec4 first_dist_unscaled = first_texel_tile_r_and_dist.yyyy;
+    //  Get the tile sample offset:
+    const float tile_dr = dr * input_tiles_per_texture_r;
+
+    //  Sum up each weight and weighted sample color, varying the looping
+    //  strategy based on our expected dynamic loop capabilities.  See the
+    //  loop body macros above.
+    int i_base = 0;
+    vec4 weight_sum = vec4(0.0);
+    vec3 pixel_color = vec3(0.0);
+    const int i_step = 4;
+    #ifdef BREAK_LOOPS_INTO_PIECES
+        if(samples - i_base >= 64)
+        {
+            for(int i = 0; i < 64; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 64;
+        }
+        if(samples - i_base >= 32)
+        {
+            for(int i = 0; i < 32; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 32;
+        }
+        if(samples - i_base >= 16)
+        {
+            for(int i = 0; i < 16; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 16;
+        }
+        if(samples - i_base >= 8)
+        {
+            for(int i = 0; i < 8; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 8;
+        }
+        if(samples - i_base >= 4)
+        {
+            for(int i = 0; i < 4; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+            i_base += 4;
+        }
+        //  Do another 4-sample block for a total of 128 max samples.
+        if(samples - i_base > 0)
+        {
+            for(int i = 0; i < 4; i += i_step)
+            {
+                VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+            }
+        }
+    #else
+        for(int i = 0; i < samples; i += i_step)
+        {
+            VERTICAL_SINC_RESAMPLE_LOOP_BODY;
+        }
+    #endif
+    //  Normalize so the weight_sum == 1.0, and return:
+    const vec2 weight_sum_reduce = weight_sum.xy + weight_sum.zw;
+    const vec3 scalar_weight_sum = vec3(weight_sum_reduce.x + 
+        weight_sum_reduce.y);
+    return (pixel_color/scalar_weight_sum);
+}
 
 #endif  //  PHOSPHOR_MASK_RESIZING_H
 
