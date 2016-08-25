@@ -29,7 +29,7 @@
 //                  space offsets to texture uv offsets.  You can get this with:
 //                      const vec2 duv_dx = ddx(tex_uv);
 //                      const vec2 duv_dy = ddy(tex_uv);
-//                      const mat2x2 pixel_to_tex_uv = mat2x2(
+//                      const vec2x2 pixel_to_tex_uv = vec2x2(
 //                          duv_dx.x, duv_dy.x,
 //                          duv_dx.y, duv_dy.y);
 //                  This is left to the user in case the current Cg profile
@@ -38,7 +38,7 @@
 //                  If not, a simple flat mapping can be obtained with:
 //                      const vec2 xy_to_uv_scale = IN.output_size *
 //                          IN.video_size/IN.texture_size;
-//                      const mat2x2 pixel_to_tex_uv = mat2x2(
+//                      const vec2x2 pixel_to_tex_uv = vec2x2(
 //                          xy_to_uv_scale.x, 0.0,
 //                          0.0, xy_to_uv_scale.y);
 //  Optional:   To set basic AA settings, #define ANTIALIAS_OVERRIDE_BASICS and:
@@ -154,6 +154,7 @@
 //  exploit temporal AA better, but it would require a dynamic branch or a lot
 //  of conditional moves, so it's prohibitively slow for the minor benefit.
 
+
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
 #ifndef ANTIALIAS_OVERRIDE_BASICS
@@ -175,7 +176,7 @@
     //  only, and use only the first lobe vertically or a box filter, over a
     //  correspondingly smaller range.  This compensates for the sparse sampling
     //  grid's typically large positive/negative x/y covariance.
-    vec2 aa_xy_axis_importance =
+    const vec2 aa_xy_axis_importance =
         aa_filter < 5.5 ? vec2(1.0) :         //  Box, tent, Gaussian
         aa_filter < 8.5 ? vec2(1.0, 0.0) :    //  Cubic and Lanczos sinc
         aa_filter < 9.5 ? vec2(1.0, 1.0/aa_lanczos_lobes) :   //  Lanczos jinc
@@ -199,10 +200,11 @@
     }
 #endif
 
+
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-//#include "../../../../include/gamma-management.h"
-#include "gamma-management.h"
+#include "../../../../include/gamma-management.h"
+
 
 //////////////////////////////////  CONSTANTS  /////////////////////////////////
 
@@ -214,14 +216,14 @@ const float aa_cubic_support = 2.0;
 
 //  We'll want to define these only once per fragment at most.
 #ifdef RUNTIME_ANTIALIAS_WEIGHTS
-     float aa_cubic_b;
-     float cubic_branch1_x3_coeff;
-     float cubic_branch1_x2_coeff;
-     float cubic_branch1_x0_coeff;
-     float cubic_branch2_x3_coeff;
-     float cubic_branch2_x2_coeff;
-     float cubic_branch2_x1_coeff;
-     float cubic_branch2_x0_coeff;
+    uniform float aa_cubic_b;
+    uniform float cubic_branch1_x3_coeff;
+    uniform float cubic_branch1_x2_coeff;
+    uniform float cubic_branch1_x0_coeff;
+    uniform float cubic_branch2_x3_coeff;
+    uniform float cubic_branch2_x2_coeff;
+    uniform float cubic_branch2_x1_coeff;
+    uniform float cubic_branch2_x0_coeff;
 #endif
 
 
@@ -250,13 +252,13 @@ void assign_aa_cubic_constants()
 vec4 get_subpixel_support_diam_and_final_axis_importance()
 {
     //  Statically select the base support radius:
-    float base_support_radius;	
-        if(aa_filter < 1.5) base_support_radius = aa_box_support;
-        else if(aa_filter < 3.5) base_support_radius = aa_tent_support;
-        else if(aa_filter < 5.5) base_support_radius = aa_gauss_support;
-        else if(aa_filter < 7.5) base_support_radius = aa_cubic_support;
-        else if(aa_filter < 9.5) base_support_radius = aa_lanczos_lobes;
-        else base_support_radius = aa_box_support; //  Default to box
+    const float base_support_radius =
+        aa_filter < 1.5 ? aa_box_support :
+        aa_filter < 3.5 ? aa_tent_support :
+        aa_filter < 5.5 ? aa_gauss_support :
+        aa_filter < 7.5 ? aa_cubic_support :
+        aa_filter < 9.5 ? aa_lanczos_lobes :
+        aa_box_support; //  Default to box
     //  Expand the filter support for subpixel filtering.
     const vec2 subpixel_support_radius_raw =
         vec2(base_support_radius) + abs(get_aa_subpixel_r_offset());
@@ -284,18 +286,17 @@ vec4 get_subpixel_support_diam_and_final_axis_importance()
     }
 }
 
+
 ///////////////////////////  FILTER WEIGHT FUNCTIONS  //////////////////////////
 
 float eval_box_filter(const float dist)
 {
-if(abs(dist) <= aa_box_support) return 1.0;//abs(dist);
-else return 0.0;
+    return float(abs(dist) <= aa_box_support);
 }
 
 float eval_separable_box_filter(const vec2 offset)
 {
-	if(all(lessThanEqual(abs(offset) , vec2(aa_box_support)))) return 1.0;//float(abs(offset));
-	else return 0.0;
+    return float(all(abs(offset) <= vec2(aa_box_support)));
 }
 
 float eval_tent_filter(const float dist)
@@ -484,6 +485,7 @@ vec3 eval_unorm_rgb_weights(const vec2 offset,
     }
 }
 
+
 //////////////////////////////  HELPER FUNCTIONS  //////////////////////////////
 
 vec4 tex2Daa_tiled_linearize(const sampler2D samp, const vec2 s)
@@ -504,12 +506,10 @@ vec2 get_frame_sign(const float frame)
     {
         //  Mirror the sampling pattern for odd frames in a direction that
         //  lets us keep the same subpixel sample weights:
-        float frame_odd = float(mod(frame, 2.0) > 0.5);
+        const float frame_odd = float(fmod(frame, 2.0) > 0.5);
         const vec2 aa_r_offset = get_aa_subpixel_r_offset();
-        vec2 mirror = vec2(FIX_ZERO(0.0));
-		if ( abs(aa_r_offset.x) < FIX_ZERO(0.0)) mirror.x = abs(aa_r_offset.x);
-		if ( abs(aa_r_offset.y) < FIX_ZERO(0.0)) mirror.y = abs(aa_r_offset.y);
-        return vec2(-1.0) * mirror;
+        const vec2 mirror = -vec2(abs(aa_r_offset) < vec2(FIX_ZERO(0.0)));
+        return mirror;
     }
     else
     {
@@ -517,25 +517,26 @@ vec2 get_frame_sign(const float frame)
     }
 }
 
+
 /////////////////////////  ANTIALIASED TEXTURE LOOKUPS  ////////////////////////
 
-vec3 tex2Daa_subpixel_weights_only(const sampler2D tex,
-    const vec2 tex_uv, const mat2x2 pixel_to_tex_uv)
+vec3 tex2Daa_subpixel_weights_only(const sampler2D texture,
+    const vec2 tex_uv, const vec2x2 pixel_to_tex_uv)
 {
     //  This function is unlike the others: Just perform a single independent
     //  lookup for each subpixel.  It may be very aliased.
     const vec2 aa_r_offset = get_aa_subpixel_r_offset();
-    const vec2 aa_r_offset_uv_offset = (aa_r_offset * pixel_to_tex_uv);
-    const float color_g = tex2D_linearize(tex, tex_uv).g;
-    const float color_r = tex2D_linearize(tex, tex_uv + aa_r_offset_uv_offset).r;
-    const float color_b = tex2D_linearize(tex, tex_uv - aa_r_offset_uv_offset).b;
+    const vec2 aa_r_offset_uv_offset = mul(pixel_to_tex_uv, aa_r_offset);
+    const float color_g = tex2D_linearize(texture, tex_uv).g;
+    const float color_r = tex2D_linearize(texture, tex_uv + aa_r_offset_uv_offset).r;
+    const float color_b = tex2D_linearize(texture, tex_uv - aa_r_offset_uv_offset).b;
     return vec3(color_r, color_g, color_b);
 }
 
 //  The tex2Daa* functions compile very slowly due to all the macros and
 //  compile-time math, so only include the ones we'll actually use!
-vec3 tex2Daa4x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa4x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use an RGMS4 pattern (4-queens):
     //  . . Q .  : off =(-1.5, -1.5)/4 + (2.0, 0.0)/4
@@ -563,25 +564,25 @@ vec3 tex2Daa4x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (w0 * sample0 + w1 * sample1 +
         w2 * sample2 + w3 * sample3);
 }
 
-vec3 tex2Daa5x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa5x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 5-queens pattern:
     //  . Q . . .  : off =(-2.0, -2.0)/5 + (1.0, 0.0)/5
@@ -610,26 +611,26 @@ vec3 tex2Daa5x(const sampler2D tex, const vec2 tex_uv,
     //  Get the weight sum to normalize the total to 1.0 later:
     const vec3 w_sum_inv = vec3(1.0)/(w0 + w1 + w2 + w3 + w4);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (w0 * sample0 + w1 * sample1 +
         w2 * sample2 + w3 * sample3 + w4 * sample4);
 }
 
-vec3 tex2Daa6x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa6x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 6-queens pattern with a stronger horizontal
     //  than vertical slant:
@@ -663,28 +664,28 @@ vec3 tex2Daa6x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (w0 * sample0 + w1 * sample1 + w2 * sample2 +
         w3 * sample3 + w4 * sample4 + w5 * sample5);
 }
 
-vec3 tex2Daa7x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa7x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 7-queens pattern with a queen in the center:
     //  . Q . . . . .  : off =(-3.0, -3.0)/7 + (1.0, 0.0)/7
@@ -719,30 +720,30 @@ vec3 tex2Daa7x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr + w3;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
         w4 * sample4 + w5 * sample5 + w6 * sample6);
 }
 
-vec3 tex2Daa8x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa8x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 8-queens pattern.
     //  . . Q . . . . .  : off =(-3.5, -3.5)/8 + (2.0, 0.0)/8
@@ -779,31 +780,31 @@ vec3 tex2Daa8x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, and mirror on odd frames if directed:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset3 = (xy_offset3 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
+    const vec2 uv_offset3 = mul(true_pixel_to_tex_uv, xy_offset3 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset3).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset3).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample7 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset3).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset3).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample7 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
         w4 * sample4 + w5 * sample5 + w6 * sample6 + w7 * sample7);
 }
 
-vec3 tex2Daa12x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa12x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 12-superqueens pattern where no 3 points are
     //  exactly collinear.
@@ -851,30 +852,30 @@ vec3 tex2Daa12x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/w_sum;
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset3 = (xy_offset3 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset4 = (xy_offset4 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset5 = (xy_offset5 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
+    const vec2 uv_offset3 = mul(true_pixel_to_tex_uv, xy_offset3 * frame_sign);
+    const vec2 uv_offset4 = mul(true_pixel_to_tex_uv, xy_offset4 * frame_sign);
+    const vec2 uv_offset5 = mul(true_pixel_to_tex_uv, xy_offset5 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset3).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset4).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset5).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset5).rgb;
-    const vec3 sample7 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset4).rgb;
-    const vec3 sample8 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset3).rgb;
-    const vec3 sample9 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample10 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample11 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset3).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset4).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset5).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset5).rgb;
+    const vec3 sample7 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset4).rgb;
+    const vec3 sample8 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset3).rgb;
+    const vec3 sample9 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample10 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample11 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
@@ -882,8 +883,8 @@ vec3 tex2Daa12x(const sampler2D tex, const vec2 tex_uv,
         w8 * sample8 + w9 * sample9 + w10 * sample10 + w11 * sample11);
 }
 
-vec3 tex2Daa16x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa16x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 16-superqueens pattern where no 3 points are
     //  exactly collinear.
@@ -941,36 +942,36 @@ vec3 tex2Daa16x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset3 = (xy_offset3 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset4 = (xy_offset4 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset5 = (xy_offset5 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset6 = (xy_offset6 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset7 = (xy_offset7 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
+    const vec2 uv_offset3 = mul(true_pixel_to_tex_uv, xy_offset3 * frame_sign);
+    const vec2 uv_offset4 = mul(true_pixel_to_tex_uv, xy_offset4 * frame_sign);
+    const vec2 uv_offset5 = mul(true_pixel_to_tex_uv, xy_offset5 * frame_sign);
+    const vec2 uv_offset6 = mul(true_pixel_to_tex_uv, xy_offset6 * frame_sign);
+    const vec2 uv_offset7 = mul(true_pixel_to_tex_uv, xy_offset7 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset3).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset4).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset5).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset6).rgb;
-    const vec3 sample7 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset7).rgb;
-    const vec3 sample8 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset7).rgb;
-    const vec3 sample9 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset6).rgb;
-    const vec3 sample10 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset5).rgb;
-    const vec3 sample11 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset4).rgb;
-    const vec3 sample12 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset3).rgb;
-    const vec3 sample13 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample14 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample15 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset3).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset4).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset5).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset6).rgb;
+    const vec3 sample7 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset7).rgb;
+    const vec3 sample8 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset7).rgb;
+    const vec3 sample9 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset6).rgb;
+    const vec3 sample10 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset5).rgb;
+    const vec3 sample11 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset4).rgb;
+    const vec3 sample12 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset3).rgb;
+    const vec3 sample13 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample14 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample15 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
@@ -979,8 +980,8 @@ vec3 tex2Daa16x(const sampler2D tex, const vec2 tex_uv,
         w12 * sample12 + w13 * sample13 + w14 * sample14 + w15 * sample15);
 }
 
-vec3 tex2Daa20x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa20x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 20-superqueens pattern where no 3 points are
     //  exactly collinear and superqueens have a squared attack radius of 13.
@@ -1048,42 +1049,42 @@ vec3 tex2Daa20x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset3 = (xy_offset3 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset4 = (xy_offset4 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset5 = (xy_offset5 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset6 = (xy_offset6 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset7 = (xy_offset7 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset8 = (xy_offset8 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset9 = (xy_offset9 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
+    const vec2 uv_offset3 = mul(true_pixel_to_tex_uv, xy_offset3 * frame_sign);
+    const vec2 uv_offset4 = mul(true_pixel_to_tex_uv, xy_offset4 * frame_sign);
+    const vec2 uv_offset5 = mul(true_pixel_to_tex_uv, xy_offset5 * frame_sign);
+    const vec2 uv_offset6 = mul(true_pixel_to_tex_uv, xy_offset6 * frame_sign);
+    const vec2 uv_offset7 = mul(true_pixel_to_tex_uv, xy_offset7 * frame_sign);
+    const vec2 uv_offset8 = mul(true_pixel_to_tex_uv, xy_offset8 * frame_sign);
+    const vec2 uv_offset9 = mul(true_pixel_to_tex_uv, xy_offset9 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset3).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset4).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset5).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset6).rgb;
-    const vec3 sample7 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset7).rgb;
-    const vec3 sample8 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset8).rgb;
-    const vec3 sample9 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset9).rgb;
-    const vec3 sample10 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset9).rgb;
-    const vec3 sample11 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset8).rgb;
-    const vec3 sample12 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset7).rgb;
-    const vec3 sample13 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset6).rgb;
-    const vec3 sample14 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset5).rgb;
-    const vec3 sample15 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset4).rgb;
-    const vec3 sample16 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset3).rgb;
-    const vec3 sample17 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample18 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample19 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset3).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset4).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset5).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset6).rgb;
+    const vec3 sample7 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset7).rgb;
+    const vec3 sample8 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset8).rgb;
+    const vec3 sample9 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset9).rgb;
+    const vec3 sample10 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset9).rgb;
+    const vec3 sample11 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset8).rgb;
+    const vec3 sample12 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset7).rgb;
+    const vec3 sample13 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset6).rgb;
+    const vec3 sample14 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset5).rgb;
+    const vec3 sample15 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset4).rgb;
+    const vec3 sample16 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset3).rgb;
+    const vec3 sample17 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample18 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample19 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
@@ -1093,8 +1094,8 @@ vec3 tex2Daa20x(const sampler2D tex, const vec2 tex_uv,
         w16 * sample16 + w17 * sample17 + w18 * sample18 + w19 * sample19);
 }
 
-vec3 tex2Daa24x(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa24x(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Use a diagonally symmetric 24-superqueens pattern where no 3 points are
     //  exactly collinear and superqueens have a squared attack radius of 13.
@@ -1173,48 +1174,48 @@ vec3 tex2Daa24x(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, mirror on odd frames if directed, and exploit
     //  diagonal symmetry:
     const vec2 frame_sign = get_frame_sign(frame);
-    const vec2 uv_offset0 = (xy_offset0 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset1 = (xy_offset1 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset2 = (xy_offset2 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset3 = (xy_offset3 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset4 = (xy_offset4 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset5 = (xy_offset5 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset6 = (xy_offset6 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset7 = (xy_offset7 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset8 = (xy_offset8 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset9 = (xy_offset9 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset10 = (xy_offset10 * frame_sign * true_pixel_to_tex_uv);
-    const vec2 uv_offset11 = (xy_offset11 * frame_sign * true_pixel_to_tex_uv);
+    const vec2 uv_offset0 = mul(true_pixel_to_tex_uv, xy_offset0 * frame_sign);
+    const vec2 uv_offset1 = mul(true_pixel_to_tex_uv, xy_offset1 * frame_sign);
+    const vec2 uv_offset2 = mul(true_pixel_to_tex_uv, xy_offset2 * frame_sign);
+    const vec2 uv_offset3 = mul(true_pixel_to_tex_uv, xy_offset3 * frame_sign);
+    const vec2 uv_offset4 = mul(true_pixel_to_tex_uv, xy_offset4 * frame_sign);
+    const vec2 uv_offset5 = mul(true_pixel_to_tex_uv, xy_offset5 * frame_sign);
+    const vec2 uv_offset6 = mul(true_pixel_to_tex_uv, xy_offset6 * frame_sign);
+    const vec2 uv_offset7 = mul(true_pixel_to_tex_uv, xy_offset7 * frame_sign);
+    const vec2 uv_offset8 = mul(true_pixel_to_tex_uv, xy_offset8 * frame_sign);
+    const vec2 uv_offset9 = mul(true_pixel_to_tex_uv, xy_offset9 * frame_sign);
+    const vec2 uv_offset10 = mul(true_pixel_to_tex_uv, xy_offset10 * frame_sign);
+    const vec2 uv_offset11 = mul(true_pixel_to_tex_uv, xy_offset11 * frame_sign);
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset0).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset1).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset2).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset3).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset4).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset5).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset6).rgb;
-    const vec3 sample7 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset7).rgb;
-    const vec3 sample8 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset8).rgb;
-    const vec3 sample9 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset9).rgb;
-    const vec3 sample10 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset10).rgb;
-    const vec3 sample11 = tex2Daa_tiled_linearize(tex, tex_uv + uv_offset11).rgb;
-    const vec3 sample12 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset11).rgb;
-    const vec3 sample13 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset10).rgb;
-    const vec3 sample14 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset9).rgb;
-    const vec3 sample15 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset8).rgb;
-    const vec3 sample16 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset7).rgb;
-    const vec3 sample17 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset6).rgb;
-    const vec3 sample18 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset5).rgb;
-    const vec3 sample19 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset4).rgb;
-    const vec3 sample20 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset3).rgb;
-    const vec3 sample21 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset2).rgb;
-    const vec3 sample22 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset1).rgb;
-    const vec3 sample23 = tex2Daa_tiled_linearize(tex, tex_uv - uv_offset0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset0).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset1).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset2).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset3).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset4).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset5).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset6).rgb;
+    const vec3 sample7 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset7).rgb;
+    const vec3 sample8 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset8).rgb;
+    const vec3 sample9 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset9).rgb;
+    const vec3 sample10 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset10).rgb;
+    const vec3 sample11 = tex2Daa_tiled_linearize(texture, tex_uv + uv_offset11).rgb;
+    const vec3 sample12 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset11).rgb;
+    const vec3 sample13 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset10).rgb;
+    const vec3 sample14 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset9).rgb;
+    const vec3 sample15 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset8).rgb;
+    const vec3 sample16 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset7).rgb;
+    const vec3 sample17 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset6).rgb;
+    const vec3 sample18 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset5).rgb;
+    const vec3 sample19 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset4).rgb;
+    const vec3 sample20 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset3).rgb;
+    const vec3 sample21 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset2).rgb;
+    const vec3 sample22 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset1).rgb;
+    const vec3 sample23 = tex2Daa_tiled_linearize(texture, tex_uv - uv_offset0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
@@ -1225,8 +1226,8 @@ vec3 tex2Daa24x(const sampler2D tex, const vec2 tex_uv,
         w20 * sample20 + w21 * sample21 + w22 * sample22 + w23 * sample23);
 }
 
-vec3 tex2Daa_debug_16x_regular(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa_debug_16x_regular(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Sample on a regular 4x4 grid.  This is mainly for testing.
     const float grid_size = 4.0;
@@ -1270,33 +1271,33 @@ vec3 tex2Daa_debug_16x_regular(const sampler2D tex, const vec2 tex_uv,
     const vec3 w_sum = half_sum + half_sum.bgr;
     const vec3 w_sum_inv = vec3(1.0)/(w_sum);
     //  Scale the pixel-space to texture offset matrix by the pixel diameter.
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
     //  Get uv sample offsets, taking advantage of row alignment:
-    const vec2 uv_step_x = (vec2(xy_step.x, 0.0) * true_pixel_to_tex_uv);
-    const vec2 uv_step_y = (vec2(0.0, xy_step.y) * true_pixel_to_tex_uv);
+    const vec2 uv_step_x = mul(true_pixel_to_tex_uv, vec2(xy_step.x, 0.0));
+    const vec2 uv_step_y = mul(true_pixel_to_tex_uv, vec2(0.0, xy_step.y));
     const vec2 uv_offset0 = -1.5 * (uv_step_x + uv_step_y);
     const vec2 sample0_uv = tex_uv + uv_offset0;
     const vec2 sample4_uv = sample0_uv + uv_step_y;
     const vec2 sample8_uv = sample0_uv + uv_step_y * 2.0;
     const vec2 sample12_uv = sample0_uv + uv_step_y * 3.0;
     //  Load samples, linearizing if necessary, etc.:
-    const vec3 sample0 = tex2Daa_tiled_linearize(tex, sample0_uv).rgb;
-    const vec3 sample1 = tex2Daa_tiled_linearize(tex, sample0_uv + uv_step_x).rgb;
-    const vec3 sample2 = tex2Daa_tiled_linearize(tex, sample0_uv + uv_step_x * 2.0).rgb;
-    const vec3 sample3 = tex2Daa_tiled_linearize(tex, sample0_uv + uv_step_x * 3.0).rgb;
-    const vec3 sample4 = tex2Daa_tiled_linearize(tex, sample4_uv).rgb;
-    const vec3 sample5 = tex2Daa_tiled_linearize(tex, sample4_uv + uv_step_x).rgb;
-    const vec3 sample6 = tex2Daa_tiled_linearize(tex, sample4_uv + uv_step_x * 2.0).rgb;
-    const vec3 sample7 = tex2Daa_tiled_linearize(tex, sample4_uv + uv_step_x * 3.0).rgb;
-    const vec3 sample8 = tex2Daa_tiled_linearize(tex, sample8_uv).rgb;
-    const vec3 sample9 = tex2Daa_tiled_linearize(tex, sample8_uv + uv_step_x).rgb;
-    const vec3 sample10 = tex2Daa_tiled_linearize(tex, sample8_uv + uv_step_x * 2.0).rgb;
-    const vec3 sample11 = tex2Daa_tiled_linearize(tex, sample8_uv + uv_step_x * 3.0).rgb;
-    const vec3 sample12 = tex2Daa_tiled_linearize(tex, sample12_uv).rgb;
-    const vec3 sample13 = tex2Daa_tiled_linearize(tex, sample12_uv + uv_step_x).rgb;
-    const vec3 sample14 = tex2Daa_tiled_linearize(tex, sample12_uv + uv_step_x * 2.0).rgb;
-    const vec3 sample15 = tex2Daa_tiled_linearize(tex, sample12_uv + uv_step_x * 3.0).rgb;
+    const vec3 sample0 = tex2Daa_tiled_linearize(texture, sample0_uv).rgb;
+    const vec3 sample1 = tex2Daa_tiled_linearize(texture, sample0_uv + uv_step_x).rgb;
+    const vec3 sample2 = tex2Daa_tiled_linearize(texture, sample0_uv + uv_step_x * 2.0).rgb;
+    const vec3 sample3 = tex2Daa_tiled_linearize(texture, sample0_uv + uv_step_x * 3.0).rgb;
+    const vec3 sample4 = tex2Daa_tiled_linearize(texture, sample4_uv).rgb;
+    const vec3 sample5 = tex2Daa_tiled_linearize(texture, sample4_uv + uv_step_x).rgb;
+    const vec3 sample6 = tex2Daa_tiled_linearize(texture, sample4_uv + uv_step_x * 2.0).rgb;
+    const vec3 sample7 = tex2Daa_tiled_linearize(texture, sample4_uv + uv_step_x * 3.0).rgb;
+    const vec3 sample8 = tex2Daa_tiled_linearize(texture, sample8_uv).rgb;
+    const vec3 sample9 = tex2Daa_tiled_linearize(texture, sample8_uv + uv_step_x).rgb;
+    const vec3 sample10 = tex2Daa_tiled_linearize(texture, sample8_uv + uv_step_x * 2.0).rgb;
+    const vec3 sample11 = tex2Daa_tiled_linearize(texture, sample8_uv + uv_step_x * 3.0).rgb;
+    const vec3 sample12 = tex2Daa_tiled_linearize(texture, sample12_uv).rgb;
+    const vec3 sample13 = tex2Daa_tiled_linearize(texture, sample12_uv + uv_step_x).rgb;
+    const vec3 sample14 = tex2Daa_tiled_linearize(texture, sample12_uv + uv_step_x * 2.0).rgb;
+    const vec3 sample15 = tex2Daa_tiled_linearize(texture, sample12_uv + uv_step_x * 3.0).rgb;
     //  Sum weighted samples (weight sum must equal 1.0 for each channel):
     return w_sum_inv * (
         w0 * sample0 + w1 * sample1 + w2 * sample2 + w3 * sample3 +
@@ -1305,8 +1306,8 @@ vec3 tex2Daa_debug_16x_regular(const sampler2D tex, const vec2 tex_uv,
         w12 * sample12 + w13 * sample13 + w14 * sample14 + w15 * sample15);
 }
 
-vec3 tex2Daa_debug_dynamic(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa_debug_dynamic(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  This function is for testing only: Use an NxN grid with dynamic weights.
     const int grid_size = 8;
@@ -1321,7 +1322,7 @@ vec3 tex2Daa_debug_dynamic(const sampler2D tex, const vec2 tex_uv,
         -grid_radius_in_samples * filter_space_offset_step;
     //  Compute xy sample offsets and subpixel weights:
     vec3 weights[grid_size * grid_size];
-    vec3 weight_sum = vec3(0.0);
+    vec3 weight_sum = 0.0;
     for(int i = 0; i < grid_size; ++i)
     {
         for(int j = 0; j < grid_size; ++j)
@@ -1335,17 +1336,19 @@ vec3 tex2Daa_debug_dynamic(const sampler2D tex, const vec2 tex_uv,
         }
     }
     //  Get uv offset vectors along x and y directions:
-    const mat2x2 true_pixel_to_tex_uv =
-        mat2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
-    const vec2 uv_offset_step_x = (vec2(filter_space_offset_step.x, 0.0) * true_pixel_to_tex_uv);
-    const vec2 uv_offset_step_y = (vec2(0.0, filter_space_offset_step.y) * true_pixel_to_tex_uv);
+    const vec2x2 true_pixel_to_tex_uv =
+        vec2x2(vec4(pixel_to_tex_uv * aa_pixel_diameter));
+    const vec2 uv_offset_step_x = mul(true_pixel_to_tex_uv,
+        vec2(filter_space_offset_step.x, 0.0));
+    const vec2 uv_offset_step_y = mul(true_pixel_to_tex_uv,
+        vec2(0.0, filter_space_offset_step.y));
     //  Get a starting sample location:
     const vec2 sample0_uv_offset = -grid_radius_in_samples *
         (uv_offset_step_x + uv_offset_step_y);
     const vec2 sample0_uv = tex_uv + sample0_uv_offset;
     //  Load, weight, and sum [linearized] samples:
-    vec3 sum = vec3(0.0);
-    const vec3 weight_sum_inv = vec3(1.0)/vec3(weight_sum);
+    vec3 sum = 0.0;
+    const vec3 weight_sum_inv = vec3(1.0)/weight_sum;
     for(int i = 0; i < grid_size; ++i)
     {
         const vec2 row_i_first_sample_uv =
@@ -1355,32 +1358,36 @@ vec3 tex2Daa_debug_dynamic(const sampler2D tex, const vec2 tex_uv,
             const vec2 sample_uv =
                 row_i_first_sample_uv + j * uv_offset_step_x;
             sum += weights[i*grid_size + j] *
-                tex2Daa_tiled_linearize(tex, sample_uv).rgb;
+                tex2Daa_tiled_linearize(texture, sample_uv).rgb;
         }
     }
     return sum * weight_sum_inv;
 }
 
+
 ///////////////////////  ANTIALIASING CODEPATH SELECTION  //////////////////////
 
-vec3 tex2Daa(const sampler2D tex, const vec2 tex_uv,
-    const mat2x2 pixel_to_tex_uv, const float frame)
+vec3 tex2Daa(const sampler2D texture, const vec2 tex_uv,
+    const vec2x2 pixel_to_tex_uv, const float frame)
 {
     //  Statically switch between antialiasing modes/levels:
-	if (aa_level < 0.5) return tex2D_linearize(tex, tex_uv).rgb;
-	else if (aa_level < 3.5) return tex2Daa_subpixel_weights_only(
-            tex, tex_uv, pixel_to_tex_uv);
-	else if (aa_level < 4.5)   return tex2Daa4x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 5.5)   return tex2Daa5x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 6.5)   return tex2Daa6x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 7.5)   return tex2Daa7x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 11.5)  return tex2Daa8x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 15.5)  return tex2Daa12x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 19.5)  return tex2Daa16x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 23.5)  return tex2Daa20x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 253.5) return tex2Daa24x(tex, tex_uv, pixel_to_tex_uv, frame);
-	else if (aa_level < 254.5) return tex2Daa_debug_16x_regular(tex, tex_uv, pixel_to_tex_uv, frame);
-		else return tex2Daa_debug_dynamic(tex, tex_uv, pixel_to_tex_uv, frame);
+    return aa_level < 0.5 ? tex2D_linearize(texture, tex_uv).rgb :
+        aa_level < 3.5 ? tex2Daa_subpixel_weights_only(
+            texture, tex_uv, pixel_to_tex_uv) :
+        aa_level < 4.5 ? tex2Daa4x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 5.5 ? tex2Daa5x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 6.5 ? tex2Daa6x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 7.5 ? tex2Daa7x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 11.5 ? tex2Daa8x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 15.5 ? tex2Daa12x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 19.5 ? tex2Daa16x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 23.5 ? tex2Daa20x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 253.5 ? tex2Daa24x(texture, tex_uv, pixel_to_tex_uv, frame) :
+        aa_level < 254.5 ? tex2Daa_debug_16x_regular(
+            texture, tex_uv, pixel_to_tex_uv, frame) :
+        tex2Daa_debug_dynamic(texture, tex_uv, pixel_to_tex_uv, frame);
 }
 
+
 #endif  //  TEX2DANTIALIAS_H
+

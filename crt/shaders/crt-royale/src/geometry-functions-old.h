@@ -32,6 +32,7 @@
 //  Curvature-related constants:
 #define MAX_POINT_CLOUD_SIZE 9
 
+
 /////////////////////////////  CURVATURE FUNCTIONS /////////////////////////////
 
 vec2 quadratic_solve(const float a, const float b_over_2, const float c)
@@ -211,27 +212,29 @@ vec3 sphere_alt_uv_to_xyz(const vec2 video_uv, const vec2 geom_aspect)
     return vec3(xy_pos.x, -xy_pos.y, z_pos);
 }
 
-vec2 intersect(const vec3 view_vec_local, const vec3 eye_pos_local,
+inline vec2 intersect(const vec3 view_vec_local, const vec3 eye_pos_local,
     const float geom_mode)
 {
-    if (geom_mode < 2.5) return intersect_sphere(view_vec_local, eye_pos_local);
-	else return intersect_cylinder(view_vec_local, eye_pos_local);
+    return geom_mode < 2.5 ? intersect_sphere(view_vec_local, eye_pos_local) :
+        intersect_cylinder(view_vec_local, eye_pos_local);
 }
 
-vec2 xyz_to_uv(const vec3 intersection_pos_local,
+inline vec2 xyz_to_uv(const vec3 intersection_pos_local,
     const vec2 geom_aspect, const float geom_mode)
 {
-    if (geom_mode < 1.5) return sphere_xyz_to_uv(intersection_pos_local, geom_aspect);
-	else if (geom_mode < 2.5) return sphere_alt_xyz_to_uv(intersection_pos_local, geom_aspect);
-	else return cylinder_xyz_to_uv(intersection_pos_local, geom_aspect);
+    return geom_mode < 1.5 ?
+            sphere_xyz_to_uv(intersection_pos_local, geom_aspect) :
+        geom_mode < 2.5 ?
+            sphere_alt_xyz_to_uv(intersection_pos_local, geom_aspect) :
+            cylinder_xyz_to_uv(intersection_pos_local, geom_aspect);
 }
 
-vec3 uv_to_xyz(const vec2 uv, const vec2 geom_aspect,
+inline vec3 uv_to_xyz(const vec2 uv, const vec2 geom_aspect,
     const float geom_mode)
 {
-	if (geom_mode < 1.5) return sphere_uv_to_xyz(uv, geom_aspect);
-	else if (geom_mode < 2.5) return sphere_alt_uv_to_xyz(uv, geom_aspect);
-	else return cylinder_uv_to_xyz(uv, geom_aspect);
+    return geom_mode < 1.5 ? sphere_uv_to_xyz(uv, geom_aspect) :
+        geom_mode < 2.5 ? sphere_alt_uv_to_xyz(uv, geom_aspect) :
+        cylinder_uv_to_xyz(uv, geom_aspect);
 }
 
 vec2 view_vec_to_uv(const vec3 view_vec_local, const vec3 eye_pos_local,
@@ -247,8 +250,8 @@ vec2 view_vec_to_uv(const vec3 view_vec_local, const vec3 eye_pos_local,
     intersection_pos = intersection_pos_local;
     //  Transform into uv coords, but give out-of-range coords if the
     //  view ray doesn't intersect the primitive in the first place:
-	if (intersect_dist_and_discriminant.y > 0.005) return xyz_to_uv(intersection_pos_local, geom_aspect, geom_mode);
-	else return vec2(1.0);
+    return intersect_dist_and_discriminant.y > 0.005 ?
+        xyz_to_uv(intersection_pos_local, geom_aspect, geom_mode) : vec2(1.0);
 }
 
 vec3 get_ideal_global_eye_pos_for_points(vec3 eye_pos,
@@ -374,7 +377,7 @@ vec3 get_ideal_global_eye_pos_for_points(vec3 eye_pos,
     return eye_pos;
 }
 
-vec3 get_ideal_global_eye_pos(const mat3x3 local_to_global,
+vec3 get_ideal_global_eye_pos(const vec3x3 local_to_global,
     const vec2 geom_aspect, const float geom_mode)
 {
     //  Start with an initial eye_pos that includes the entire primitive
@@ -385,8 +388,9 @@ vec3 get_ideal_global_eye_pos(const mat3x3 local_to_global,
     const float fov = abs(acos(dot(high_view, low_view)/len_sq));
     //  Trigonometry/similar triangles say distance = geom_radius/sin(fov/2):
     const float eye_z_spherical = geom_radius/sin(fov*0.5);
-    vec3 eye_pos = vec3(0.0, 0.0, eye_z_spherical);
-	if (geom_mode < 2.5) eye_pos = vec3(0.0, 0.0, max(geom_view_dist, eye_z_spherical));
+    const vec3 eye_pos = geom_mode < 2.5 ?
+        vec3(0.0, 0.0, eye_z_spherical) :
+        vec3(0.0, 0.0, max(geom_view_dist, eye_z_spherical));
 
     //  Get global xyz coords of extreme sample points on the simulated CRT
     //  screen.  Start with the center, edge centers, and corners of the
@@ -396,29 +400,27 @@ vec3 get_ideal_global_eye_pos(const mat3x3 local_to_global,
     //  hull might not envelope points that do occlude a back-facing point.)
     const int num_points = MAX_POINT_CLOUD_SIZE;
     vec3 global_coords[MAX_POINT_CLOUD_SIZE];
-    global_coords[0] = (uv_to_xyz(vec2(0.0, 0.0), geom_aspect, geom_mode) * local_to_global);
-    global_coords[1] = (uv_to_xyz(vec2(0.0, -0.5), geom_aspect, geom_mode) * local_to_global);
-    global_coords[2] = (uv_to_xyz(vec2(0.0, 0.5), geom_aspect, geom_mode) * local_to_global);
-    global_coords[3] = (uv_to_xyz(vec2(-0.5, 0.0), geom_aspect, geom_mode) * local_to_global);
-    global_coords[4] = (uv_to_xyz(vec2(0.5, 0.0), geom_aspect, geom_mode) * local_to_global);
-    global_coords[5] = (uv_to_xyz(vec2(-0.5, -0.5), geom_aspect, geom_mode) * local_to_global);
-    global_coords[6] = (uv_to_xyz(vec2(0.5, -0.5), geom_aspect, geom_mode) * local_to_global);
-    global_coords[7] = (uv_to_xyz(vec2(-0.5, 0.5), geom_aspect, geom_mode) * local_to_global);
-    global_coords[8] = (uv_to_xyz(vec2(0.5, 0.5), geom_aspect, geom_mode) * local_to_global);
+    global_coords[0] = mul(local_to_global, uv_to_xyz(vec2(0.0, 0.0), geom_aspect, geom_mode));
+    global_coords[1] = mul(local_to_global, uv_to_xyz(vec2(0.0, -0.5), geom_aspect, geom_mode));
+    global_coords[2] = mul(local_to_global, uv_to_xyz(vec2(0.0, 0.5), geom_aspect, geom_mode));
+    global_coords[3] = mul(local_to_global, uv_to_xyz(vec2(-0.5, 0.0), geom_aspect, geom_mode));
+    global_coords[4] = mul(local_to_global, uv_to_xyz(vec2(0.5, 0.0), geom_aspect, geom_mode));
+    global_coords[5] = mul(local_to_global, uv_to_xyz(vec2(-0.5, -0.5), geom_aspect, geom_mode));
+    global_coords[6] = mul(local_to_global, uv_to_xyz(vec2(0.5, -0.5), geom_aspect, geom_mode));
+    global_coords[7] = mul(local_to_global, uv_to_xyz(vec2(-0.5, 0.5), geom_aspect, geom_mode));
+    global_coords[8] = mul(local_to_global, uv_to_xyz(vec2(0.5, 0.5), geom_aspect, geom_mode));
     //  Adding more inner image points could help in extreme cases, but too many
     //  points will kille the framerate.  For safety, default to the initial
     //  eye_pos if any z coords are negative:
     float num_negative_z_coords = 0.0;
     for(int i = 0; i < num_points; i++)
     {
-		if (global_coords[0].z < 0.0)
-        {num_negative_z_coords += float(global_coords[0].z);}
+        num_negative_z_coords += float(global_coords[0].z < 0.0);
     }
     //  Outsource the optimized eye_pos calculation:
-	if (num_negative_z_coords > 0.5)
-		return eye_pos;
-	else
-        return get_ideal_global_eye_pos_for_points(eye_pos, geom_aspect, global_coords, num_points);
+    return num_negative_z_coords > 0.5 ? eye_pos :
+        get_ideal_global_eye_pos_for_points(eye_pos, geom_aspect,
+            global_coords, num_points);
 }
 
 mat3x3 get_pixel_to_object_matrix(const mat3x3 global_to_local,
@@ -453,7 +455,7 @@ mat3x3 get_pixel_to_object_matrix(const mat3x3 global_to_local,
         (view_vec_down_global * global_to_local);
     //  2.) Using the true intersection point, intersect the neighboring
     //      view vectors with the tangent plane:
-    const vec3 intersection_vec_dot_normal = vec3(dot(pos - eye_pos, normal));
+    const vec3 intersection_vec_dot_normal = dot(pos - eye_pos, normal);
     const vec3 right_pos = eye_pos + (intersection_vec_dot_normal /
         dot(view_vec_right_local, normal))*view_vec_right_local;
     const vec3 down_pos = eye_pos + (intersection_vec_dot_normal /
@@ -466,7 +468,7 @@ mat3x3 get_pixel_to_object_matrix(const mat3x3 global_to_local,
     //      transformation is 2D to 3D, so use (0, 0, 0) for the third vector.
     const vec3 object_right_vec = right_pos - pos;
     const vec3 object_down_vec = down_pos - pos;
-    const mat3x3 pixel_to_object = mat3x3(
+    const vec3x3 pixel_to_object = vec3x3(
         object_right_vec.x, object_down_vec.x, 0.0,
         object_right_vec.y, object_down_vec.y, 0.0,
         object_right_vec.z, object_down_vec.z, 0.0);
@@ -490,7 +492,7 @@ mat3x3 get_object_to_tangent_matrix(const vec3 intersection_pos_local,
     //  We want the inverse of the TBN matrix (transpose of the cotangent
     //  matrix), which transforms ordinary vectors from object->tangent space.
     //  Start by calculating the relevant basis vectors in accordance with
-    //  Christian Schüler's blog post "Followup: Normal Mapping Without
+    //  Christian SchÃ¼ler's blog post "Followup: Normal Mapping Without
     //  Precomputed Tangents":  http://www.thetenthplanet.de/archives/1180
     //  With our particular uv mapping, the scale of the u and v directions
     //  is determined entirely by the aspect ratio for cylindrical and ordinary
@@ -548,7 +550,7 @@ mat3x3 get_object_to_tangent_matrix(const vec3 intersection_pos_local,
     }
     const vec3 computed_normal =
         cross(cobitangent_unscaled, cotangent_unscaled);
-    const float inv_determinant = inversesqrt(dot(computed_normal, computed_normal));
+    const float inv_determinant = rsqrt(dot(computed_normal, computed_normal));
     const vec3 cotangent = cotangent_unscaled * inv_determinant;
     const vec3 cobitangent = cobitangent_unscaled * inv_determinant;
     //  The [cotangent, cobitangent, normal] column vecs form the cotangent
@@ -605,7 +607,7 @@ vec2 get_curved_video_uv_coords_and_tangent_matrix(
         vec3(view_uv.x, -view_uv.y, -geom_view_dist);
     //  Transform the view vector into the CRT's local coordinate frame, convert
     //  to video_uv coords, and get the local 3D intersection position:
-    const vec3 view_vec_local = (view_vec_global * global_to_local);
+    const vec3 view_vec_local = mul(global_to_local, view_vec_global);
     vec3 pos;
     const vec2 centered_uv = view_vec_to_uv(
         view_vec_local, eye_pos_local, geom_aspect, geom_mode, pos);
@@ -619,11 +621,11 @@ vec2 get_curved_video_uv_coords_and_tangent_matrix(
         const vec2 duv_dx = ddx(video_uv);
         const vec2 duv_dy = ddy(video_uv);
         #ifdef LAST_PASS
-            pixel_to_tangent_video_uv = mat2x2(
+            pixel_to_tangent_video_uv = vec2x2(
                 duv_dx.x, duv_dy.x,
                 -duv_dx.y, -duv_dy.y);
         #else
-            pixel_to_tangent_video_uv = mat2x2(
+            pixel_to_tangent_video_uv = vec2x2(
                 duv_dx.x, duv_dy.x,
                 duv_dx.y, duv_dy.y);
         #endif
@@ -633,30 +635,58 @@ vec2 get_curved_video_uv_coords_and_tangent_matrix(
         if(geom_force_correct_tangent_matrix)
         {
             //  Get the surface normal based on the local intersection position:
-            vec3 normal_base = pos;
-			if (geom_mode > 2.5) normal_base = vec3(pos.x, 0.0, pos.z);
+            const vec3 normal_base = geom_mode < 2.5 ? pos :
+                vec3(pos.x, 0.0, pos.z);
             const vec3 normal = normalize(normal_base);
             //  Get pixel-to-object and object-to-tangent matrices and combine
             //  them into a 2x2 pixel-to-tangent matrix for video_uv offsets:
-            const mat3x3 pixel_to_object = get_pixel_to_object_matrix(
+            const vec3x3 pixel_to_object = get_pixel_to_object_matrix(
                 global_to_local, eye_pos_local, view_vec_global, pos, normal,
                 output_size_inv);
-            const mat3x3 object_to_tangent = get_object_to_tangent_matrix(
+            const vec3x3 object_to_tangent = get_object_to_tangent_matrix(
                 pos, normal, geom_aspect, geom_mode);
-            const mat3x3 pixel_to_tangent3x3 =
-                (pixel_to_object * object_to_tangent);
-            pixel_to_tangent_video_uv = mat2x2(
-                pixel_to_tangent3x3[0].xyz, pixel_to_tangent3x3[1].x);
+            const vec3x3 pixel_to_tangent3x3 =
+                mul(object_to_tangent, pixel_to_object);
+            pixel_to_tangent_video_uv = vec2x2(
+                pixel_to_tangent3x3._m00_m01_m10_m11);
         }
         else
         {
             //  Ignore curvature, and just consider flat scaling.  The
             //  difference is only apparent with strong curvature:
-            pixel_to_tangent_video_uv = mat2x2(
+            pixel_to_tangent_video_uv = vec2x2(
                 output_size_inv.x, 0.0, 0.0, output_size_inv.y);
         }
     #endif
     return video_uv;
 }
 
+float get_border_dim_factor(const vec2 video_uv, const vec2 geom_aspect)
+{
+    //  COPYRIGHT NOTE FOR THIS FUNCTION:
+    //  Copyright (C) 2010-2012 cgwg, 2014 TroggleMonkey
+    //  This function uses an algorithm first coded in several of cgwg's GPL-
+    //  licensed lines in crt-geom-curved.cg and its ancestors.  The line
+    //  between algorithm and code is nearly indistinguishable here, so it's
+    //  unclear whether I could even release this project under a non-GPL
+    //  license with this function included.
+
+    //  Calculate border_dim_factor from the proximity to uv-space image
+    //  borders; geom_aspect/border_size/border/darkness/border_compress are globals:
+    const vec2 edge_dists = min(video_uv, vec2(1.0) - video_uv) *
+        geom_aspect;
+    const vec2 border_penetration =
+        max(vec2(border_size) - edge_dists, vec2(0.0));
+    const float penetration_ratio = length(border_penetration)/border_size;
+    const float border_escape_ratio = max(1.0 - penetration_ratio, 0.0);
+    const float border_dim_factor =
+        pow(border_escape_ratio, border_darkness) * max(1.0, border_compress);
+    return min(border_dim_factor, 1.0);
+}
+
+
+
 #endif  //  GEOMETRY_FUNCTIONS_H
+
+
+

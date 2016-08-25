@@ -29,6 +29,188 @@
 
 /////////////////////////////  SCANLINE FUNCTIONS  /////////////////////////////
 
+vec3 get_raw_interpolated_color(const vec3 color0,
+    const vec3 color1, const vec3 color2, const vec3 color3,
+    const vec4 weights)
+{
+    //  Use max to avoid bizarre artifacts from negative colors:
+    return max(mat4x3(color0, color1, color2, color3) * weights, 0.0);
+}
+
+vec3 get_interpolated_linear_color(const vec3 color0, const vec3 color1,
+    const vec3 color2, const vec3 color3, const vec4 weights)
+{
+    //  Requires:   1.) Requirements of include/gamma-management.h must be met:
+    //                  intermediate_gamma must be globally defined, and input
+    //                  colors are interpreted as linear RGB unless you #define
+    //                  GAMMA_ENCODE_EVERY_FBO (in which case they are
+    //                  interpreted as gamma-encoded with intermediate_gamma).
+    //              2.) color0-3 are colors sampled from a texture with tex2D().
+    //                  They are interpreted as defined in requirement 1.
+    //              3.) weights contains weights for each color, summing to 1.0.
+    //              4.) beam_horiz_linear_rgb_weight must be defined as a global
+    //                  float in [0.0, 1.0] describing how much blending should
+    //                  be done in linear RGB (rest is gamma-corrected RGB).
+    //              5.) RUNTIME_SCANLINES_HORIZ_FILTER_COLORSPACE must be #defined
+    //                  if beam_horiz_linear_rgb_weight is anything other than a
+    //                  static constant, or we may try branching at runtime
+    //                  without dynamic branches allowed (slow).
+    //  Returns:    Return an interpolated color lookup between the four input
+    //              colors based on the weights in weights.  The final color will
+    //              be a linear RGB value, but the blending will be done as
+    //              indicated above.
+    const float intermediate_gamma = get_intermediate_gamma();
+    //  Branch if beam_horiz_linear_rgb_weight is static (for free) or if the
+    //  profile allows dynamic branches (faster than computing extra pows):
+    #ifndef RUNTIME_SCANLINES_HORIZ_FILTER_COLORSPACE
+        #define SCANLINES_BRANCH_FOR_LINEAR_RGB_WEIGHT
+    #else
+        #ifdef DRIVERS_ALLOW_DYNAMIC_BRANCHES
+            #define SCANLINES_BRANCH_FOR_LINEAR_RGB_WEIGHT
+        #endif
+    #endif
+    #ifdef SCANLINES_BRANCH_FOR_LINEAR_RGB_WEIGHT
+        //  beam_horiz_linear_rgb_weight is static, so we can branch:
+        #ifdef GAMMA_ENCODE_EVERY_FBO
+            const vec3 gamma_mixed_color = pow(get_raw_interpolated_color(
+                color0, color1, color2, color3, weights), vec3(intermediate_gamma));
+            if(beam_horiz_linear_rgb_weight > 0.0)
+            {
+                const vec3 linear_mixed_color = get_raw_interpolated_color(
+                    pow(color0, vec3(intermediate_gamma)),
+                    pow(color1, vec3(intermediate_gamma)),
+                    pow(color2, vec3(intermediate_gamma)),
+                    pow(color3, vec3(intermediate_gamma)),
+                    weights);
+                return mix(gamma_mixed_color, linear_mixed_color,
+                    beam_horiz_linear_rgb_weight);
+            }
+            else
+            {
+                return gamma_mixed_color;
+            }
+        #else
+            const vec3 linear_mixed_color = get_raw_interpolated_color(
+                color0, color1, color2, color3, weights);
+            if(beam_horiz_linear_rgb_weight < 1.0)
+            {
+                const vec3 gamma_mixed_color = get_raw_interpolated_color(
+                    pow(color0, vec3(1.0/intermediate_gamma)),
+                    pow(color1, vec3(1.0/intermediate_gamma)),
+                    pow(color2, vec3(1.0/intermediate_gamma)),
+                    pow(color3, vec3(1.0/intermediate_gamma)),
+                    weights);
+                return mix(gamma_mixed_color, linear_mixed_color,
+                    beam_horiz_linear_rgb_weight);
+            }
+            else
+            {
+                return linear_mixed_color;
+            }
+        #endif  //  GAMMA_ENCODE_EVERY_FBO
+    #else
+        #ifdef GAMMA_ENCODE_EVERY_FBO
+            //  Inputs: color0-3 are colors in gamma-encoded RGB.
+            const vec3 gamma_mixed_color = pow(get_raw_interpolated_color(
+                color0, color1, color2, color3, weights), vec3(intermediate_gamma));
+            const vec3 linear_mixed_color = get_raw_interpolated_color(
+                pow(color0, vec3(intermediate_gamma)),
+                pow(color1, vec3(intermediate_gamma)),
+                pow(color2, vec3(intermediate_gamma)),
+                pow(color3, vec3(intermediate_gamma)),
+                weights);
+            return mix(gamma_mixed_color, linear_mixed_color,
+                beam_horiz_linear_rgb_weight);
+        #else
+            //  Inputs: color0-3 are colors in linear RGB.
+            const vec3 linear_mixed_color = get_raw_interpolated_color(
+                color0, color1, color2, color3, weights);
+            const vec3 gamma_mixed_color = get_raw_interpolated_color(
+                    pow(color0, vec3(1.0/intermediate_gamma)),
+                    pow(color1, vec3(1.0/intermediate_gamma)),
+                    pow(color2, vec3(1.0/intermediate_gamma)),
+                    pow(color3, vec3(1.0/intermediate_gamma)),
+                    weights);
+            return mix(gamma_mixed_color, linear_mixed_color,
+                beam_horiz_linear_rgb_weight);
+        #endif  //  GAMMA_ENCODE_EVERY_FBO
+    #endif  //  SCANLINES_BRANCH_FOR_LINEAR_RGB_WEIGHT
+}
+
+vec3 get_scanline_color(const sampler2D tex, const vec2 scanline_uv,
+    const vec2 uv_step_x, const vec4 weights)
+{
+    //  Requires:   1.) scanline_uv must be vertically snapped to the caller's
+    //                  desired line or scanline and horizontally snapped to the
+    //                  texel just left of the output pixel (color1)
+    //              2.) uv_step_x must contain the horizontal uv distance
+    //                  between texels.
+    //              3.) weights must contain interpolation filter weights for
+    //                  color0, color1, color2, and color3, where color1 is just
+    //                  left of the output pixel.
+    //  Returns:    Return a horizontally interpolated texture lookup using 2-4
+    //              nearby texels, according to weights and the conventions of
+    //              get_interpolated_linear_color().
+    //  We can ignore the outside texture lookups for Quilez resampling.
+    const vec3 color1 = texture(tex, scanline_uv).rgb;
+    const vec3 color2 = texture(tex, scanline_uv + uv_step_x).rgb;
+    vec3 color0 = vec3(0.0);
+    vec3 color3 = vec3(0.0);
+    if(beam_horiz_filter > 0.5)
+    {
+        color0 = texture(tex, scanline_uv - uv_step_x).rgb;
+        color3 = texture(tex, scanline_uv + 2.0 * uv_step_x).rgb;
+    }
+    //  Sample the texture as-is, whether it's linear or gamma-encoded:
+    //  get_interpolated_linear_color() will handle the difference.
+    return get_interpolated_linear_color(color0, color1, color2, color3, weights);
+}
+
+vec3 sample_single_scanline_horizontal(const sampler2D texture,
+    const vec2 tex_uv, const vec2 texture_size,
+    const vec2 texture_size_inv)
+{
+    //  TODO: Add function requirements.
+    //  Snap to the previous texel and get sample dists from 2/4 nearby texels:
+    const vec2 curr_texel = tex_uv * texture_size;
+    //  Use under_half to fix a rounding bug right around exact texel locations.
+    const vec2 prev_texel =
+        floor(curr_texel - vec2(under_half)) + vec2(0.5);
+    const vec2 prev_texel_hor = vec2(prev_texel.x, curr_texel.y);
+    const vec2 prev_texel_hor_uv = prev_texel_hor * texture_size_inv;
+    const float prev_dist = curr_texel.x - prev_texel_hor.x;
+    const vec4 sample_dists = vec4(1.0 + prev_dist, prev_dist,
+        1.0 - prev_dist, 2.0 - prev_dist);
+    //  Get Quilez, Lanczos2, or Gaussian resize weights for 2/4 nearby texels:
+    vec4 weights;
+    if(beam_horiz_filter < 0.5)
+    {
+        //  Quilez:
+        const float x = sample_dists.y;
+        const float w2 = x*x*x*(x*(x*6.0 - 15.0) + 10.0);
+        weights = vec4(0.0, 1.0 - w2, w2, 0.0);
+    }
+    else if(beam_horiz_filter < 1.5)
+    {
+        //  Gaussian:
+        float inner_denom_inv = 1.0/(2.0*beam_horiz_sigma*beam_horiz_sigma);
+        weights = exp(-(sample_dists*sample_dists)*inner_denom_inv);
+    }
+    else
+    {
+        //  Lanczos2:
+        const vec4 pi_dists = FIX_ZERO(sample_dists * pi);
+        weights = 2.0 * sin(pi_dists) * sin(pi_dists * 0.5) /
+            (pi_dists * pi_dists);
+    }
+    //  Ensure the weight sum == 1.0:
+    const vec4 final_weights = weights/dot(weights, vec4(1.0));
+    //  Get the interpolated horizontal scanline color:
+    const vec2 uv_step_x = vec2(texture_size_inv.x, 0.0);
+    return get_scanline_color(
+        texture, prev_texel_hor_uv, uv_step_x, final_weights);
+}
+
 bool is_interlaced(float num_lines)
 {
     //  Detect interlacing based on the number of lines in the source.
@@ -61,6 +243,36 @@ bool is_interlaced(float num_lines)
     else
     {
         return false;
+    }
+}
+
+vec3 sample_rgb_scanline_horizontal(const sampler2D tex,
+    const vec2 tex_uv, const vec2 texture_size,
+    const vec2 texture_size_inv)
+{
+    //  TODO: Add function requirements.
+    //  Rely on a helper to make convergence easier.
+    if(beam_misconvergence)
+    {
+        const vec3 convergence_offsets_rgb =
+            get_convergence_offsets_x_vector();
+        const vec3 offset_u_rgb =
+            convergence_offsets_rgb * texture_size_inv.xxx;
+        const vec2 scanline_uv_r = tex_uv - vec2(offset_u_rgb.r, 0.0);
+        const vec2 scanline_uv_g = tex_uv - vec2(offset_u_rgb.g, 0.0);
+        const vec2 scanline_uv_b = tex_uv - vec2(offset_u_rgb.b, 0.0);
+        const vec3 sample_r = sample_single_scanline_horizontal(
+            tex, scanline_uv_r, texture_size, texture_size_inv);
+        const vec3 sample_g = sample_single_scanline_horizontal(
+            tex, scanline_uv_g, texture_size, texture_size_inv);
+        const vec3 sample_b = sample_single_scanline_horizontal(
+            tex, scanline_uv_b, texture_size, texture_size_inv);
+        return vec3(sample_r.r, sample_g.g, sample_b.b);
+    }
+    else
+    {
+        return sample_single_scanline_horizontal(tex, tex_uv, texture_size,
+            texture_size_inv);
     }
 }
 

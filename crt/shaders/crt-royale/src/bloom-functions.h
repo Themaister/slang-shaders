@@ -1,4 +1,5 @@
-#define BLOOM_FUNCTIONS
+#ifndef BLOOM_FUNCTIONS_H
+#define BLOOM_FUNCTIONS_H
 
 ///////////////////////////////  BLOOM CONSTANTS  //////////////////////////////
 
@@ -127,6 +128,72 @@ float get_center_weight(const float sigma)
     #endif
 }
 
+vec3 tex2DblurNfast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy, const float sigma)
+{
+    //  If sigma is static, we can safely branch and use the smallest blur
+    //  that's big enough.  Ignore #define hints, because we'll only use a
+    //  large blur if we actually need it, and the branches cost nothing.
+    #ifndef RUNTIME_PHOSPHOR_BLOOM_SIGMA
+        #define PHOSPHOR_BLOOM_BRANCH_FOR_BLUR_SIZE
+    #else
+        //  It's still worth branching if the profile supports dynamic branches:
+        //  It's much faster than using a hugely excessive blur, but each branch
+        //  eats ~1% FPS.
+        #ifdef DRIVERS_ALLOW_DYNAMIC_BRANCHES
+            #define PHOSPHOR_BLOOM_BRANCH_FOR_BLUR_SIZE
+        #endif
+    #endif
+    //  Failed optimization notes:
+    //  I originally created a same-size mipmapped 5-tap separable blur10 that
+    //  could handle any sigma by reaching into lower mip levels.  It was
+    //  as fast as blur25fast for runtime sigmas and a tad faster than
+    //  blur31fast for static sigmas, but mipmapping two viewport-size passes
+    //  ate 10% of FPS across all codepaths, so it wasn't worth it.
+    #ifdef PHOSPHOR_BLOOM_BRANCH_FOR_BLUR_SIZE
+        if(sigma <= blur9_std_dev)
+        {
+            return tex2Dblur9fast(tex, tex_uv, dxdy, sigma);
+        }
+        else if(sigma <= blur17_std_dev)
+        {
+            return tex2Dblur17fast(tex, tex_uv, dxdy, sigma);
+        }
+        else if(sigma <= blur25_std_dev)
+        {
+            return tex2Dblur25fast(tex, tex_uv, dxdy, sigma);
+        }
+        else if(sigma <= blur31_std_dev)
+        {
+            return tex2Dblur31fast(tex, tex_uv, dxdy, sigma);
+        }
+        else
+        {
+            return tex2Dblur43fast(tex, tex_uv, dxdy, sigma);
+        }
+    #else
+        //  If we can't afford to branch, we can only guess at what blur
+        //  size we need.  Therefore, use the largest blur allowed.
+        #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_12_PIXELS
+            return tex2Dblur43fast(tex, tex_uv, dxdy, sigma);
+        #else
+        #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_9_PIXELS
+            return tex2Dblur31fast(tex, tex_uv, dxdy, sigma);
+        #else
+        #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_6_PIXELS
+            return tex2Dblur25fast(tex, tex_uv, dxdy, sigma);
+        #else
+        #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_3_PIXELS
+            return tex2Dblur17fast(tex, tex_uv, dxdy, sigma);
+        #else
+            return tex2Dblur9fast(tex, tex_uv, dxdy, sigma);
+        #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_3_PIXELS
+        #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_6_PIXELS
+        #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_9_PIXELS
+        #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_12_PIXELS
+    #endif  //  PHOSPHOR_BLOOM_BRANCH_FOR_BLUR_SIZE
+}
+
 float get_bloom_approx_sigma(const float output_size_x_runtime,
     const float estimated_viewport_size_x)
 {
@@ -212,3 +279,5 @@ float get_final_bloom_sigma(const float bloom_sigma_runtime)
         return bloom_sigma_optimistic;
     #endif
 }
+
+#endif  //  BLOOM_FUNCTIONS_H
