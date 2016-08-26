@@ -15,6 +15,7 @@ layout(push_constant) uniform Push
 	float hardBloomScan;
 	float shape;
 	float glowFactor;
+	float gamma;
 } params;
 
 #pragma parameter hardScan "hardScan" -8.0 -20.0 0.0 1.0
@@ -26,7 +27,8 @@ layout(push_constant) uniform Push
 #pragma parameter hardBloomScan "bloom-y soft" -2.0 -4.0 -1.0 0.1
 #pragma parameter bloomAmount "bloom amount" 0.15 0.0 1.0 0.05
 #pragma parameter shape "filter kernel shape" 2.0 0.0 10.0 0.05
-#pragma parameter glowFactor "Glow Strength" 0.2 0.0 1.0 0.01
+#pragma parameter glowFactor "Glow Strength" 0.15 0.0 1.0 0.01
+#pragma parameter gamma "Gamma Adjustment" 1.5 0.0 5.0 0.05
 
 #define DO_BLOOM
 
@@ -228,7 +230,7 @@ void main()
         outColor.rgb *= Mask(vTexCoord.xy / params.OutputSize.zw * 1.000001);
 		
 	if (params.glowFactor > 0.0)
-		outColor = mix(outColor, pow(texture(HALATION_BLUR, pos).rgb, mix(vec3(0.75), vec3(0.1), params.glowFactor)), params.glowFactor);
+		outColor = mix(outColor, texture(HALATION_BLUR, pos.xy).rgb, params.glowFactor);
 
-    FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
+    FragColor = vec4(pow(ToSrgb(outColor.rgb), vec3(1.0 / params.gamma)), 1.0);
 }
