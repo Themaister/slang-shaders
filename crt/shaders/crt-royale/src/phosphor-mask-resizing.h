@@ -22,9 +22,8 @@
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-//#include "../user-settings.h"
-//#include "derived-settings-and-constants.h"
-#include "includes.h"
+#include "../user-settings.h"
+#include "derived-settings-and-constants.h"
 
 /////////////////////////////  CODEPATH SELECTION  /////////////////////////////
 

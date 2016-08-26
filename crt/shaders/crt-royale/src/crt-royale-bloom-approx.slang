@@ -32,7 +32,13 @@ layout(push_constant) uniform Push
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "includes.h"
+#include "../user-settings.h"
+#include "derived-settings-and-constants.h"
+#include "bind-shader-params.h"
+#include "../../../../include/gamma-management.h"
+#include "../../../../include/blur-functions.h"
+#include "scanline-functions.h"
+#include "bloom-functions.h"
 
 ///////////////////////////////////  HELPERS  //////////////////////////////////
 

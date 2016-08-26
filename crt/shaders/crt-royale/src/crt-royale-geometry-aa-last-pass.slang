@@ -37,7 +37,7 @@ layout(push_constant) uniform Push
 #include "derived-settings-and-constants.h"
 #include "bind-shader-params.h"
 
-#ifndef RUNTIME_GEOMETRY_TILT
+#ifndef DONT_DEFINE //RUNTIME_GEOMETRY_TILT
     //  Create a local-to-global rotation matrix for the CRT's coordinate frame
     //  and its global-to-local inverse.  See the vertex shader for details.
     //  It's faster to compute these statically if possible.
@@ -97,7 +97,7 @@ void main()
     const vec2 geom_overscan = get_geom_overscan_vector();
     geom_aspect_and_overscan = vec4(geom_aspect, geom_overscan);
 	
-	#ifdef RUNTIME_GEOMETRY_TILT
+	#ifdef DONT_DEFINE //RUNTIME_GEOMETRY_TILT
         //  Create a local-to-global rotation matrix for the CRT's coordinate
         //  frame and its global-to-local inverse.  Rotate around the x axis
         //  first (pitch) and then the y axis (yaw) with yucky Euler angles.
@@ -237,6 +237,10 @@ void main()
     {
         color = tex2D_linearize(Source, tex_uv).rgb;
     }
+	
+	//  Dim borders and output the final result:
+    const float border_dim_factor = get_border_dim_factor(video_uv, geom_aspect);
+    const vec3 final_color = color * border_dim_factor;
 
-   FragColor = vec4(texture(Source, tex_uv).rgb, 1.0);
+   FragColor = encode_output(vec4(final_color, 1.0));
 }

@@ -74,7 +74,7 @@
 //  Enable runtime shader parameters in the Retroarch (etc.) GUI?  They override
 //  many of the options in this file and allow real-time tuning, but many of
 //  them are slower.  Disabling them and using this text file will boost FPS.
-#define RUNTIME_SHADER_PARAMS_ENABLE
+//#define RUNTIME_SHADER_PARAMS_ENABLE
 //  Specify the phosphor bloom sigma at runtime?  This option is 10% slower, but
 //  it's the only way to do a wide-enough full bloom with a runtime dot pitch.
 #define RUNTIME_PHOSPHOR_BLOOM_SIGMA

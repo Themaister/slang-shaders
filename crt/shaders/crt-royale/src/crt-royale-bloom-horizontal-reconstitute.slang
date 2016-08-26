@@ -40,8 +40,8 @@ layout(push_constant) uniform Push
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-//#include "../../../../include/gamma-management.h"
-//#include "bloom-functions.h"
+#include "../../../../include/gamma-management.h"
+#include "bloom-functions.h"
 #include "phosphor-mask-resizing.h"
 #include "scanline-functions.h"
 

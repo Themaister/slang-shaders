@@ -42,11 +42,12 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define FIRST_PASS
 #define SIMULATE_CRT_ON_LCD
 
-//#include "params.inc"
-
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "includes.h"
+#include "../user-settings.h"
+#include "bind-shader-params.h"
+#include "../../../../include/gamma-management.h"
+#include "scanline-functions.h"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;

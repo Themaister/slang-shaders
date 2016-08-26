@@ -659,4 +659,27 @@ vec2 get_curved_video_uv_coords_and_tangent_matrix(
     return video_uv;
 }
 
+float get_border_dim_factor(const vec2 video_uv, const vec2 geom_aspect)
+{
+    //  COPYRIGHT NOTE FOR THIS FUNCTION:
+    //  Copyright (C) 2010-2012 cgwg, 2014 TroggleMonkey
+    //  This function uses an algorithm first coded in several of cgwg's GPL-
+    //  licensed lines in crt-geom-curved.cg and its ancestors.  The line
+    //  between algorithm and code is nearly indistinguishable here, so it's
+    //  unclear whether I could even release this project under a non-GPL
+    //  license with this function included.
+
+    //  Calculate border_dim_factor from the proximity to uv-space image
+    //  borders; geom_aspect/border_size/border/darkness/border_compress are globals:
+    const vec2 edge_dists = min(video_uv, vec2(1.0) - video_uv) *
+        geom_aspect;
+    const vec2 border_penetration =
+        max(vec2(border_size) - edge_dists, vec2(0.0));
+    const float penetration_ratio = length(border_penetration)/border_size;
+    const float border_escape_ratio = max(1.0 - penetration_ratio, 0.0);
+    const float border_dim_factor =
+        pow(border_escape_ratio, border_darkness) * max(1.0, border_compress);
+    return min(border_dim_factor, 1.0);
+}
+
 #endif  //  GEOMETRY_FUNCTIONS_H

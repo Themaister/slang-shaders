@@ -40,12 +40,12 @@ layout(push_constant) uniform Push
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-//#include "../../../../include/gamma-management.h"
-//#include "../../../../include/blur-functions.h"
+#include "../../../../include/gamma-management.h"
+#include "../../../../include/blur-functions.h"
 #include "phosphor-mask-resizing.h"
 #include "scanline-functions.h"
 #include "bloom-functions.h"
-#include "includes.h"
+
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;

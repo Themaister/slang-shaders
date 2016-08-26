@@ -1,4 +1,5 @@
-#define BLUR_FUNCTIONS
+#ifndef BLUR_FUNCTIONS_H
+#define BLUR_FUNCTIONS_H
 
 /////////////////////////////////  MIT LICENSE  ////////////////////////////////
 
@@ -200,6 +201,14 @@
 //  Make a length squared helper macro (for usage with static constants):
 #define LENGTH_SQ(vec) (dot(vec, vec))
 
+//////////////////////////////////  INCLUDES  //////////////////////////////////
+
+//  gamma-management.h relies on pass-specific settings to guide its behavior:
+//  FIRST_PASS, LAST_PASS, GAMMA_ENCODE_EVERY_FBO, etc.  See it for details.
+#include "gamma-management.h"
+//#include "quad-pixel-communication.h"
+#include "special-functions.h"
+
 ///////////////////////////////////  HELPERS  //////////////////////////////////
 
 vec4 uv2_to_uv4(vec2 tex_uv)
@@ -230,6 +239,258 @@ float get_fast_gaussian_weight_sum_inv(const float sigma)
     //return erf(temp/sigma);
     return min(exp(exp(0.348348412457428/
         (sigma - 0.0860587260734721))), 0.399334576340352/sigma);
+}
+
+vec3 tex2Dblur17fast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy, const float sigma)
+{
+    //  Requires:   Same as tex2Dblur11()
+    //  Returns:    A 1D 17x Gaussian blurred texture lookup using 1 nearest
+    //              neighbor and 8 linear taps.  It may be mipmapped depending
+    //              on settings and dxdy.
+    //  First get the texel weights and normalization factor as above.
+    const float denom_inv = 0.5/(sigma*sigma);
+    const float w0 = 1.0;
+    const float w1 = exp(-1.0 * denom_inv);
+    const float w2 = exp(-4.0 * denom_inv);
+    const float w3 = exp(-9.0 * denom_inv);
+    const float w4 = exp(-16.0 * denom_inv);
+    const float w5 = exp(-25.0 * denom_inv);
+    const float w6 = exp(-36.0 * denom_inv);
+    const float w7 = exp(-49.0 * denom_inv);
+    const float w8 = exp(-64.0 * denom_inv);
+    //const float weight_sum_inv = 1.0 / (w0 + 2.0 * (
+    //    w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8));
+    const float weight_sum_inv = get_fast_gaussian_weight_sum_inv(sigma);
+    //  Calculate combined weights and linear sample ratios between texel pairs.
+    const float w1_2 = w1 + w2;
+    const float w3_4 = w3 + w4;
+    const float w5_6 = w5 + w6;
+    const float w7_8 = w7 + w8;
+    const float w1_2_ratio = w2/w1_2;
+    const float w3_4_ratio = w4/w3_4;
+    const float w5_6_ratio = w6/w5_6;
+    const float w7_8_ratio = w8/w7_8;
+    //  Statically normalize weights, sum weighted samples, and return:
+    vec3 sum = vec3(0.0);
+    sum += w7_8 * tex2D_linearize(tex, tex_uv - (7.0 + w7_8_ratio) * dxdy).rgb;
+    sum += w5_6 * tex2D_linearize(tex, tex_uv - (5.0 + w5_6_ratio) * dxdy).rgb;
+    sum += w3_4 * tex2D_linearize(tex, tex_uv - (3.0 + w3_4_ratio) * dxdy).rgb;
+    sum += w1_2 * tex2D_linearize(tex, tex_uv - (1.0 + w1_2_ratio) * dxdy).rgb;
+    sum += w0 * tex2D_linearize(tex, tex_uv).rgb;
+    sum += w1_2 * tex2D_linearize(tex, tex_uv + (1.0 + w1_2_ratio) * dxdy).rgb;
+    sum += w3_4 * tex2D_linearize(tex, tex_uv + (3.0 + w3_4_ratio) * dxdy).rgb;
+    sum += w5_6 * tex2D_linearize(tex, tex_uv + (5.0 + w5_6_ratio) * dxdy).rgb;
+    sum += w7_8 * tex2D_linearize(tex, tex_uv + (7.0 + w7_8_ratio) * dxdy).rgb;
+    return sum * weight_sum_inv;
+}
+
+vec3 tex2Dblur25fast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy, const float sigma)
+{
+    //  Requires:   Same as tex2Dblur11()
+    //  Returns:    A 1D 25x Gaussian blurred texture lookup using 1 nearest
+    //              neighbor and 12 linear taps.  It may be mipmapped depending
+    //              on settings and dxdy.
+    //  First get the texel weights and normalization factor as above.
+    const float denom_inv = 0.5/(sigma*sigma);
+    const float w0 = 1.0;
+    const float w1 = exp(-1.0 * denom_inv);
+    const float w2 = exp(-4.0 * denom_inv);
+    const float w3 = exp(-9.0 * denom_inv);
+    const float w4 = exp(-16.0 * denom_inv);
+    const float w5 = exp(-25.0 * denom_inv);
+    const float w6 = exp(-36.0 * denom_inv);
+    const float w7 = exp(-49.0 * denom_inv);
+    const float w8 = exp(-64.0 * denom_inv);
+    const float w9 = exp(-81.0 * denom_inv);
+    const float w10 = exp(-100.0 * denom_inv);
+    const float w11 = exp(-121.0 * denom_inv);
+    const float w12 = exp(-144.0 * denom_inv);
+    //const float weight_sum_inv = 1.0 / (w0 + 2.0 * (
+    //    w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8 + w9 + w10 + w11 + w12));
+    const float weight_sum_inv = get_fast_gaussian_weight_sum_inv(sigma);
+    //  Calculate combined weights and linear sample ratios between texel pairs.
+    const float w1_2 = w1 + w2;
+    const float w3_4 = w3 + w4;
+    const float w5_6 = w5 + w6;
+    const float w7_8 = w7 + w8;
+    const float w9_10 = w9 + w10;
+    const float w11_12 = w11 + w12;
+    const float w1_2_ratio = w2/w1_2;
+    const float w3_4_ratio = w4/w3_4;
+    const float w5_6_ratio = w6/w5_6;
+    const float w7_8_ratio = w8/w7_8;
+    const float w9_10_ratio = w10/w9_10;
+    const float w11_12_ratio = w12/w11_12;
+    //  Statically normalize weights, sum weighted samples, and return:
+    vec3 sum = vec3(0.0);
+    sum += w11_12 * tex2D_linearize(tex, tex_uv - (11.0 + w11_12_ratio) * dxdy).rgb;
+    sum += w9_10 * tex2D_linearize(tex, tex_uv - (9.0 + w9_10_ratio) * dxdy).rgb;
+    sum += w7_8 * tex2D_linearize(tex, tex_uv - (7.0 + w7_8_ratio) * dxdy).rgb;
+    sum += w5_6 * tex2D_linearize(tex, tex_uv - (5.0 + w5_6_ratio) * dxdy).rgb;
+    sum += w3_4 * tex2D_linearize(tex, tex_uv - (3.0 + w3_4_ratio) * dxdy).rgb;
+    sum += w1_2 * tex2D_linearize(tex, tex_uv - (1.0 + w1_2_ratio) * dxdy).rgb;
+    sum += w0 * tex2D_linearize(tex, tex_uv).rgb;
+    sum += w1_2 * tex2D_linearize(tex, tex_uv + (1.0 + w1_2_ratio) * dxdy).rgb;
+    sum += w3_4 * tex2D_linearize(tex, tex_uv + (3.0 + w3_4_ratio) * dxdy).rgb;
+    sum += w5_6 * tex2D_linearize(tex, tex_uv + (5.0 + w5_6_ratio) * dxdy).rgb;
+    sum += w7_8 * tex2D_linearize(tex, tex_uv + (7.0 + w7_8_ratio) * dxdy).rgb;
+    sum += w9_10 * tex2D_linearize(tex, tex_uv + (9.0 + w9_10_ratio) * dxdy).rgb;
+    sum += w11_12 * tex2D_linearize(tex, tex_uv + (11.0 + w11_12_ratio) * dxdy).rgb;
+    return sum * weight_sum_inv;
+}
+
+vec3 tex2Dblur31fast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy, const float sigma)
+{
+    //  Requires:   Same as tex2Dblur11()
+    //  Returns:    A 1D 31x Gaussian blurred texture lookup using 16 linear
+    //              taps.  It may be mipmapped depending on settings and dxdy.
+    //  First get the texel weights and normalization factor as above.
+    const float denom_inv = 0.5/(sigma*sigma);
+    const float w0 = 1.0;
+    const float w1 = exp(-1.0 * denom_inv);
+    const float w2 = exp(-4.0 * denom_inv);
+    const float w3 = exp(-9.0 * denom_inv);
+    const float w4 = exp(-16.0 * denom_inv);
+    const float w5 = exp(-25.0 * denom_inv);
+    const float w6 = exp(-36.0 * denom_inv);
+    const float w7 = exp(-49.0 * denom_inv);
+    const float w8 = exp(-64.0 * denom_inv);
+    const float w9 = exp(-81.0 * denom_inv);
+    const float w10 = exp(-100.0 * denom_inv);
+    const float w11 = exp(-121.0 * denom_inv);
+    const float w12 = exp(-144.0 * denom_inv);
+    const float w13 = exp(-169.0 * denom_inv);
+    const float w14 = exp(-196.0 * denom_inv);
+    const float w15 = exp(-225.0 * denom_inv);
+    //const float weight_sum_inv = 1.0 /
+    //    (w0 + 2.0 * (w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8 +
+    //        w9 + w10 + w11 + w12 + w13 + w14 + w15));
+    const float weight_sum_inv = get_fast_gaussian_weight_sum_inv(sigma);
+    //  Calculate combined weights and linear sample ratios between texel pairs.
+    //  The center texel (with weight w0) is used twice, so halve its weight.
+    const float w0_1 = w0 * 0.5 + w1;
+    const float w2_3 = w2 + w3;
+    const float w4_5 = w4 + w5;
+    const float w6_7 = w6 + w7;
+    const float w8_9 = w8 + w9;
+    const float w10_11 = w10 + w11;
+    const float w12_13 = w12 + w13;
+    const float w14_15 = w14 + w15;
+    const float w0_1_ratio = w1/w0_1;
+    const float w2_3_ratio = w3/w2_3;
+    const float w4_5_ratio = w5/w4_5;
+    const float w6_7_ratio = w7/w6_7;
+    const float w8_9_ratio = w9/w8_9;
+    const float w10_11_ratio = w11/w10_11;
+    const float w12_13_ratio = w13/w12_13;
+    const float w14_15_ratio = w15/w14_15;
+    //  Statically normalize weights, sum weighted samples, and return:
+    vec3 sum = vec3(0.0);
+    sum += w14_15 * tex2D_linearize(tex, tex_uv - (14.0 + w14_15_ratio) * dxdy).rgb;
+    sum += w12_13 * tex2D_linearize(tex, tex_uv - (12.0 + w12_13_ratio) * dxdy).rgb;
+    sum += w10_11 * tex2D_linearize(tex, tex_uv - (10.0 + w10_11_ratio) * dxdy).rgb;
+    sum += w8_9 * tex2D_linearize(tex, tex_uv - (8.0 + w8_9_ratio) * dxdy).rgb;
+    sum += w6_7 * tex2D_linearize(tex, tex_uv - (6.0 + w6_7_ratio) * dxdy).rgb;
+    sum += w4_5 * tex2D_linearize(tex, tex_uv - (4.0 + w4_5_ratio) * dxdy).rgb;
+    sum += w2_3 * tex2D_linearize(tex, tex_uv - (2.0 + w2_3_ratio) * dxdy).rgb;
+    sum += w0_1 * tex2D_linearize(tex, tex_uv - w0_1_ratio * dxdy).rgb;
+    sum += w0_1 * tex2D_linearize(tex, tex_uv + w0_1_ratio * dxdy).rgb;
+    sum += w2_3 * tex2D_linearize(tex, tex_uv + (2.0 + w2_3_ratio) * dxdy).rgb;
+    sum += w4_5 * tex2D_linearize(tex, tex_uv + (4.0 + w4_5_ratio) * dxdy).rgb;
+    sum += w6_7 * tex2D_linearize(tex, tex_uv + (6.0 + w6_7_ratio) * dxdy).rgb;
+    sum += w8_9 * tex2D_linearize(tex, tex_uv + (8.0 + w8_9_ratio) * dxdy).rgb;
+    sum += w10_11 * tex2D_linearize(tex, tex_uv + (10.0 + w10_11_ratio) * dxdy).rgb;
+    sum += w12_13 * tex2D_linearize(tex, tex_uv + (12.0 + w12_13_ratio) * dxdy).rgb;
+    sum += w14_15 * tex2D_linearize(tex, tex_uv + (14.0 + w14_15_ratio) * dxdy).rgb;
+    return sum * weight_sum_inv;
+}
+
+vec3 tex2Dblur43fast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy, const float sigma)
+{
+    //  Requires:   Same as tex2Dblur11()
+    //  Returns:    A 1D 43x Gaussian blurred texture lookup using 22 linear
+    //              taps.  It may be mipmapped depending on settings and dxdy.
+    //  First get the texel weights and normalization factor as above.
+    const float denom_inv = 0.5/(sigma*sigma);
+    const float w0 = 1.0;
+    const float w1 = exp(-1.0 * denom_inv);
+    const float w2 = exp(-4.0 * denom_inv);
+    const float w3 = exp(-9.0 * denom_inv);
+    const float w4 = exp(-16.0 * denom_inv);
+    const float w5 = exp(-25.0 * denom_inv);
+    const float w6 = exp(-36.0 * denom_inv);
+    const float w7 = exp(-49.0 * denom_inv);
+    const float w8 = exp(-64.0 * denom_inv);
+    const float w9 = exp(-81.0 * denom_inv);
+    const float w10 = exp(-100.0 * denom_inv);
+    const float w11 = exp(-121.0 * denom_inv);
+    const float w12 = exp(-144.0 * denom_inv);
+    const float w13 = exp(-169.0 * denom_inv);
+    const float w14 = exp(-196.0 * denom_inv);
+    const float w15 = exp(-225.0 * denom_inv);
+    const float w16 = exp(-256.0 * denom_inv);
+    const float w17 = exp(-289.0 * denom_inv);
+    const float w18 = exp(-324.0 * denom_inv);
+    const float w19 = exp(-361.0 * denom_inv);
+    const float w20 = exp(-400.0 * denom_inv);
+    const float w21 = exp(-441.0 * denom_inv);
+    //const float weight_sum_inv = 1.0 /
+    //    (w0 + 2.0 * (w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8 + w9 + w10 + w11 +
+    //        w12 + w13 + w14 + w15 + w16 + w17 + w18 + w19 + w20 + w21));
+    const float weight_sum_inv = get_fast_gaussian_weight_sum_inv(sigma);
+    //  Calculate combined weights and linear sample ratios between texel pairs.
+    //  The center texel (with weight w0) is used twice, so halve its weight.
+    const float w0_1 = w0 * 0.5 + w1;
+    const float w2_3 = w2 + w3;
+    const float w4_5 = w4 + w5;
+    const float w6_7 = w6 + w7;
+    const float w8_9 = w8 + w9;
+    const float w10_11 = w10 + w11;
+    const float w12_13 = w12 + w13;
+    const float w14_15 = w14 + w15;
+    const float w16_17 = w16 + w17;
+    const float w18_19 = w18 + w19;
+    const float w20_21 = w20 + w21;
+    const float w0_1_ratio = w1/w0_1;
+    const float w2_3_ratio = w3/w2_3;
+    const float w4_5_ratio = w5/w4_5;
+    const float w6_7_ratio = w7/w6_7;
+    const float w8_9_ratio = w9/w8_9;
+    const float w10_11_ratio = w11/w10_11;
+    const float w12_13_ratio = w13/w12_13;
+    const float w14_15_ratio = w15/w14_15;
+    const float w16_17_ratio = w17/w16_17;
+    const float w18_19_ratio = w19/w18_19;
+    const float w20_21_ratio = w21/w20_21;
+    //  Statically normalize weights, sum weighted samples, and return:
+    vec3 sum = vec3(0.0);
+    sum += w20_21 * tex2D_linearize(tex, tex_uv - (20.0 + w20_21_ratio) * dxdy).rgb;
+    sum += w18_19 * tex2D_linearize(tex, tex_uv - (18.0 + w18_19_ratio) * dxdy).rgb;
+    sum += w16_17 * tex2D_linearize(tex, tex_uv - (16.0 + w16_17_ratio) * dxdy).rgb;
+    sum += w14_15 * tex2D_linearize(tex, tex_uv - (14.0 + w14_15_ratio) * dxdy).rgb;
+    sum += w12_13 * tex2D_linearize(tex, tex_uv - (12.0 + w12_13_ratio) * dxdy).rgb;
+    sum += w10_11 * tex2D_linearize(tex, tex_uv - (10.0 + w10_11_ratio) * dxdy).rgb;
+    sum += w8_9 * tex2D_linearize(tex, tex_uv - (8.0 + w8_9_ratio) * dxdy).rgb;
+    sum += w6_7 * tex2D_linearize(tex, tex_uv - (6.0 + w6_7_ratio) * dxdy).rgb;
+    sum += w4_5 * tex2D_linearize(tex, tex_uv - (4.0 + w4_5_ratio) * dxdy).rgb;
+    sum += w2_3 * tex2D_linearize(tex, tex_uv - (2.0 + w2_3_ratio) * dxdy).rgb;
+    sum += w0_1 * tex2D_linearize(tex, tex_uv - w0_1_ratio * dxdy).rgb;
+    sum += w0_1 * tex2D_linearize(tex, tex_uv + w0_1_ratio * dxdy).rgb;
+    sum += w2_3 * tex2D_linearize(tex, tex_uv + (2.0 + w2_3_ratio) * dxdy).rgb;
+    sum += w4_5 * tex2D_linearize(tex, tex_uv + (4.0 + w4_5_ratio) * dxdy).rgb;
+    sum += w6_7 * tex2D_linearize(tex, tex_uv + (6.0 + w6_7_ratio) * dxdy).rgb;
+    sum += w8_9 * tex2D_linearize(tex, tex_uv + (8.0 + w8_9_ratio) * dxdy).rgb;
+    sum += w10_11 * tex2D_linearize(tex, tex_uv + (10.0 + w10_11_ratio) * dxdy).rgb;
+    sum += w12_13 * tex2D_linearize(tex, tex_uv + (12.0 + w12_13_ratio) * dxdy).rgb;
+    sum += w14_15 * tex2D_linearize(tex, tex_uv + (14.0 + w14_15_ratio) * dxdy).rgb;
+    sum += w16_17 * tex2D_linearize(tex, tex_uv + (16.0 + w16_17_ratio) * dxdy).rgb;
+    sum += w18_19 * tex2D_linearize(tex, tex_uv + (18.0 + w18_19_ratio) * dxdy).rgb;
+    sum += w20_21 * tex2D_linearize(tex, tex_uv + (20.0 + w20_21_ratio) * dxdy).rgb;
+    return sum * weight_sum_inv;
 }
 
 ////////////////////  ARBITRARILY RESIZABLE ONE-PASS BLURS  ////////////////////
@@ -279,3 +540,64 @@ vec3 tex2Dblur3x3resize(const sampler2D texture, const vec2 tex_uv,
 {
     return tex2Dblur3x3resize(texture, tex_uv, dxdy, blur3_std_dev);
 }
+
+vec3 tex2Dblur9fast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy, const float sigma)
+{
+    //  Requires:   Same as tex2Dblur11()
+    //  Returns:    A 1D 9x Gaussian blurred texture lookup using 1 nearest
+    //              neighbor and 4 linear taps.  It may be mipmapped depending
+    //              on settings and dxdy.
+    //  First get the texel weights and normalization factor as above.
+    const float denom_inv = 0.5/(sigma*sigma);
+    const float w0 = 1.0;
+    const float w1 = exp(-1.0 * denom_inv);
+    const float w2 = exp(-4.0 * denom_inv);
+    const float w3 = exp(-9.0 * denom_inv);
+    const float w4 = exp(-16.0 * denom_inv);
+    const float weight_sum_inv = 1.0 / (w0 + 2.0 * (w1 + w2 + w3 + w4));
+    //  Calculate combined weights and linear sample ratios between texel pairs.
+    const float w12 = w1 + w2;
+    const float w34 = w3 + w4;
+    const float w12_ratio = w2/w12;
+    const float w34_ratio = w4/w34;
+    //  Statically normalize weights, sum weighted samples, and return:
+    vec3 sum = vec3(0.0);
+    sum += w34 * tex2D_linearize(tex, tex_uv - (3.0 + w34_ratio) * dxdy).rgb;
+    sum += w12 * tex2D_linearize(tex, tex_uv - (1.0 + w12_ratio) * dxdy).rgb;
+    sum += w0 * tex2D_linearize(tex, tex_uv).rgb;
+    sum += w12 * tex2D_linearize(tex, tex_uv + (1.0 + w12_ratio) * dxdy).rgb;
+    sum += w34 * tex2D_linearize(tex, tex_uv + (3.0 + w34_ratio) * dxdy).rgb;
+    return sum * weight_sum_inv;
+}
+
+vec3 tex2Dblur9fast(const sampler2D tex, const vec2 tex_uv,
+    const vec2 dxdy)
+{
+    return tex2Dblur9fast(tex, tex_uv, dxdy, blur9_std_dev);
+}
+
+vec3 tex2Dblur17fast(const sampler2D texture, const vec2 tex_uv,
+    const vec2 dxdy)
+{
+    return tex2Dblur17fast(texture, tex_uv, dxdy, blur17_std_dev);
+}
+
+vec3 tex2Dblur25fast(const sampler2D texture, const vec2 tex_uv,
+    const vec2 dxdy)
+{
+    return tex2Dblur25fast(texture, tex_uv, dxdy, blur25_std_dev);
+}
+
+vec3 tex2Dblur43fast(const sampler2D texture, const vec2 tex_uv,
+    const vec2 dxdy)
+{
+    return tex2Dblur43fast(texture, tex_uv, dxdy, blur43_std_dev);
+}
+vec3 tex2Dblur31fast(const sampler2D texture, const vec2 tex_uv,
+    const vec2 dxdy)
+{
+    return tex2Dblur31fast(texture, tex_uv, dxdy, blur31_std_dev);
+}
+
+#endif  //  BLUR_FUNCTIONS_H

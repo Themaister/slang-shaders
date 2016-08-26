@@ -71,17 +71,17 @@ void main()
     //  and the number of tiles that will fit in the FBO.
     const vec2 output_tiles_this_pass = registers.OutputSize.xy / mask_resize_tile_size;
     const vec2 output_video_uv = tex_uv;
-    const vec2 tile_uv_wrap = output_video_uv * output_tiles_this_pass;
+    tile_uv_wrap = output_video_uv * output_tiles_this_pass;
 	
 	//  Get the texel size of an input tile and related values:
     const vec2 input_tile_size = vec2(min(
         mask_resize_src_lut_size.x, registers.SourceSize.x), mask_resize_tile_size.y);
-    const vec2 tile_size_uv = input_tile_size * registers.SourceSize.zw;
-    const vec2 input_tiles_per_texture = registers.SourceSize.xy / input_tile_size;
+    tile_size_uv = input_tile_size * registers.SourceSize.zw;
+    input_tiles_per_texture = registers.SourceSize.xy / input_tile_size;
 	
 	//  Derive [wrapped] texture uv coords from [wrapped] tile uv coords and
     //  the tile size in uv coords, and save frac() for the fragment shader.
-    const vec2 src_tex_uv_wrap = tile_uv_wrap * tile_size_uv;
+    src_tex_uv_wrap = tile_uv_wrap * tile_size_uv;
 	
 	resize_magnification_scale = mask_resize_tile_size / input_tile_size;
     src_dxdy = vec2(registers.SourceSize.z, 0.0);

@@ -31,9 +31,9 @@ layout(push_constant) uniform Push
 
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
-//#include "../user-settings.h"
-//#include "derived-settings-and-constants.h"
-//#include "bind-shader-params.h"
+#include "../user-settings.h"
+#include "derived-settings-and-constants.h"
+#include "bind-shader-params.h"
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 

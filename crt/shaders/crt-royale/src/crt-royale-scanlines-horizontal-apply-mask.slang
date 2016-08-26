@@ -41,11 +41,11 @@ layout(push_constant) uniform Push
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-//#include "scanline-functions.h"
+#include "scanline-functions.h"
 #include "phosphor-mask-resizing.h"
-//#include "bloom-functions.h"//"bloom-functions.h"
-//#include "../../../../include/gamma-management.h"
-#include "includes.h"
+#include "bloom-functions.h"//"bloom-functions.h"
+#include "../../../../include/gamma-management.h"
+
 ///////////////////////////////////  HELPERS  //////////////////////////////////
 
 vec4 tex2Dtiled_mask_linearize(const sampler2D tex,
@@ -88,11 +88,11 @@ void main()
    video_uv = TexCoord;
    const vec2 scanline_texture_size_inv =
         registers.VERTICAL_SCANLINESSize.zw;
-	scanline_tex_uv = video_uv * registers.VERTICAL_SCANLINESSize.xy *
+	scanline_tex_uv = video_uv;// * registers.VERTICAL_SCANLINESSize.xy *
         scanline_texture_size_inv;
-	blur3x3_tex_uv = video_uv * registers.BLOOM_APPROXSize.xy *
+	blur3x3_tex_uv = video_uv;// * registers.BLOOM_APPROXSize.xy *
         registers.BLOOM_APPROXSize.zw;
-	halation_tex_uv = video_uv * registers.HALATION_BLURSize.xy *
+	halation_tex_uv = video_uv;// * registers.HALATION_BLURSize.xy *
         registers.HALATION_BLURSize.zw;
 		
 	//  Get a consistent name for the final mask texture size.  Sample mode 0
@@ -109,10 +109,9 @@ void main()
     #endif
 	
 	//  Compute mask tile dimensions, starting points, etc.:
-    vec2 mask_tiles_per_screen;
-    mask_tile_start_uv_and_size = vec4(get_mask_sampling_parameters(
+        mask_tile_start_uv_and_size = get_mask_sampling_parameters(
         mask_resize_texture_size, mask_resize_video_size, registers.OutputSize.xy,
-        mask_tiles_per_screen)); //TODO/FIXME: is this right? I wrapped in a vec4 because that's what it needs to compile
+        mask_tiles_per_screen);
 }
 
 #pragma stage fragment
@@ -200,12 +199,12 @@ void main()
     const vec3 halation_intensity_dim =
         vec3(dot(halation_color, vec3(auto_dim_factor/3.0)));
     const vec3 electron_intensity_dim = mix(scanline_color_dim,
-        halation_intensity_dim, halation_weight);
+        halation_intensity_dim, params.halation_weight);
 		
 	//  Apply the phosphor mask:
     const vec3 phosphor_emission_dim = electron_intensity_dim *
         phosphor_mask_sample;
-		
+		#define PHOSPHOR_BLOOM_FAKE // TODO/FIXME: something seems wrong with the non-FAKE path
 	#ifdef PHOSPHOR_BLOOM_FAKE
         //  The BLOOM_APPROX pass approximates a blurred version of a masked
         //  and scanlined image.  It's usually used to compute the brightpass,
