@@ -115,13 +115,13 @@ void main()
             const vec2 src_tex_uv = fract(src_tex_uv_wrap);
             vec3 pixel_color;
             //  If mask_type is static, this branch will be resolved statically.
-            if(mask_type < 0.5)
+            if(params.mask_type < 0.5)
             {
                 pixel_color = downsample_vertical_sinc_tiled(
                     mask_grille_texture_large, src_tex_uv, mask_resize_src_lut_size,
                     src_dy, resize_magnification_scale.y, 1.0);
             }
-            else if(mask_type < 1.5)
+            else if(params.mask_type < 1.5)
             {
                 pixel_color = downsample_vertical_sinc_tiled(
                     mask_slot_texture_large, src_tex_uv, mask_resize_src_lut_size,
@@ -169,13 +169,13 @@ void main()
             const vec2 src_tex_uv = fract(src_tex_uv_wrap);
             vec3 pixel_color;
             //  If mask_type is static, this branch will be resolved statically.
-            if(mask_type < 0.5)
+            if(params.mask_type < 0.5)
             {
                 pixel_color = downsample_vertical_sinc_tiled(
                     mask_grille_texture_small, src_tex_uv, mask_resize_src_lut_size,
                     src_dy, resize_magnification_scale.y, 1.0);
             }
-            else if(mask_type < 1.5)
+            else if(params.mask_type < 1.5)
             {
                 pixel_color = downsample_vertical_sinc_tiled(
                     mask_slot_texture_small, src_tex_uv, mask_resize_src_lut_size,

@@ -116,15 +116,15 @@ void main()
         brightpass_tex_uv).rgb;
     const vec3 dimpass = intensity_dim - brightpass;
     const vec3 phosphor_bloom = (dimpass + blurred_brightpass) *
-        mask_amplify * undim_factor * levels_contrast;
+        mask_amplify * undim_factor * params.levels_contrast;
 		
 	//  Sample the halation texture, and let some light bleed into refractive
     //  diffusion.  Conceptually this occurs before the phosphor bloom, but
     //  adding it in earlier passes causes black crush in the diffusion colors.
-    const vec3 diffusion_color = levels_contrast * tex2D_linearize(
+    const vec3 diffusion_color = params.levels_contrast * tex2D_linearize(
         HALATION_BLUR, halation_tex_uv).rgb;
     const vec3 final_bloom = mix(phosphor_bloom,
-        diffusion_color, diffusion_weight);
+        diffusion_color, params.diffusion_weight);
 		
 	//  Encode and output the bloomed image:
    FragColor = encode_output(vec4(final_bloom, 1.0));

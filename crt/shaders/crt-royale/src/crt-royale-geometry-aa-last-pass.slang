@@ -140,7 +140,7 @@ void main()
 	//  Get an optimal eye position based on geom_view_dist, viewport_aspect,
     //  and CRT radius/rotation:
     #ifdef RUNTIME_GEOMETRY_MODE
-        const float geom_mode = geom_mode_runtime;
+        geom_mode = params.geom_mode_runtime;
     #else
         const float geom_mode = geom_mode_static;
     #endif
@@ -178,7 +178,7 @@ void main()
         const mat3x3 global_to_local = geom_global_to_local_static;
     #endif
     #ifdef RUNTIME_GEOMETRY_MODE
-        const float geom_mode = geom_mode_runtime;
+        geom_mode = params.geom_mode_runtime;
     #else
         const float geom_mode = geom_mode_static;
     #endif

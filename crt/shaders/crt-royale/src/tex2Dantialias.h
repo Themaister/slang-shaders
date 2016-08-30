@@ -189,8 +189,8 @@
     //  2.) C = 0.5 (default) is Catmull-Rom; higher C's apply sharpening.
     //  3.) C = 1.0/3.0 is the Mitchell-Netravali filter.
     //  4.) C = 0.0 is a soft spline filter.
-    const float aa_cubic_c = 0.5;
-    const float aa_gauss_sigma = 0.5 / aa_pixel_diameter;
+//    const float aa_cubic_c = 0.5;
+//    const float aa_gauss_sigma = 0.5 / aa_pixel_diameter;
     //  Users may override the subpixel offset accessor function with their own.
     //  A function is used for compatibility with scalar runtime shader params.
     vec2 get_aa_subpixel_r_offset()
@@ -235,14 +235,14 @@ void assign_aa_cubic_constants()
     #ifdef RUNTIME_ANTIALIAS_WEIGHTS
         if(aa_filter > 5.5 && aa_filter < 7.5)
         {
-            aa_cubic_b = 1.0 - 2.0*aa_cubic_c;
-            cubic_branch1_x3_coeff = 12.0 - 9.0*aa_cubic_b - 6.0*aa_cubic_c;
-            cubic_branch1_x2_coeff = -18.0 + 12.0*aa_cubic_b + 6.0*aa_cubic_c;
+            aa_cubic_b = 1.0 - 2.0*params.aa_cubic_c;
+            cubic_branch1_x3_coeff = 12.0 - 9.0*aa_cubic_b - 6.0*params.aa_cubic_c;
+            cubic_branch1_x2_coeff = -18.0 + 12.0*aa_cubic_b + 6.0*params.aa_cubic_c;
             cubic_branch1_x0_coeff = 6.0 - 2.0 * aa_cubic_b;
-            cubic_branch2_x3_coeff = -aa_cubic_b - 6.0 * aa_cubic_c;
-            cubic_branch2_x2_coeff = 6.0*aa_cubic_b + 30.0*aa_cubic_c;
-            cubic_branch2_x1_coeff = -12.0*aa_cubic_b - 48.0*aa_cubic_c;
-            cubic_branch2_x0_coeff = 8.0*aa_cubic_b + 24.0*aa_cubic_c;
+            cubic_branch2_x3_coeff = -aa_cubic_b - 6.0 * params.aa_cubic_c;
+            cubic_branch2_x2_coeff = 6.0*aa_cubic_b + 30.0*params.aa_cubic_c;
+            cubic_branch2_x1_coeff = -12.0*aa_cubic_b - 48.0*params.aa_cubic_c;
+            cubic_branch2_x0_coeff = 8.0*aa_cubic_b + 24.0*params.aa_cubic_c;
         }
     #endif
 }
@@ -306,7 +306,7 @@ float eval_tent_filter(const float dist)
 
 float eval_gaussian_filter(const float dist)
 {
-    return exp(-(dist*dist) / (2.0*aa_gauss_sigma*aa_gauss_sigma));
+    return exp(-(dist*dist) / (2.0*params.aa_gauss_sigma*params.aa_gauss_sigma));
 }
 
 float eval_cubic_filter(const float dist)
@@ -315,14 +315,14 @@ float eval_cubic_filter(const float dist)
     #ifndef RUNTIME_ANTIALIAS_WEIGHTS
         //  When runtime weights are used, these values are instead written to
         //  global uniforms at the beginning of each tex2Daa* call.
-        const float aa_cubic_b = 1.0 - 2.0*aa_cubic_c;
-        const float cubic_branch1_x3_coeff = 12.0 - 9.0*aa_cubic_b - 6.0*aa_cubic_c;
-        const float cubic_branch1_x2_coeff = -18.0 + 12.0*aa_cubic_b + 6.0*aa_cubic_c;
+        const float aa_cubic_b = 1.0 - 2.0*params.aa_cubic_c;
+        const float cubic_branch1_x3_coeff = 12.0 - 9.0*aa_cubic_b - 6.0*params.aa_cubic_c;
+        const float cubic_branch1_x2_coeff = -18.0 + 12.0*aa_cubic_b + 6.0*params.aa_cubic_c;
         const float cubic_branch1_x0_coeff = 6.0 - 2.0 * aa_cubic_b;
-        const float cubic_branch2_x3_coeff = -aa_cubic_b - 6.0 * aa_cubic_c;
-        const float cubic_branch2_x2_coeff = 6.0*aa_cubic_b + 30.0*aa_cubic_c;
-        const float cubic_branch2_x1_coeff = -12.0*aa_cubic_b - 48.0*aa_cubic_c;
-        const float cubic_branch2_x0_coeff = 8.0*aa_cubic_b + 24.0*aa_cubic_c;
+        const float cubic_branch2_x3_coeff = -aa_cubic_b - 6.0 * params.aa_cubic_c;
+        const float cubic_branch2_x2_coeff = 6.0*aa_cubic_b + 30.0*params.aa_cubic_c;
+        const float cubic_branch2_x1_coeff = -12.0*aa_cubic_b - 48.0*params.aa_cubic_c;
+        const float cubic_branch2_x0_coeff = 8.0*aa_cubic_b + 24.0*params.aa_cubic_c;
     #endif
     const float abs_dist = abs(dist);
     //  Compute the cubic based on the Horner's method formula in:

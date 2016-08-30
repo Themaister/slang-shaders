@@ -237,9 +237,9 @@ vec2 get_resized_mask_tile_size(const vec2 estimated_viewport_size,
     //  If mask_specify_num_triads is 1.0/true and estimated_viewport_size.x is
     //  wrong, the user preference will be misinterpreted:
     const float desired_tile_size_x = mask_triads_per_tile * mix(
-        mask_triad_size_desired,
-        estimated_viewport_size.x / mask_num_triads_desired,
-        mask_specify_num_triads);
+        params.mask_triad_size_desired,
+        estimated_viewport_size.x / params.mask_num_triads_desired,
+        params.mask_specify_num_triads);
     if(get_mask_sample_mode() > 0.5)
     {
         //  We don't need constraints unless we're sampling MASK_RESIZE.

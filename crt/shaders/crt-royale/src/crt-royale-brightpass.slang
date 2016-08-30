@@ -92,12 +92,12 @@ void main()
     const float undim_factor = 1.0/auto_dim_factor;
     const float mask_amplify = get_mask_amplify();
     const vec3 intensity = intensity_dim * undim_factor * mask_amplify *
-        levels_contrast;
+        params.levels_contrast;
 		
 	//  Sample BLOOM_APPROX to estimate what a straight blur of masked scanlines
     //  would look like, so we can estimate how much energy we'll receive from
     //  blooming neighbors:
-    const vec3 phosphor_blur_approx = levels_contrast * tex2D_linearize(
+    const vec3 phosphor_blur_approx = params.levels_contrast * tex2D_linearize(
         BLOOM_APPROX, blur3x3_tex_uv).rgb;
 		
 	//  Compute the blur weight for the center texel and the maximum energy we
@@ -111,15 +111,15 @@ void main()
     //  because it actually gets better results (on top of being very simple),
     //  but adjust all intensities for the user's desired underestimate factor:
     const vec3 area_contrib_underestimate =
-        bloom_underestimate_levels * max_area_contribution_approx;
+        params.bloom_underestimate_levels * max_area_contribution_approx;
     const vec3 intensity_underestimate =
-        bloom_underestimate_levels * intensity;
+        params.bloom_underestimate_levels * intensity;
 		
 	//  Calculate the blur_ratio, the ratio of intensity we want to blur:
     #ifdef BRIGHTPASS_AREA_BASED
         //  This area-based version changes blur_ratio more smoothly and blurs
         //  more, clipping less but offering less phosphor differentiation:
-        const vec3 phosphor_blur_underestimate = bloom_underestimate_levels *
+        const vec3 phosphor_blur_underestimate = params.bloom_underestimate_levels *
             phosphor_blur_approx;
         const vec3 soft_intensity = max(intensity_underestimate,
             phosphor_blur_underestimate * mask_amplify);
@@ -136,7 +136,7 @@ void main()
     //  Calculate the brightpass based on the auto-dimmed, unamplified, masked
     //  scanlines, encode if necessary, and return!
     const vec3 brightpass = intensity_dim *
-        mix(blur_ratio, vec3(1.0), bloom_excess);
+        mix(blur_ratio, vec3(1.0), params.bloom_excess);
 		
    FragColor = encode_output(vec4(brightpass, 1.0));
 }

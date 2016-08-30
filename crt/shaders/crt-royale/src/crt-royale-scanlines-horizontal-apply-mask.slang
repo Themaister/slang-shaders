@@ -163,12 +163,12 @@ void main()
 	if(sample_orig_luts)
     {
         //  If mask_type is static, this branch will be resolved statically.
-        if(mask_type < 0.5)
+        if(params.mask_type < 0.5)
         {
             phosphor_mask_sample = tex2D_linearize(
                 mask_grille_texture_large, mask_tex_uv).rgb;
         }
-        else if(mask_type < 1.5)
+        else if(params.mask_type < 1.5)
         {
             phosphor_mask_sample = tex2D_linearize(
                 mask_slot_texture_large, mask_tex_uv).rgb;
@@ -242,7 +242,7 @@ void main()
         //  full brightness, not minimal blurring.  To fix it, base blend_ratio
         //  on a max area intensity only so it varies more smoothly:
         const vec3 phosphor_blur_underestimate =
-            phosphor_blur_approx * bloom_underestimate_levels;
+            phosphor_blur_approx * params.bloom_underestimate_levels;
         const vec3 area_max_underestimate =
             phosphor_blur_underestimate * mask_amplify;
         #ifdef PHOSPHOR_BLOOM_FAKE_WITH_SIMPLE_BLEND
@@ -258,9 +258,9 @@ void main()
             //  the phosphor emission, but I haven't found a way to make the
             //  brightness correct across the whole color range, especially with
             //  different bloom_underestimate_levels values.)
-            const float desired_triad_size = mix(mask_triad_size_desired,
-                registers.OutputSize.x/mask_num_triads_desired,
-                mask_specify_num_triads);
+            const float desired_triad_size = mix(params.mask_triad_size_desired,
+                registers.OutputSize.x/params.mask_num_triads_desired,
+                params.mask_specify_num_triads);
             const float bloom_sigma = get_min_sigma_to_blur_triad(
                 desired_triad_size, bloom_diff_thresh);
             const float center_weight = get_center_weight(bloom_sigma);
@@ -268,7 +268,7 @@ void main()
                 max(vec3(0.0), phosphor_blur_approx -
                 center_weight * phosphor_emission);
             const vec3 area_contrib_underestimate =
-                bloom_underestimate_levels * max_area_contribution_approx;
+                params.bloom_underestimate_levels * max_area_contribution_approx;
             const vec3 blend_ratio_temp =
                 ((vec3(1.0) - area_contrib_underestimate) /
                 area_max_underestimate - vec3(1.0)) / (center_weight - 1.0);
@@ -277,13 +277,13 @@ void main()
         //  min/max/clamp are BIZARRELY broken with lerp (optimization bug?),
         //  and this redundant sequence avoids bugs, at least on nVidia cards:
         const vec3 blend_ratio_clamped = max(clamp(blend_ratio_temp, 0.0, 1.0), 0.0);
-        const vec3 blend_ratio = mix(blend_ratio_clamped, vec3(1.0), bloom_excess);
+        const vec3 blend_ratio = mix(blend_ratio_clamped, vec3(1.0), params.bloom_excess);
         //  Blend the blurred and unblurred images:
         const vec3 phosphor_emission_unclipped =
             mix(phosphor_emission, phosphor_blur_approx, blend_ratio);
         //  Simulate refractive diffusion by reusing the halation sample.
         const vec3 pixel_color = mix(phosphor_emission_unclipped,
-            halation_color, diffusion_weight);
+            halation_color, params.diffusion_weight);
     #else
         const vec3 pixel_color = phosphor_emission_dim;
     #endif

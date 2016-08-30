@@ -60,7 +60,7 @@ vec2 intersect_sphere(const vec3 view_vec, const vec3 eye_pos_vec)
     //  Quadratic formula coefficients (b_over_2 is guaranteed negative):
     const float a = dot(view_vec, view_vec);
     const float b_over_2 = dot(view_vec, eye_pos_vec);  //  * 2.0 factored out
-    const float c = dot(eye_pos_vec, eye_pos_vec) - geom_radius*geom_radius;
+    const float c = dot(eye_pos_vec, eye_pos_vec) - params.geom_radius*params.geom_radius;
     return quadratic_solve(a, b_over_2, c);
 }
 
@@ -77,7 +77,7 @@ vec2 intersect_cylinder(const vec3 view_vec, const vec3 eye_pos_vec)
     //              Real-Time Collision Detection, p. 195-196, and this version
     //              uses LaGrange's identity to reduce operations.
     //  Arbitrary "cylinder top" reference point for an infinite cylinder:
-    const vec3 cylinder_top_vec = vec3(0.0, geom_radius, 0.0);
+    const vec3 cylinder_top_vec = vec3(0.0, params.geom_radius, 0.0);
     const vec3 cylinder_axis_vec = vec3(0.0, 1.0, 0.0);//vec3(0.0, 2.0*geom_radius, 0.0);
     const vec3 top_to_eye_vec = eye_pos_vec - cylinder_top_vec;
     const vec3 axis_x_view = cross(cylinder_axis_vec, view_vec);
@@ -86,7 +86,7 @@ vec2 intersect_cylinder(const vec3 view_vec, const vec3 eye_pos_vec)
     const float a = dot(axis_x_view, axis_x_view);
     const float b_over_2 = dot(axis_x_top_to_eye, axis_x_view);
     const float c = dot(axis_x_top_to_eye, axis_x_top_to_eye) -
-        geom_radius*geom_radius;//*dot(cylinder_axis_vec, cylinder_axis_vec);
+        params.geom_radius*params.geom_radius;//*dot(cylinder_axis_vec, cylinder_axis_vec);
     return quadratic_solve(a, b_over_2, c);
 }
 
@@ -100,7 +100,7 @@ vec2 cylinder_xyz_to_uv(const vec3 intersection_pos_local,
     //  Start with a numerically robust arc length calculation.
     const float angle_from_image_center = atan(intersection_pos_local.z,
 		intersection_pos_local.x);
-    const float signed_arc_len = angle_from_image_center * geom_radius;
+    const float signed_arc_len = angle_from_image_center * params.geom_radius;
     //  Get a uv-mapping where [-0.5, 0.5] maps to a "square" area, then divide
     //  by the aspect ratio to stretch the mapping appropriately:
     const vec2 square_uv = vec2(signed_arc_len, -intersection_pos_local.y);
@@ -117,9 +117,9 @@ vec3 cylinder_uv_to_xyz(const vec2 video_uv, const vec2 geom_aspect)
     //  then calculate an xyz position for the cylindrical mapping above.
     const vec2 square_uv = video_uv * geom_aspect;
     const float arc_len = square_uv.x;
-    const float angle_from_image_center = arc_len / geom_radius;
-    const float x_pos = sin(angle_from_image_center) * geom_radius;
-    const float z_pos = cos(angle_from_image_center) * geom_radius;
+    const float angle_from_image_center = arc_len / params.geom_radius;
+    const float x_pos = sin(angle_from_image_center) * params.geom_radius;
+    const float z_pos = cos(angle_from_image_center) * params.geom_radius;
     //  Or: z = sqrt(geom_radius**2 - x**2)
     //  Or: z = geom_radius/sqrt(1.0 + tan(angle)**2), x = z * tan(angle)
     const vec3 intersection_pos_local = vec3(x_pos, -square_uv.y, z_pos);
@@ -143,12 +143,12 @@ vec2 sphere_xyz_to_uv(const vec3 intersection_pos_local,
     //  sphere intersection point and the image center using a method posted by
     //  Roger Stafford on comp.soft-sys.matlab:
     //  https://groups.google.com/d/msg/comp.soft-sys.matlab/zNbUui3bjcA/c0HV_bHSx9cJ
-    const vec3 image_center_pos_local = vec3(0.0, 0.0, geom_radius);
+    const vec3 image_center_pos_local = vec3(0.0, 0.0, params.geom_radius);
     const float cp_len =
         length(cross(intersection_pos_local, image_center_pos_local));
     const float dp = dot(intersection_pos_local, image_center_pos_local);
     const float angle_from_image_center = atan(dp, cp_len);
-    const float arc_len = angle_from_image_center * geom_radius;
+    const float arc_len = angle_from_image_center * params.geom_radius;
     //  Get a uv-mapping where [-0.5, 0.5] maps to a "square" area, then divide
     //  by the aspect ratio to stretch the mapping appropriately:
     const vec2 square_uv_unit = normalize(vec2(intersection_pos_local.x,
@@ -172,12 +172,12 @@ vec3 sphere_uv_to_xyz(const vec2 video_uv, const vec2 geom_aspect)
     //float arc_len = length(square_uv);
     const vec2 square_uv_unit = normalize(square_uv);
     const float arc_len = square_uv.y/square_uv_unit.y;
-    const float angle_from_image_center = arc_len / geom_radius;
+    const float angle_from_image_center = arc_len / params.geom_radius;
     const float xy_dist_from_sphere_center =
-        sin(angle_from_image_center) * geom_radius;
+        sin(angle_from_image_center) * params.geom_radius;
     //vec2 xy_pos = xy_dist_from_sphere_center * (square_uv/FIX_ZERO(arc_len));
     const vec2 xy_pos = xy_dist_from_sphere_center * square_uv_unit;
-    const float z_pos = cos(angle_from_image_center) * geom_radius;
+    const float z_pos = cos(angle_from_image_center) * params.geom_radius;
     const vec3 intersection_pos_local = vec3(xy_pos.x, -xy_pos.y, z_pos);
     return intersection_pos_local;
 }
@@ -192,7 +192,7 @@ vec2 sphere_alt_xyz_to_uv(const vec3 intersection_pos_local,
     //  See cylinder_xyz_to_uv() for implementation details (very similar).
     const vec2 angle_from_image_center = atan((intersection_pos_local.zz),
         vec2(intersection_pos_local.x, -intersection_pos_local.y));
-    const vec2 signed_arc_len = angle_from_image_center * geom_radius;
+    const vec2 signed_arc_len = angle_from_image_center * params.geom_radius;
     const vec2 video_uv = signed_arc_len / geom_aspect;
     return video_uv;
 }
@@ -205,9 +205,9 @@ vec3 sphere_alt_uv_to_xyz(const vec2 video_uv, const vec2 geom_aspect)
     //  See cylinder_uv_to_xyz() for implementation details (very similar).
     const vec2 square_uv = video_uv * geom_aspect;
     const vec2 arc_len = square_uv;
-    const vec2 angle_from_image_center = arc_len / geom_radius;
-    const vec2 xy_pos = sin(angle_from_image_center) * geom_radius;
-    const float z_pos = sqrt(geom_radius*geom_radius - dot(xy_pos, xy_pos));
+    const vec2 angle_from_image_center = arc_len / params.geom_radius;
+    const vec2 xy_pos = sin(angle_from_image_center) * params.geom_radius;
+    const float z_pos = sqrt(params.geom_radius*params.geom_radius - dot(xy_pos, xy_pos));
     return vec3(xy_pos.x, -xy_pos.y, z_pos);
 }
 
@@ -309,7 +309,7 @@ vec3 get_ideal_global_eye_pos_for_points(vec3 eye_pos,
         //  offset_ul and offset_dr represent the farthest we can move the
         //  eye_pos up-left and down-right.  Save the min of all offset_dr's
         //  and the max of all offset_ul's (since it's negative).
-        float abs_radius = abs(geom_radius);  //  In case anyone gets ideas. ;)
+        float abs_radius = abs(params.geom_radius);  //  In case anyone gets ideas. ;)
         vec2 offset_dr_min = vec2(10.0 * abs_radius, 10.0 * abs_radius);
         vec2 offset_ul_max = vec2(-10.0 * abs_radius, -10.0 * abs_radius);
         for(int i = 0; i < num_points; i++)
@@ -317,9 +317,9 @@ vec3 get_ideal_global_eye_pos_for_points(vec3 eye_pos,
             const vec2 flipy = vec2(1.0, -1.0);
             vec3 eyespace_xyz = eyespace_coords[i];
             vec2 offset_dr = eyespace_xyz.xy - vec2(-0.5) *
-                (geom_aspect * -eyespace_xyz.z) / (geom_view_dist * flipy);
+                (geom_aspect * -eyespace_xyz.z) / (params.geom_view_dist * flipy);
             vec2 offset_ul = eyespace_xyz.xy - vec2(0.5) *
-                (geom_aspect * -eyespace_xyz.z) / (geom_view_dist * flipy);
+                (geom_aspect * -eyespace_xyz.z) / (params.geom_view_dist * flipy);
             offset_dr_min = min(offset_dr_min, offset_dr);
             offset_ul_max = max(offset_ul_max, offset_ul);
         }
@@ -347,13 +347,13 @@ vec3 get_ideal_global_eye_pos_for_points(vec3 eye_pos,
         //      We'll vectorize the actual computation.  Take the maximum of
         //      these four for a single offset, and continue taking the max
         //      for every point (use max because offset.z is negative).
-        float offset_z_max = -10.0 * geom_radius * geom_view_dist;
+        float offset_z_max = -10.0 * params.geom_radius * params.geom_view_dist;
         for(int i = 0; i < num_points; i++)
         {
             vec3 eyespace_xyz_flipy = eyespace_coords[i] *
                 vec3(1.0, -1.0, 1.0);
             vec4 offset_zzzz = eyespace_xyz_flipy.zzzz +
-                (eyespace_xyz_flipy.xyxy * geom_view_dist) /
+                (eyespace_xyz_flipy.xyxy * params.geom_view_dist) /
                 (vec4(-0.5, -0.5, 0.5, 0.5) * vec4(geom_aspect, geom_aspect));
             //  Ignore offsets that push positive x/y values to opposite
             //  boundaries, and vice versa, and don't let the camera move
@@ -379,14 +379,14 @@ vec3 get_ideal_global_eye_pos(const mat3x3 local_to_global,
 {
     //  Start with an initial eye_pos that includes the entire primitive
     //  (sphere or cylinder) in its field-of-view:
-    const vec3 high_view = vec3(0.0, geom_aspect.y, -geom_view_dist);
+    const vec3 high_view = vec3(0.0, geom_aspect.y, -params.geom_view_dist);
     const vec3 low_view = high_view * vec3(1.0, -1.0, 1.0);
     const float len_sq = dot(high_view, high_view);
     const float fov = abs(acos(dot(high_view, low_view)/len_sq));
     //  Trigonometry/similar triangles say distance = geom_radius/sin(fov/2):
-    const float eye_z_spherical = geom_radius/sin(fov*0.5);
+    const float eye_z_spherical = params.geom_radius/sin(fov*0.5);
     vec3 eye_pos = vec3(0.0, 0.0, eye_z_spherical);
-	if (geom_mode < 2.5) eye_pos = vec3(0.0, 0.0, max(geom_view_dist, eye_z_spherical));
+	if (geom_mode < 2.5) eye_pos = vec3(0.0, 0.0, max(params.geom_view_dist, eye_z_spherical));
 
     //  Get global xyz coords of extreme sample points on the simulated CRT
     //  screen.  Start with the center, edge centers, and corners of the
@@ -602,7 +602,7 @@ vec2 get_curved_video_uv_coords_and_tangent_matrix(
     //      units of the viewport's physical diagonal size.
     const vec2 view_uv = (flat_video_uv - vec2(0.5)) * geom_aspect;
     const vec3 view_vec_global =
-        vec3(view_uv.x, -view_uv.y, -geom_view_dist);
+        vec3(view_uv.x, -view_uv.y, -params.geom_view_dist);
     //  Transform the view vector into the CRT's local coordinate frame, convert
     //  to video_uv coords, and get the local 3D intersection position:
     const vec3 view_vec_local = (view_vec_global * global_to_local);
@@ -674,11 +674,11 @@ float get_border_dim_factor(const vec2 video_uv, const vec2 geom_aspect)
     const vec2 edge_dists = min(video_uv, vec2(1.0) - video_uv) *
         geom_aspect;
     const vec2 border_penetration =
-        max(vec2(border_size) - edge_dists, vec2(0.0));
-    const float penetration_ratio = length(border_penetration)/border_size;
+        max(vec2(params.border_size) - edge_dists, vec2(0.0));
+    const float penetration_ratio = length(border_penetration)/params.border_size;
     const float border_escape_ratio = max(1.0 - penetration_ratio, 0.0);
     const float border_dim_factor =
-        pow(border_escape_ratio, border_darkness) * max(1.0, border_compress);
+        pow(border_escape_ratio, params.border_darkness) * max(1.0, params.border_compress);
     return min(border_dim_factor, 1.0);
 }
 
