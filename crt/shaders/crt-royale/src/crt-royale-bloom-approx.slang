@@ -188,8 +188,8 @@ void main()
     //  "true" too.  The blur will be much more accurate if a true 4x4 Gaussian
     //  resize is used instead of tex2Dblur3x3_resize (which samples between
     //  texels even for upsizing).
-	const vec2 dxdy_min_scale = registers.ORIG_LINEARIZEDSize.xy / registers.OutputSize.xy;
-    texture_size_inv = vec2(1.0) * registers.ORIG_LINEARIZEDSize.zw;
+	const vec2 dxdy_min_scale = registers.ORIG_LINEARIZEDSize.xy * registers.OutputSize.zw;
+    texture_size_inv = registers.ORIG_LINEARIZEDSize.zw;
     if(bloom_approx_filter > 1.5)   //  4x4 true Gaussian resize
     {
         //  For upsizing, we'll snap to texels and sample the nearest 4.
@@ -268,7 +268,7 @@ void main()
 	const vec2 texture_size = registers.ORIG_LINEARIZEDSize.xy;
 	vec2 tex_uv_r, tex_uv_g, tex_uv_b;
 	
-	if(beam_misconvergence)
+	if(beam_misconvergence = true)
     {
         const vec2 convergence_offsets_r = get_convergence_offsets_r_vector();
         const vec2 convergence_offsets_g = get_convergence_offsets_g_vector();
@@ -288,7 +288,7 @@ void main()
 	if(bloom_approx_filter > 1.5)
     {
         //  Use a 4x4 Gaussian resize.  This is slower but technically correct.
-        if(beam_misconvergence)
+        if(beam_misconvergence = true)
         {
             color_r = tex2Dresize_gaussian4x4(ORIG_LINEARIZED, tex_uv_r,
                 blur_dxdy, texture_size, texture_size_inv,
@@ -312,7 +312,7 @@ void main()
         //  Use a 3x3 resize blur.  This is the softest option, because we're
         //  blurring already blurry bilinear samples.  It doesn't play quite as
         //  nicely with convergence offsets, but it has its charms.
-        if(beam_misconvergence)
+        if(beam_misconvergence = true)
         {
             color_r = tex2Dblur3x3resize(ORIG_LINEARIZED, tex_uv_r,
                 blur_dxdy, bloom_approx_sigma);
@@ -334,7 +334,7 @@ void main()
         //  too sharp above ~400x300, but the blurs break down above that
         //  resolution too, unless min_allowed_viewport_triads is high enough to
         //  keep bloom_approx_scale_x/min_allowed_viewport_triads < ~1.1658025.)
-        if(beam_misconvergence)
+        if(beam_misconvergence = true)
         {
             color_r = tex2D_linearize(ORIG_LINEARIZED, tex_uv_r).rgb;
             color_g = tex2D_linearize(ORIG_LINEARIZED, tex_uv_g).rgb;
@@ -346,7 +346,7 @@ void main()
         }
     }
 	//  Pack the colors from the red/green/blue beams into a single vector:
-    if(beam_misconvergence)
+    if(beam_misconvergence = true)
     {
         color = vec3(color_r.r, color_g.g, color_b.b);
     }

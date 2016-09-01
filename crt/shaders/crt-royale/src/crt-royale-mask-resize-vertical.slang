@@ -108,7 +108,7 @@ void main()
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         //  Discard unneeded fragments in case our profile allows real branches.
         const vec2 tile_uv_wrap = src_tex_uv_wrap;
-        if(get_mask_sample_mode() < 0.5 &&
+        if(params.mask_sample_mode_desired < 0.5 &&
             tile_uv_wrap.y <= mask_resize_num_tiles)
         {
             const float src_dy = 1.0/mask_resize_src_lut_size.y;
@@ -162,7 +162,7 @@ void main()
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         //  Discard unneeded fragments in case our profile allows real branches.
         const vec2 tile_uv_wrap = src_tex_uv_wrap;
-        if(get_mask_sample_mode() < 0.5 &&
+        if(params.mask_sample_mode_desired < 0.5 &&
             tile_uv_wrap.y <= mask_resize_num_tiles)
         {
             const float src_dy = 1.0/mask_resize_src_lut_size.y;

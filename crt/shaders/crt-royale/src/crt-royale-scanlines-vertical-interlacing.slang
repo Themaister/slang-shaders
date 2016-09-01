@@ -99,7 +99,7 @@ void main()
         texture_size_inv, il_step_multiple, frame_count, dist);
     //  Consider 2, 3, 4, or 6 scanlines numbered 0-5: The previous and next
     //  scanlines are numbered 2 and 3.  Get scanline colors colors (ignore
-    //  horizontal sampling, since since registers.OutputSize.x = video_size.x).
+    //  horizontal sampling, since registers.OutputSize.x = video_size.x).
     //  NOTE: Anisotropic filtering creates interlacing artifacts, which is why
     //  ORIG_LINEARIZED bobbed any interlaced input before this pass.
     const vec2 v_step = vec2(0.0, uv_step.y);
@@ -160,7 +160,7 @@ void main()
     //  Vertical convergence offsets are in units of current-field scanlines.
     //  dist2 means "positive sample distance from scanline 2, in scanlines:"
     vec3 dist2 = vec3(dist);
-    if(beam_misconvergence)
+    if(beam_misconvergence = true)
     {
         const vec3 convergence_offsets_vert_rgb =
             get_convergence_offsets_y_vector();

@@ -77,7 +77,7 @@ void main()
     //  (not output pixels), but we avoid this and consistently blur at the
     //  destination size.  Otherwise, combining statically calculated weights
     //  with bilinear sample exploitation would result in terrible artifacts.
-    const vec2 dxdy_scale = params.SourceSize.xy * params.OutputSize.zw;
+    const vec2 dxdy_scale = vec2(1.0);//params.SourceSize.xy * params.OutputSize.zw;
 	const vec2 dxdy = dxdy_scale * params.SourceSize.zw;
     //  This blur is vertical-only, so zero out the vertical offset:
 	blur_dxdy = vec2(0.0, dxdy.y);

@@ -109,7 +109,7 @@ void main()
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         //  Discard unneeded fragments in case our profile allows real branches.
         const vec2 tile_uv_wrap = tile_uv_wrap;
-        if(get_mask_sample_mode() < 0.5 &&
+        if(params.mask_sample_mode_desired < 0.5 &&
             max(tile_uv_wrap.x, tile_uv_wrap.y) <= mask_resize_num_tiles)
         {
             const float src_dx = src_dxdy.x;

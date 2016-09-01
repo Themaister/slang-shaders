@@ -86,7 +86,7 @@ void main()
    
    //  Our various input textures use different coords.
    video_uv = TexCoord;
-   const vec2 scanline_texture_size_inv =
+    scanline_texture_size_inv =
         registers.VERTICAL_SCANLINESSize.zw;
 	scanline_tex_uv = video_uv;// * registers.VERTICAL_SCANLINESSize.xy *
         scanline_texture_size_inv;
@@ -98,15 +98,16 @@ void main()
 	//  Get a consistent name for the final mask texture size.  Sample mode 0
     //  uses the manually resized mask, but ignore it if we never resized.
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
-        const float mask_sample_mode = get_mask_sample_mode();
+        const float mask_sample_mode = params.mask_sample_mode_desired;//get_mask_sample_mode();
         vec2 mask_resize_texture_size = registers.MASK_RESIZESize.xy;
-			if(mask_sample_mode < 0.5) mask_resize_texture_size = mask_texture_large_size;
+			if(mask_sample_mode > 0.5) mask_resize_texture_size = mask_texture_large_size;
         vec2 mask_resize_video_size = registers.MASK_RESIZESize.xy;
-			if(mask_sample_mode < 0.5) mask_resize_video_size = mask_texture_large_size;
+			if(mask_sample_mode > 0.5) mask_resize_video_size = mask_texture_large_size;
     #else
         const vec2 mask_resize_texture_size = mask_texture_large_size;
         const vec2 mask_resize_video_size = mask_texture_large_size;
     #endif
+//		mask_tiles_per_screen = vec2(1280.0, 480.0);
 	
 	//  Compute mask tile dimensions, starting points, etc.:
         mask_tile_start_uv_and_size = get_mask_sampling_parameters(
@@ -155,12 +156,12 @@ void main()
     vec3 phosphor_mask_sample;
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         bool sample_orig_luts = true;
-			if (get_mask_sample_mode() > 0.5) sample_orig_luts = false;
+			if (params.mask_sample_mode_desired > 0.5) sample_orig_luts = false;
     #else
         const bool sample_orig_luts = true;
     #endif
 	
-	if(sample_orig_luts)
+	if(sample_orig_luts = true)
     {
         //  If mask_type is static, this branch will be resolved statically.
         if(params.mask_type < 0.5)

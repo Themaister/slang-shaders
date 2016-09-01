@@ -175,7 +175,7 @@
     const float beam_num_scanlines = 3.0;                //  range [2, 6]
     //  A generalized Gaussian beam varies shape with color too, now just width.
     //  It's slower but more flexible (static option only for now).
-    const bool beam_generalized_gaussian = true;
+    bool beam_generalized_gaussian = true;
     //  What kind of scanline antialiasing do you want?
     //  0: Sample weights at 1x; 1: Sample weights at 3x; 2: Compute an integral
     //  Integrals are slow (especially for generalized Gaussians) and rarely any
@@ -215,14 +215,14 @@
     //  Simulate scanline misconvergence?  This needs 3x horizontal texture
     //  samples and 3x texture samples of BLOOM_APPROX and HALATION_BLUR in
     //  later passes (static option only for now).
-    const bool beam_misconvergence = true;
+    bool beam_misconvergence = true;
     //  Convergence offsets in x/y directions for R/G/B scanline beams in units
     //  of scanlines.  Positive offsets go right/down; ranges [-2, 2]
     const vec2 convergence_offsets_r_static = vec2(0.1, 0.2);
     const vec2 convergence_offsets_g_static = vec2(0.3, 0.4);
     const vec2 convergence_offsets_b_static = vec2(0.5, 0.6);
     //  Detect interlacing (static option only for now)?
-    const bool interlace_detect = true;
+    bool interlace_detect = true;
     //  Assume 1080-line sources are interlaced?
     const bool interlace_1080i_static = false;
     //  For interlaced sources, assume TFF (top-field first) or BFF order?

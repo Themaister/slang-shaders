@@ -29,7 +29,7 @@
 //  Assuming alpha == 1.0 might make it easier for users to avoid some bugs,
 //  but only if they're aware of it.
 #ifndef OVERRIDE_ALPHA_ASSUMPTIONS
-    const bool assume_opaque_alpha = false;
+    bool assume_opaque_alpha = false;
 #endif
 
 
@@ -88,22 +88,22 @@
 
 #ifndef GAMMA_ENCODE_EVERY_FBO
     #ifdef FIRST_PASS
-        const bool linearize_input = true;
+        bool linearize_input = true;
         float get_pass_input_gamma()     {   return get_input_gamma();   }
     #else
-        const bool linearize_input = false;
+        bool linearize_input = false;
         float get_pass_input_gamma()     {   return 1.0;                 }
     #endif
     #ifdef LAST_PASS
-        const bool gamma_encode_output = true;
+        bool gamma_encode_output = true;
         float get_pass_output_gamma()    {   return get_output_gamma();  }
     #else
-        const bool gamma_encode_output = false;
+        bool gamma_encode_output = false;
         float get_pass_output_gamma()    {   return 1.0;                 }
     #endif
 #else
-    const bool linearize_input = true;
-    const bool gamma_encode_output = true;
+    bool linearize_input = true;
+    bool gamma_encode_output = true;
     #ifdef FIRST_PASS
         float get_pass_input_gamma()     {   return get_input_gamma();   }
     #else
@@ -118,9 +118,9 @@
 
 vec4 decode_input(const vec4 color)
 {
-    if(linearize_input)
+    if(linearize_input = true)
     {
-        if(assume_opaque_alpha)
+        if(assume_opaque_alpha = true)
         {
             return vec4(pow(color.rgb, vec3(get_pass_input_gamma())), 1.0);
         }
@@ -137,9 +137,9 @@ vec4 decode_input(const vec4 color)
 
 vec4 encode_output(const vec4 color)
 {
-    if(gamma_encode_output)
+    if(gamma_encode_output = true)
     {
-        if(assume_opaque_alpha)
+        if(assume_opaque_alpha = true)
         {
             return vec4(pow(color.rgb, vec3(1.0/get_pass_output_gamma())), 1.0);
         }

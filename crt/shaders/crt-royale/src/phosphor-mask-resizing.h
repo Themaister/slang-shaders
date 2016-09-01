@@ -240,7 +240,7 @@ vec2 get_resized_mask_tile_size(const vec2 estimated_viewport_size,
         params.mask_triad_size_desired,
         estimated_viewport_size.x / params.mask_num_triads_desired,
         params.mask_specify_num_triads);
-    if(get_mask_sample_mode() > 0.5)
+    if(params.mask_sample_mode_desired > 0.5)
     {
         //  We don't need constraints unless we're sampling MASK_RESIZE.
         return desired_tile_size_x * tile_aspect;
@@ -319,7 +319,7 @@ vec4 get_mask_sampling_parameters(const vec2 mask_resize_texture_size,
     //  (We can better ensure a correct tile aspect ratio if the parameters are
     //  guaranteed correct in all passes...but if we lie, we'll get inconsistent
     //  sizes across passes, resulting in broken texture coordinates.)
-    const float mask_sample_mode = get_mask_sample_mode();
+    const float mask_sample_mode = params.mask_sample_mode_desired;//get_mask_sample_mode();
     const vec2 mask_resize_tile_size = get_resized_mask_tile_size(
         true_viewport_size, mask_resize_video_size, false);
     if(mask_sample_mode < 0.5)
@@ -586,7 +586,7 @@ vec2 convert_phosphor_tile_uv_wrap_to_tex_uv(const vec2 tile_uv_wrap,
     //                  tex_uv size of the embedded tile in the full texture.
     //  Returns:    Return tex_uv coords (used for texture sampling)
     //              corresponding to tile_uv_wrap.
-    if(get_mask_sample_mode() < 0.5)
+    if(params.mask_sample_mode_desired < 0.5)
     {
         //  Manually repeat the resized mask tile to fill the screen:
         //  First get fracttional tile_uv coords.  Using fract/fmod on coords

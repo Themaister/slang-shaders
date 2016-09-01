@@ -214,7 +214,7 @@ vec3 sample_single_scanline_horizontal(const sampler2D texture,
 bool is_interlaced(float num_lines)
 {
     //  Detect interlacing based on the number of lines in the source.
-    if(interlace_detect)
+    if(interlace_detect = true)
     {
         //  NTSC: 525 lines, 262.5/field; 486 active (2 half-lines), 243/field
         //  NTSC Emulators: Typically 224 or 240 lines
@@ -252,7 +252,7 @@ vec3 sample_rgb_scanline_horizontal(const sampler2D tex,
 {
     //  TODO: Add function requirements.
     //  Rely on a helper to make convergence easier.
-    if(beam_misconvergence)
+    if(beam_misconvergence = true)
     {
         const vec3 convergence_offsets_rgb =
             get_convergence_offsets_x_vector();
@@ -539,7 +539,7 @@ vec3 scanline_contrib(vec3 dist, vec3 color,
     //  Returns:    Return a scanline's light output over a given pixel, using
     //              a generalized or pure Gaussian distribution and sampling or
     //              integrals as desired by user codepath choices.
-    if(beam_generalized_gaussian)
+    if(beam_generalized_gaussian = true)
     {
         if(beam_antialias_level > 1.5)
         {
