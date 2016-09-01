@@ -161,7 +161,7 @@ void main()
         const bool sample_orig_luts = true;
     #endif
 	
-	if(sample_orig_luts = true)
+	if(sample_orig_luts == true)
     {
         //  If mask_type is static, this branch will be resolved statically.
         if(params.mask_type < 0.5)

@@ -79,7 +79,7 @@ void main()
 //  Linearize the input based on CRT gamma and bob interlaced fields.
 //  Bobbing ensures we can immediately blur without getting artifacts.
 //  Note: TFF/BFF won't matter for sources that double-weave or similar.
-if(interlace_detect)
+if(interlace_detect == true)
     {
         //  Sample the current line and an average of the previous/next line;
         //  tex2D_linearize will decode CRT gamma.  Don't bother branching:

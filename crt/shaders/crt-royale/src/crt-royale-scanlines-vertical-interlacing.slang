@@ -110,7 +110,7 @@ void main()
         scanline_outside_color;
     float dist_round;
     //  Use scanlines 0, 1, 4, and 5 for a total of 6 scanlines:
-	if(beam_num_scanlines > 5.5)
+	if(params.beam_num_scanlines > 5.5)
     {
         scanline1_color =
             tex2D_linearize(Source, scanline_uv - v_step).rgb;
@@ -122,7 +122,7 @@ void main()
             tex2D_linearize(Source, scanline_uv + 3.0 * v_step).rgb;
     }
 	//  Use scanlines 1, 4, and either 0 or 5 for a total of 5 scanlines:
-    else if(beam_num_scanlines > 4.5)
+    else if(params.beam_num_scanlines > 4.5)
     {
         scanline1_color =
             tex2D_linearize(Source, scanline_uv - v_step).rgb;
@@ -138,7 +138,7 @@ void main()
             Source, scanline_uv + sample_0_or_5_uv_off).rgb;
     }
 	//  Use scanlines 1 and 4 for a total of 4 scanlines:
-    else if(beam_num_scanlines > 3.5)
+    else if(params.beam_num_scanlines > 3.5)
     {
         scanline1_color =
             tex2D_linearize(Source, scanline_uv - v_step).rgb;
@@ -146,7 +146,7 @@ void main()
             tex2D_linearize(Source, scanline_uv + 2.0 * v_step).rgb;
     }
     //  Use scanline 1 or 4 for a total of 3 scanlines:
-    else if(beam_num_scanlines > 2.5)
+    else if(params.beam_num_scanlines > 2.5)
     {
         //  dist is in [0, 1]
         dist_round = round(dist);
@@ -160,7 +160,7 @@ void main()
     //  Vertical convergence offsets are in units of current-field scanlines.
     //  dist2 means "positive sample distance from scanline 2, in scanlines:"
     vec3 dist2 = vec3(dist);
-    if(beam_misconvergence = true)
+    if(beam_misconvergence == true)
     {
         const vec3 convergence_offsets_vert_rgb =
             get_convergence_offsets_y_vector();
@@ -182,7 +182,7 @@ void main()
         scanline3_color, ph, sigma_range, shape_range);
     vec3 scanline_intensity = scanline2_contrib + scanline3_contrib;
 	
-	if(beam_num_scanlines > 5.5)
+	if(params.beam_num_scanlines > 5.5)
     {
         vec3 scanline0_contrib =
             scanline_contrib(dist2 + vec3(2.0), scanline0_color,
@@ -199,7 +199,7 @@ void main()
         scanline_intensity += scanline0_contrib + scanline1_contrib +
             scanline4_contrib + scanline5_contrib;
     }
-    else if(beam_num_scanlines > 4.5)
+    else if(params.beam_num_scanlines > 4.5)
     {
         vec3 scanline1_contrib =
             scanline_contrib(dist2 + vec3(1.0), scanline1_color,
@@ -214,7 +214,7 @@ void main()
         scanline_intensity += scanline1_contrib + scanline4_contrib +
             scanline0or5_contrib;
     }
-    else if(beam_num_scanlines > 3.5)
+    else if(params.beam_num_scanlines > 3.5)
     {
         vec3 scanline1_contrib =
             scanline_contrib(dist2 + vec3(1.0), scanline1_color,
@@ -224,7 +224,7 @@ void main()
                 ph, sigma_range, shape_range);
         scanline_intensity += scanline1_contrib + scanline4_contrib;
     }
-    else if(beam_num_scanlines > 2.5)
+    else if(params.beam_num_scanlines > 2.5)
     {
         vec3 dist1or4 = mix(
             dist2 + vec3(1.0), vec3(2.0) - dist2, dist_round);

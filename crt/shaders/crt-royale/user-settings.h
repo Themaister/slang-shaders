@@ -172,7 +172,7 @@
     //      4 scanlines, max_beam_sigma = 0.5723; distortions begin ~0.70; 134.7 FPS pure; 117.2 FPS generalized
     //      5 scanlines, max_beam_sigma = 0.7591; distortions begin ~0.89; 131.6 FPS pure; 112.1 FPS generalized
     //      6 scanlines, max_beam_sigma = 0.9483; distortions begin ~1.08; 127.9 FPS pure; 105.6 FPS generalized
-    const float beam_num_scanlines = 3.0;                //  range [2, 6]
+//    const float beam_num_scanlines = 3.0;                //  range [2, 6]
     //  A generalized Gaussian beam varies shape with color too, now just width.
     //  It's slower but more flexible (static option only for now).
     bool beam_generalized_gaussian = true;

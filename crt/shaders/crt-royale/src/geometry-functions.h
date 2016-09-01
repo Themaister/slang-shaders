@@ -630,7 +630,7 @@ vec2 get_curved_video_uv_coords_and_tangent_matrix(
     #else
         //  Manually define a transformation matrix.  We'll assume pixel-space
         //  +y = down, just like +v = down.
-        if(geom_force_correct_tangent_matrix)
+        if(geom_force_correct_tangent_matrix == true)
         {
             //  Get the surface normal based on the local intersection position:
             vec3 normal_base = pos;

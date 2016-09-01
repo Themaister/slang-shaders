@@ -500,7 +500,7 @@ vec4 tex2Daa_tiled_linearize(const sampler2D samp, const vec2 s)
 
 vec2 get_frame_sign(const float frame)
 {
-    if(aa_temporal)
+    if(aa_temporal == true)
     {
         //  Mirror the sampling pattern for odd frames in a direction that
         //  lets us keep the same subpixel sample weights:

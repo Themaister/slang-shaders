@@ -226,7 +226,7 @@ void main()
         //  Sample the input with antialiasing (due to sharp phosphors, etc.):
         color = tex2Daa(Source, tex_uv, pixel_to_tex_uv, registers.FrameCount);
     }
-    else if(aa_level > 0.5 && need_subpixel_aa == true)
+    else if(aa_level > 0.5 && need_subpixel_aa = true)
     {
         //  Sample at each subpixel location:
         color = tex2Daa_subpixel_weights_only(
