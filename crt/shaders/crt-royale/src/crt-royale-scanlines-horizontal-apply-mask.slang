@@ -156,7 +156,7 @@ void main()
     vec3 phosphor_mask_sample;
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         bool sample_orig_luts = true;
-			if (params.mask_sample_mode_desired > 0.5) sample_orig_luts = false;
+			if (params.mask_sample_mode_desired < 0.5) sample_orig_luts = false;
     #else
         const bool sample_orig_luts = true;
     #endif
@@ -205,7 +205,7 @@ void main()
 	//  Apply the phosphor mask:
     const vec3 phosphor_emission_dim = electron_intensity_dim *
         phosphor_mask_sample;
-		#define PHOSPHOR_BLOOM_FAKE // TODO/FIXME: something seems wrong with the non-FAKE path
+//		#define PHOSPHOR_BLOOM_FAKE // TODO/FIXME: something seems wrong with the non-FAKE path
 	#ifdef PHOSPHOR_BLOOM_FAKE
         //  The BLOOM_APPROX pass approximates a blurred version of a masked
         //  and scanlined image.  It's usually used to compute the brightpass,
