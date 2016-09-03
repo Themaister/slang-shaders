@@ -26,9 +26,9 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec2 texelSize = 1.0 / global.SourceSize.xy;
+   vec2 texelSize = global.SourceSize.zw;
 
-   vec2 range = vec2(abs(global.SourceSize.z / (global.OutputSize.x * global.SourceSize.x)), abs(global.SourceSize.w / (global.OutputSize.y * global.SourceSize.y)));
+   vec2 range = vec2(abs(global.SourceSize.x / (global.OutputSize.x * global.SourceSize.x)), abs(global.SourceSize.y / (global.OutputSize.y * global.SourceSize.y)));
    range = range / 2.0 * 0.999;
 
    float left   = vTexCoord.x - range.x;
