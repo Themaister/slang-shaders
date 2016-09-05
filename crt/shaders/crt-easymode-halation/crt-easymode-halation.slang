@@ -60,7 +60,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define FIX(c) max(abs(c), 1e-5)
 #define PI 3.141592653589
-#define TEX2D(c) texture(Source, c)
+#define TEX2D(c) texture(tex, c)
 
 float curve_distance(float x, float sharp)
 {
@@ -106,13 +106,13 @@ vec2 curve_coordinate(vec2 co, float curvature)
     return co;
 }
 
-float get_corner_weight(vec2 co, vec2 corner, float smooth)
+float get_corner_weight(vec2 co, vec2 corner, float smoothfunc)
 {
     float corner_weight;
     
     co = min(co, vec2(1.0) - co) * vec2(1.0, 0.75);
     co = (corner - min(co, corner));
-    corner_weight = clamp((corner.x - sqrt(dot(co, co))) * smooth, 0.0, 1.0);
+    corner_weight = clamp((corner.x - sqrt(dot(co, co))) * smoothfunc, 0.0, 1.0);
     corner_weight = mix(1.0, corner_weight, ceil(corner.x));
     
     return corner_weight;
@@ -146,7 +146,7 @@ void main()
     {
         tex_size.y *= 0.5;
 
-        if (mod(timer, 2.0))
+        if (mod(timer, 2.0) > 0.0)
         {
             midpoint.y = 0.75;
             scan_offset = 0.5;
@@ -198,7 +198,7 @@ void main()
     float scan_pos = xy.y * tex_size.y + scan_offset;
     float scan_strength = mix(params.SCANLINE_STRENGTH_MAX, params.SCANLINE_STRENGTH_MIN, rgb_max);
     float scan_beam = clamp(rgb_max * params.SCANLINE_BEAM_MAX, params.SCANLINE_BEAM_MIN, params.SCANLINE_BEAM_MAX);
-    float scan_weight = 0.0;
+    vec3 scan_weight = vec3(0.0);
 
     float mask_colors;
     float mask_dot_width;
@@ -223,7 +223,7 @@ void main()
 
     vec2 mod_fac = floor(vTexCoord * params.OutputSize.xy * params.SourceSize.xy / (params.SourceSize.xy * vec2(params.MASK_SIZE, mask_dot_height * params.MASK_SIZE)));
     int dot_no = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * mask_stagger) / mask_dot_width, mask_colors));
-    int dither = mod(mod_fac.y + mod(floor(mod_fac.x / mask_colors), 2.0), 2.0);
+    float dither = mod(mod_fac.y + mod(floor(mod_fac.x / mask_colors), 2.0), 2.0);
 
     float mask_strength = mix(params.MASK_STRENGTH_MAX, params.MASK_STRENGTH_MIN, rgb_max);
     float mask_dark, mask_bright, mask_mul;
@@ -236,7 +236,7 @@ void main()
     else if (dot_no == 1) mask_weight = mix(vec3(mask_dark, mask_dark, mask_dark), vec3(mask_dark, mask_bright, mask_dark), mask_colors - 2.0);
     else mask_weight = vec3(mask_dark, mask_dark, mask_bright);
 
-    if (dither == 1) mask_mul = mask_dark;
+    if (dither > 0.9) mask_mul = mask_dark;
     else mask_mul = mask_bright;
 
     mask_weight *= mix(1.0, mask_mul, mask_dither);
