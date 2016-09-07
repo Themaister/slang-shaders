@@ -1,25 +1,31 @@
-shaders = "2"
+shaders = "4"
 
-shader0 = "../shaders/lcd-cgwg/lcd-grid.slang"
-filter_linear0 = "false"
-wrap_mode0 = "clamp_to_border"
-scale_type_x0 = "source"
-scale_x0 = "4.000000"
-scale_type_y0 = "source"
-scale_y0 = "4.000000"
+shader0 = "../../motionblur/shaders/feedback.slang"
+scale_type0 = source
+scale0 = 1.0
+filter_linear0 = false
 
-shader1 = "shader-files/border.slang"
-filter_linear1 = "true"
-wrap_mode1 = "clamp_to_border"
+shader1 = "../shaders/color/gba-color.slang
+filter_linear1 = false
 
-parameters = "box_scale;in_res_x;in_res_y;border_on_top;border_zoom_x;border_zoom_y"
+shader2 = "../shaders/lcd-cgwg/lcd-grid.slang"
+filter_linear2 = "false"
+wrap_mode2 = "clamp_to_border"
+scale_type_x2 = "source"
+scale_x2 = "4.000000"
+scale_type_y2 = "source"
+scale_y2 = "4.000000"
+
+shader3 = "shader-files/gb-pass-5.slang"
+filter_linear3 = "true"
+wrap_mode3 = "clamp_to_border"
+
+parameters = "SCALE;OUT_X;OUT_Y;GRID_STRENGTH;mixfactor"
 GRID_STRENGTH = "0.150000"
-box_scale = "4.0"
-in_res_x = "240.0"
-in_res_y = "160.0"
-border_on_top = "0.000000"
-border_zoom_x = "0.52"
-border_zoom_y = "0.59"
+SCALE = "1.0"
+OUT_X = "3200.0"
+OUT_Y = "1600.0"
+mixfactor = "0.50"
 
 textures = "BORDER"
 BORDER = "resources/gba-border-square-4x.png"
