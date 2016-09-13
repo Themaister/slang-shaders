@@ -71,7 +71,6 @@ scale_type_x1 = "source"
 scale_x1 = "1.0"
 scale_type_y1 = "viewport"
 scale_y1 = "1.0"
-#float_framebuffer1 = "true"
 srgb_framebuffer1 = "true"
 
 # Pass2: Do a small resize blur of ORIG_LINEARIZED at an absolute size, and
@@ -172,7 +171,6 @@ alias7 = "MASKED_SCANLINES"
 filter_linear7 = "true" # This could just as easily be nearest neighbor.
 scale_type7 = "viewport"
 scale7 = "1.0"
-#float_framebuffer7 = "true"
 srgb_framebuffer7 = "true"
 
 # Pass 8: Compute a brightpass.  This will require reading the final mask.
@@ -203,4 +201,3 @@ filter_linear11 = "true"
 scale_type11 = "viewport"
 mipmap_input11 = "true"
 texture_wrap_mode11 = "clamp_to_edge"
-
