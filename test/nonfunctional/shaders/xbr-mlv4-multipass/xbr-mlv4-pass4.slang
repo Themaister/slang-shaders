@@ -45,8 +45,6 @@ const vec3 bin            = vec3( 4.0f,  2.0f,  1.0f);
 const vec4 low            = vec4(-64.0f, -64.0f, -64.0f, -64.0f);
 const vec4 high           = vec4( 64.0f,  64.0f,  64.0f,  64.0f);
 
-const mat2x4 sym_vectors  = mat2x4(1,  1,   -1, -1,    1, -1,   -1,  1);
-
 vec4 remapFrom01(vec4 v, vec4 low, vec4 high)
 {
 	return round(mix(low, high, v));
