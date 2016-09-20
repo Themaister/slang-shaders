@@ -24,7 +24,7 @@ shader4 = ../crt/shaders/crt-royale/src/crt-royale-first-pass-linearize-crt-gamm
 srgb_framebuffer4 = true
 alias4 = "REFERENCE"
 
-shader5 = "shaders/crt-lottes-multipass/threshold.slang"
+shader5 = "../crt/shaders/crt-lottes-multipass/threshold.slang"
 srgb_framebuffer5 = "true"
 
 shader6 = "../blurs/blur9fast-vertical.slang"
