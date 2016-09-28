@@ -61,7 +61,7 @@ vec3 getNormal(vec3 pos)
 
 	return normalize(vec3(scene(pos+e.yxx) - scene(pos-e.yxx),
 	                      scene(pos+e.xyx) - scene(pos-e.xyx),
-						  scene(pos+e.xxy) - scene(pos-e.xxy))); 
+                          scene(pos+e.xxy) - scene(pos-e.xxy))); 
 }
 
 float render_scene(vec3 ray_origin, vec3 ray_dir,float t)
