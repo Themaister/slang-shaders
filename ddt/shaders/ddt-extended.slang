@@ -1,7 +1,7 @@
 #version 450
 
 /*
-   Hyllian's DDT Shader
+   Hyllian's Data Dependent Triangulation Shader - Extended Method
    
    Copyright (C) 2011-2016 Hyllian/Jararaca - sergiogdb@gmail.com
 
@@ -58,11 +58,11 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define decal Source
 
-const float3 Y = float3(.2126, .7152, .0722);
+const float3 dtt = float3(65536,255,1);
 
-float luma(float3 color)
+float reduce(float3 color)
 {
-  return dot(color, Y);
+	return dot(color, dtt);
 }
 
 float3 bilinear(float p, float q, float3 A, float3 B, float3 C, float3 D)
@@ -80,7 +80,7 @@ layout(location = 2) out vec2 loc;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+   vTexCoord = TexCoord * 1.0001;
    
    float2 ps = float2(params.SourceSize.z, params.SourceSize.w);
 	float dx = ps.x;
@@ -100,7 +100,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
+	float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	float2 dir = sign(pos); // dir = pixel direction
 
 	float2 g1 = dir*t1.xy;
@@ -111,36 +111,84 @@ float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	float3 C = tex2D(decal, vTexCoord    +g2).xyz;
 	float3 D = tex2D(decal, vTexCoord +g1+g2).xyz;
 
-	float a = luma(A);
-	float b = luma(B);
-	float c = luma(C);
-	float d = luma(D);
+	float3 C00 = tex2D(decal, vTexCoord -g1-g2).xyz;
+	float3 C01 = tex2D(decal, vTexCoord    -g2).xyz;
+	float3 C02 = tex2D(decal, vTexCoord +g1-g2).xyz;
+	float3 C03 = tex2D(decal, vTexCoord +2.0*g1-g2).xyz;
+
+	float3 C10 = tex2D(decal, vTexCoord -g1   ).xyz;
+	float3 C20 = tex2D(decal, vTexCoord -g1+g2).xyz;
+	float3 C13 = tex2D(decal, vTexCoord +2.0*g1   ).xyz;
+	float3 C23 = tex2D(decal, vTexCoord +2.0*g1+g2).xyz;
+
+	float3 C30 = tex2D(decal, vTexCoord -g1+2.0*g2).xyz;
+	float3 C31 = tex2D(decal, vTexCoord    +2.0*g2).xyz;
+	float3 C32 = tex2D(decal, vTexCoord +g1+2.0*g2).xyz;
+	float3 C33 = tex2D(decal, vTexCoord +2.0*g1+2.0*g2).xyz;
+
+	float a = reduce(A);
+	float b = reduce(B);
+	float c = reduce(C);
+	float d = reduce(D);
+
+	float c00 = reduce(C00);
+	float c01 = reduce(C01);
+	float c02 = reduce(C02);
+	float c03 = reduce(C03);
+
+	float c10 = reduce(C10);
+	float c20 = reduce(C20);
+	float c13 = reduce(C13);
+	float c23 = reduce(C23);
+
+	float c30 = reduce(C30);
+	float c31 = reduce(C31);
+	float c32 = reduce(C32);
+	float c33 = reduce(C33);
 
 	float p = abs(pos.x);
 	float q = abs(pos.y);
 
 	float k = distance(pos,g1);
 	float l = distance(pos,g2);
+	
+	float count1 = 0.0;
+	float count2 = 0.0;
 
-	float wd1 = abs(a-d);
-	float wd2 = abs(b-c);
+	count1 += float(abs(c00-a) < abs(c01-c10));
+	count2 += float(abs(c00-a) > abs(c01-c10));
+	count1 += float(abs(c01-b) < abs(c02-a));
+	count2 += float(abs(c01-b) > abs(c02-a));
+	count1 += float(abs(c02-c13) < abs(c03-b));
+	count2 += float(abs(c02-c13) > abs(c03-b));
+	count1 += float(abs(c10-c) < abs(c20-a));
+	count2 += float(abs(c10-c) > abs(c20-a));
+	count1 += float(abs(b-c23) < abs(c13-d));
+	count2 += float(abs(b-c23) > abs(c13-d));
+	count1 += float(abs(c20-c31) < abs(c-c30));
+	count2 += float(abs(c20-c31) > abs(c-c30));
+	count1 += float(abs(c32-c) < abs(c31-d));
+	count2 += float(abs(c32-c) > abs(c31-d));
+	count1 += float(abs(c33-d) < abs(c32-c23));
+	count2 += float(abs(c33-d) > abs(c32-c23));
 
-	if ( wd1 < wd2 )
+	if ((count1 >= 5.0) || ((abs(a-d) < abs(b-c)) && count2 <= 4.0))
 	{
 		if (k < l)
 		{
 			C = A + D - B;
 		}
-		else
+		else if (k >= l)
 		{
 			B = A + D - C;
 		}
 	}
-	else if (wd1 > wd2)
+	else if ((count2 >= 5.0) || (abs(a-d) > abs(b-c)))
 	{
 		D = B + C - A;
 	}
 
 	float3 color = bilinear(p, q, A, B, C, D);
-   FragColor = vec4(color, 1.0);
+
+   FragColor = float4(color, 1.0);
 }

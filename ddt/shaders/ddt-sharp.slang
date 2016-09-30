@@ -1,7 +1,7 @@
 #version 450
 
 /*
-   Hyllian's DDT Shader
+   Hyllian's DDT Sharp Shader
    
    Copyright (C) 2011-2016 Hyllian/Jararaca - sergiogdb@gmail.com
 
@@ -58,6 +58,10 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define decal Source
 
+#define WP1  1.0
+#define WP2  1.0
+#define WP3 -1.0
+
 const float3 Y = float3(.2126, .7152, .0722);
 
 float luma(float3 color)
@@ -106,15 +110,41 @@ float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	float2 g1 = dir*t1.xy;
 	float2 g2 = dir*t1.zw;
 
+//    A1 B1
+// A0 A  B  B2
+// C0 C  D  D2
+//    C3 D3
+
 	float3 A = tex2D(decal, vTexCoord       ).xyz;
 	float3 B = tex2D(decal, vTexCoord +g1   ).xyz;
 	float3 C = tex2D(decal, vTexCoord    +g2).xyz;
 	float3 D = tex2D(decal, vTexCoord +g1+g2).xyz;
 
+	float3 A1 = tex2D(decal, vTexCoord    -g2).xyz;
+	float3 B1 = tex2D(decal, vTexCoord +g1-g2).xyz;
+	float3 A0 = tex2D(decal, vTexCoord -g1   ).xyz;
+	float3 C0 = tex2D(decal, vTexCoord -g1+g2).xyz;
+
+	float3 B2 = tex2D(decal, vTexCoord +2*g1     ).xyz;
+	float3 D2 = tex2D(decal, vTexCoord +2*g1+  g2).xyz;
+	float3 C3 = tex2D(decal, vTexCoord      +2*g2).xyz;
+	float3 D3 = tex2D(decal, vTexCoord   +g1+2*g2).xyz;
+
 	float a = luma(A);
 	float b = luma(B);
 	float c = luma(C);
 	float d = luma(D);
+	
+	
+	float a1 = luma(A1);
+	float b1 = luma(B1);
+	float a0 = luma(A0);
+	float c0 = luma(C0);
+
+	float b2 = luma(B2);
+	float d2 = luma(D2);
+	float c3 = luma(C3);
+	float d3 = luma(D3);
 
 	float p = abs(pos.x);
 	float q = abs(pos.y);
@@ -142,5 +172,6 @@ float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	}
 
 	float3 color = bilinear(p, q, A, B, C, D);
+	
    FragColor = vec4(color, 1.0);
 }

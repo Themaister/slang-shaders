@@ -1,7 +1,7 @@
 #version 450
 
 /*
-   Hyllian's DDT Shader
+   Hyllian's Data Dependent Triangulation Shader
    
    Copyright (C) 2011-2016 Hyllian/Jararaca - sergiogdb@gmail.com
 
@@ -58,11 +58,11 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define decal Source
 
-const float3 Y = float3(.2126, .7152, .0722);
+const float3 dtt = float3(65536,255,1);
 
-float luma(float3 color)
+float reduce(float3 color)
 {
-  return dot(color, Y);
+	return dot(color, dtt);
 }
 
 float3 bilinear(float p, float q, float3 A, float3 B, float3 C, float3 D)
@@ -80,7 +80,7 @@ layout(location = 2) out vec2 loc;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+   vTexCoord = TexCoord * 1.0001;
    
    float2 ps = float2(params.SourceSize.z, params.SourceSize.w);
 	float dx = ps.x;
@@ -100,7 +100,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
+	float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	float2 dir = sign(pos); // dir = pixel direction
 
 	float2 g1 = dir*t1.xy;
@@ -111,10 +111,10 @@ float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	float3 C = tex2D(decal, vTexCoord    +g2).xyz;
 	float3 D = tex2D(decal, vTexCoord +g1+g2).xyz;
 
-	float a = luma(A);
-	float b = luma(B);
-	float c = luma(C);
-	float d = luma(D);
+	float a = reduce(A);
+	float b = reduce(B);
+	float c = reduce(C);
+	float d = reduce(D);
 
 	float p = abs(pos.x);
 	float q = abs(pos.y);
@@ -122,25 +122,49 @@ float2 pos = frac(loc * 1.00001)-float2(0.4999, 0.4999); // pos = pixel position
 	float k = distance(pos,g1);
 	float l = distance(pos,g2);
 
-	float wd1 = abs(a-d);
-	float wd2 = abs(b-c);
-
-	if ( wd1 < wd2 )
+	if (abs(a-d) < abs(b-c))
 	{
 		if (k < l)
 		{
 			C = A + D - B;
 		}
-		else
+		else if (k > l)
 		{
 			B = A + D - C;
 		}
 	}
-	else if (wd1 > wd2)
+	else if (abs(a-d) > abs(b-c))
 	{
 		D = B + C - A;
 	}
 
-	float3 color = bilinear(p, q, A, B, C, D);
-   FragColor = vec4(color, 1.0);
+	float3 color_old = bilinear(p, q, A, B, C, D);
+
+	float2 texsize = params.SourceSize.xy;//IN.texture_size;
+	const float scale_factor = 1.0;
+	float2 delta = 0.5 / (texsize * scale_factor);
+	float dx = delta.x;
+	float dy = delta.y;
+
+	float3 c00 = tex2D(decal, vTexCoord + float2(-dx, -dy)).xyz;
+	float3 c01 = tex2D(decal, vTexCoord + float2(-dx, 0)).xyz;
+	float3 c02 = tex2D(decal, vTexCoord + float2(-dx, dy)).xyz;
+	float3 c10 = tex2D(decal, vTexCoord + float2(0, -dy)).xyz;
+	float3 c11 = tex2D(decal, vTexCoord + float2(0, 0)).xyz;
+	float3 c12 = tex2D(decal, vTexCoord + float2(0, dy)).xyz;
+	float3 c20 = tex2D(decal, vTexCoord + float2(dx, -dy)).xyz;
+	float3 c21 = tex2D(decal, vTexCoord + float2(dx, 0)).xyz;
+	float3 c22 = tex2D(decal, vTexCoord + float2(dx, dy)).xyz;
+
+	float3 first = lerp(c00, c20, frac(scale_factor * vTexCoord.x * texsize.x + 0.5));
+	float3 second = lerp(c02, c22, frac(scale_factor * vTexCoord.x * texsize.x + 0.5));
+
+	float3 mid_horiz = lerp(c01, c21, frac(scale_factor * vTexCoord.x * texsize.x + 0.5));
+	float3 mid_vert = lerp(c10, c12, frac(scale_factor * vTexCoord.y * texsize.y + 0.5));
+
+	float3 res = lerp(first, second, frac(scale_factor * vTexCoord.y * texsize.y + 0.5));
+
+	float color =  float4(0.28 * (res + mid_horiz + mid_vert) + 4.7 * abs(res - lerp(mid_horiz, mid_vert, 0.5)), 1.0).x;
+
+   FragColor = float4((color + color_old) / 2.0, 1.0);
 }
