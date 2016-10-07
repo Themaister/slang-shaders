@@ -58,30 +58,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #include "../include/blur-functions.h"
 
 #pragma stage vertex
-layout(location = 0) in vec4 Position;
-layout(location = 1) in vec2 TexCoord;
-layout(location = 0) out vec2 tex_uv;
-layout(location = 1) out vec2 blur_dxdy;
+#include "vertex-shader-blur-fast-horizontal.h"
 
-void main()
-{
-   gl_Position = global.MVP * Position;
-   tex_uv = TexCoord;
-   
-   	//  Get the uv sample distance between output pixels.  Blurs are not generic
-    //  Gaussian resizers, and correct blurs require:
-    //  1.) params.OutputSize.xy == params.SourceSize.xy * 2^m, where m is an integer <= 0.
-    //  2.) mipmap_inputN = "true" for this pass in preset if m != 0
-    //  3.) filter_linearN = "true" except for 1x scale nearest neighbor blurs
-    //  Gaussian resizers would upsize using the distance between input texels
-    //  (not output pixels), but we avoid this and consistently blur at the
-    //  destination size.  Otherwise, combining statically calculated weights
-    //  with bilinear sample exploitation would result in terrible artifacts.
-    const vec2 dxdy_scale = vec2(1.0);//params.SourceSize.xy * params.OutputSize.zw;
-	const vec2 dxdy = dxdy_scale * params.SourceSize.zw;
-    //  This blur is horizontal-only, so zero out the vertical offset:
-	blur_dxdy = vec2(dxdy.x, 0.0);
-}
+///////////////////////////////  FRAGMENT SHADER  //////////////////////////////
 
 #pragma stage fragment
 layout(location = 0) in vec2 tex_uv;

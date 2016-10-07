@@ -1,17 +1,5 @@
-#version 450
-
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
-} params;
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
+#ifndef VERTEX_SHADER_BLUR_FAST_HORIZONTAL_H
+#define VERTEX_SHADER_BLUR_FAST_HORIZONTAL_H
 
 /////////////////////////////////  MIT LICENSE  ////////////////////////////////
 
@@ -35,42 +23,40 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 //  IN THE SOFTWARE.
 
-
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
 //  PASS SETTINGS:
-//  gamma-management.h needs to know what kind of pipeline we're using and
-//  what pass this is in that pipeline.  This will become obsolete if/when we
-//  can #define things like this in the .cgp preset file.
-//#define GAMMA_ENCODE_EVERY_FBO
-//#define FIRST_PASS
-//#define LAST_PASS
-//#define SIMULATE_CRT_ON_LCD
-//#define SIMULATE_GBA_ON_LCD
-//#define SIMULATE_LCD_ON_CRT
-//#define SIMULATE_GBA_ON_CRT
-
+//  Pass settings should be set by the shader file that #includes this one.
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-//  #included by vertex shader:
 #include "../include/gamma-management.h"
 #include "../include/blur-functions.h"
 
 #pragma stage vertex
-#include "vertex-shader-blur-fast-vertical.h"
-
-///////////////////////////////  FRAGMENT SHADER  //////////////////////////////
-
-#pragma stage fragment
-layout(location = 0) in vec2 tex_uv;
-layout(location = 1) in vec2 blur_dxdy;
-layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 tex_uv;
+layout(location = 1) out vec2 blur_dxdy;
 
 void main()
 {
-	vec3 color = tex2Dblur9fast(Source, tex_uv, blur_dxdy);
-    //  Encode and output the blurred image:
-   FragColor = encode_output(vec4(color, 1.0));
+   gl_Position = global.MVP * Position;
+   tex_uv = TexCoord;
+
+	//  Get the uv sample distance between output pixels.  Blurs are not generic
+    //  Gaussian resizers, and correct blurs require:
+    //  1.) OutputSize.xy == SourceSize.xy * 2^m, where m is an integer <= 0.
+    //  2.) mipmap_inputN = "true" for this pass in .cgp preset if m != 0
+    //  3.) filter_linearN = "true" except for 1x scale nearest neighbor blurs
+    //  Gaussian resizers would upsize using the distance between input texels
+    //  (not output pixels), but we avoid this and consistently blur at the
+    //  destination size.  Otherwise, combining statically calculated weights
+    //  with bilinear sample exploitation would result in terrible artifacts.   
+    const vec2 dxdy_scale = params.SourceSize.xy * params.OutputSize.zw;
+	const vec2 dxdy = dxdy_scale * params.SourceSize.zw;
+    //  This blur is horizontal-only, so zero out the vertical offset:
+	blur_dxdy = vec2(dxdy.x, 0.0);
 }
+
+#endif  //  VERTEX_SHADER_BLUR_FAST_HORIZONTAL_H

@@ -70,7 +70,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	vec3 color = tex2Dblur9fast(Source, tex_uv, blur_dxdy);
+	vec3 color = tex2Dblur7fast(Source, tex_uv, blur_dxdy);
     //  Encode and output the blurred image:
    FragColor = encode_output(vec4(color, 1.0));
 }

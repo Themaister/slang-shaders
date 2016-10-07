@@ -58,7 +58,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #include "../include/blur-functions.h"
 
 #pragma stage vertex
-#include "vertex-shader-blur-fast-vertical.h"
+#include "vertex-shader-blur-resize-horizontal.h"
 
 ///////////////////////////////  FRAGMENT SHADER  //////////////////////////////
 
@@ -70,7 +70,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	vec3 color = tex2Dblur9fast(Source, tex_uv, blur_dxdy);
+	vec3 color = tex2Dblur11resize(Source, tex_uv, blur_dxdy);
     //  Encode and output the blurred image:
    FragColor = encode_output(vec4(color, 1.0));
 }

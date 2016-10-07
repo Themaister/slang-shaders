@@ -42,7 +42,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //  gamma-management.h needs to know what kind of pipeline we're using and
 //  what pass this is in that pipeline.  This will become obsolete if/when we
 //  can #define things like this in the .cgp preset file.
-//#define GAMMA_ENCODE_EVERY_FBO
+#define GAMMA_ENCODE_EVERY_FBO
 //#define FIRST_PASS
 //#define LAST_PASS
 //#define SIMULATE_CRT_ON_LCD
@@ -70,7 +70,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	vec3 color = tex2Dblur9fast(Source, tex_uv, blur_dxdy);
+	vec3 color = tex2Dblur7fast(Source, tex_uv, blur_dxdy);
     //  Encode and output the blurred image:
    FragColor = encode_output(vec4(color, 1.0));
 }

@@ -42,9 +42,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //  gamma-management.h needs to know what kind of pipeline we're using and
 //  what pass this is in that pipeline.  This will become obsolete if/when we
 //  can #define things like this in the .cgp preset file.
-//#define GAMMA_ENCODE_EVERY_FBO
+#define GAMMA_ENCODE_EVERY_FBO
 //#define FIRST_PASS
-//#define LAST_PASS
+#define LAST_PASS
 //#define SIMULATE_CRT_ON_LCD
 //#define SIMULATE_GBA_ON_LCD
 //#define SIMULATE_LCD_ON_CRT
@@ -58,7 +58,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #include "../include/blur-functions.h"
 
 #pragma stage vertex
-#include "vertex-shader-blur-fast-vertical.h"
+#include "vertex-shader-blur-resize-horizontal.h"
 
 ///////////////////////////////  FRAGMENT SHADER  //////////////////////////////
 
@@ -70,7 +70,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	vec3 color = tex2Dblur9fast(Source, tex_uv, blur_dxdy);
+	vec3 color = tex2Dblur7resize(Source, tex_uv, blur_dxdy);
     //  Encode and output the blurred image:
    FragColor = encode_output(vec4(color, 1.0));
 }
