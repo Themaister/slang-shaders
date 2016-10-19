@@ -14,9 +14,11 @@ layout(push_constant) uniform Push
 	vec4 OutputSize;
 	uint FrameCount;
 	float screen_toggle;
+	float scale_correction;
 } params;
 
 #pragma parameter screen_toggle "Screen Toggle" 0.0 0.0 0.5 0.5
+#pragma parameter aspect_correction "Aspect Correction" 1.0 0.5 5.0 0.01
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -34,7 +36,7 @@ void main()
 	video_scale = floor(params.SourceSize.w * params.OutputSize.y);
 	vec2 integer_scale = video_scale * params.SourceSize.xy;
    gl_Position = (global.MVP * Position);
-   vTexCoord = TexCoord * (params.OutputSize.xy / vec2(integer_scale));
+   vTexCoord = TexCoord * (params.OutputSize.xy / vec2(integer_scale)) * vec2(params.aspect_correction, 1.0);
 }
 
 #pragma stage fragment
@@ -46,6 +48,6 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 void main()
 {
 vec2 bigCoord = vTexCoord * vec2(0.3570) + vec2(0.0, 0.0 + params.screen_toggle);
-vec2 smallCoord = vTexCoord * vec2(1.05) + vec2(-2.942, -0.275);
+vec2 smallCoord = vTexCoord * vec2(1.05,1.00) + vec2(-2.94, -0.2);
 FragColor = texture(Source, bigCoord) + texture(Source, smallCoord);
 }
