@@ -14,7 +14,7 @@ layout(push_constant) uniform Push
 	vec4 OutputSize;
 	uint FrameCount;
 	float screen_toggle;
-	float scale_correction;
+	float aspect_correction;
 } params;
 
 #pragma parameter screen_toggle "Screen Toggle" 0.0 0.0 0.5 0.5
