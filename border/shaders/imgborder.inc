@@ -1,6 +1,5 @@
-// Created by inigo quilez - iq/2014
-// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-// modified for slang border shader by hunterk
+// Image Border shader by hunterk
+// license: public domain
 
 layout(push_constant) uniform Push
 {
