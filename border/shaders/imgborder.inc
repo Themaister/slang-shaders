@@ -15,7 +15,16 @@ layout(push_constant) uniform Push
 	float border_on_top;
 	float border_zoom_x;
 	float border_zoom_y;
+	float OS_MASK_TOP;
+	float OS_MASK_BOTTOM;
+	float OS_MASK_LEFT;
+	float OS_MASK_RIGHT;
 } params;
+
+#pragma parameter OS_MASK_TOP "OS Mask Top" 0.0 0.0 1.0 0.01
+#pragma parameter OS_MASK_BOTTOM "OS Mask Bottom" 0.0 0.0 1.0 0.01
+#pragma parameter OS_MASK_LEFT "OS Mask Left" 0.0 0.0 1.0 0.01
+#pragma parameter OS_MASK_RIGHT "OS Mask Right" 0.0 0.0 1.0 0.01
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -52,7 +61,7 @@ void main()
 {
 vec4 screen = texture(Source, screen_coord); //the main video screen
 vec4 background = vec4(texture(BORDER, vTexCoord)); //put your background function's output here
-if ( screen_coord.x < 0.9999 && screen_coord.x > 0.0001 && screen_coord.y < 0.9999 && screen_coord.y > 0.0001 && params.border_on_top > 0.5 )
+if ( screen_coord.x < 0.9999 - params.OS_MASK_RIGHT && screen_coord.x > 0.0001 + params.OS_MASK_LEFT && screen_coord.y < 0.9999 - params.OS_MASK_BOTTOM && screen_coord.y > 0.0001 + params.OS_MASK_TOP && params.border_on_top > 0.5 )
 background.a *= 0.0;
    FragColor = vec4(mix(screen, background, background.a));
 }
