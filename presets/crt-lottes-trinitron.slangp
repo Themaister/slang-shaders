@@ -1,4 +1,4 @@
-shaders = 17
+shaders = 18
 
 shader0 = ../crt/shaders/crt-lottes-multipass/glow-trails0.slang
 filter_linear0 = false
@@ -90,6 +90,13 @@ alias15 = horz7plus1
 
 shader16 = ../crt/shaders/crt-lottes-multipass/crt-lottes-multipass-glow.slang
 texture_wrap_mode16 = "clamp_to_edge"
+scale16 = 4.0
+scale_type16 = source
+
+shader17 = ../border/shaders/imgborder.slang
+
+textures = BORDER
+BORDER = ../border/textures/pvm.png
 
 parameters = "mixfactor;threshold;trail_bright;glowFactor;hardScan;shadowMask;warpX"
 mixfactor = "0.75"
@@ -99,3 +106,4 @@ glowFactor = "0.10"
 hardScan = "-20.0"
 shadowMask = "2.0"
 warpX = "0.0"
+warpY = "0.2"
