@@ -98,7 +98,7 @@ shader17 = ../border/shaders/imgborder.slang
 textures = BORDER
 BORDER = ../border/textures/pvm.png
 
-parameters = "mixfactor;threshold;trail_bright;glowFactor;hardScan;shadowMask;warpX"
+parameters = "border_on_top;mixfactor;threshold;trail_bright;glowFactor;hardScan;shadowMask;warpX"
 mixfactor = "0.75"
 threshold = "0.90"
 trail_bright = "0.07"
@@ -106,4 +106,5 @@ glowFactor = "0.10"
 hardScan = "-20.0"
 shadowMask = "2.0"
 warpX = "0.0"
-warpY = "0.2"
+warpY = "0.3"
+border_on_top = 1.0
