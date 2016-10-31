@@ -34,7 +34,7 @@ vec3 DecodeGamma(vec3 color, float gamma)
 }
 
 #ifdef GAMMA_CORRECTION
-float4 GammaPass(float4 color, vec2 texcoord)
+vec4 GammaPass(vec4 color, vec2 texcoord)
 {
     const float GammaConst = 2.233333;
     color.rgb = EncodeGamma(color.rgb, GammaConst);
