@@ -16,6 +16,7 @@ layout(push_constant) uniform Push
 	float shape;
 	float glowFactor;
 	float gamma;
+	float ntsc;
 } params;
 
 #pragma parameter hardScan "hardScan" -8.0 -20.0 0.0 1.0
@@ -29,8 +30,10 @@ layout(push_constant) uniform Push
 #pragma parameter shape "filter kernel shape" 2.0 0.0 10.0 0.05
 #pragma parameter glowFactor "Glow Strength" 0.15 0.0 1.0 0.01
 #pragma parameter gamma "Gamma Adjustment" 1.5 0.0 5.0 0.05
+#pragma parameter ntsc "NTSC Colors" 0.0 0.0 1.0 1.0
 
 #define DO_BLOOM
+#include "../../../misc/colorspace-tools.h"
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -231,6 +234,8 @@ void main()
 		
 	if (params.glowFactor > 0.0)
 		outColor = mix(outColor, texture(HALATION_BLUR, pos.xy).rgb, params.glowFactor);
-
+    if (params.ntsc > 0.0)
+    FragColor = vec4(NTSCtoSRGB(pow(ToSrgb(outColor.rgb), vec3(1.0 / params.gamma))), 1.0);
+    else
     FragColor = vec4(pow(ToSrgb(outColor.rgb), vec3(1.0 / params.gamma)), 1.0);
 }
