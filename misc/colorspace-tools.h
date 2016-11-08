@@ -133,6 +133,50 @@ vec3 XYZtoYxy(vec3 XYZ)
   
     return XYZ;
   }
+  
+  // Converting pure hue to RGB
+vec3 HUEtoRGB(float H)
+{
+    float R = abs(H * 6.0 - 3.0) - 1.0;
+    float G = 2.0 - abs(H * 6.0 - 2.0);
+    float B = 2.0 - abs(H * 6.0 - 4.0);
+
+    return clamp(vec3(R, G, B), 0.0, 1.0);
+}
+
+// Converting RGB to hue/chroma/value
+vec3 RGBtoHCV(vec3 RGB)
+{
+    vec4 BG = vec4(RGB.bg,-1.0, 2.0 / 3.0);
+    vec4 GB = vec4(RGB.gb, 0.0,-1.0 / 3.0);
+
+    vec4 P = (RGB.g < RGB.b) ? BG : GB;
+
+    vec4 XY = vec4(P.xyw, RGB.r);
+    vec4 YZ = vec4(RGB.r, P.yzx);
+
+    vec4 Q = (RGB.r < P.x) ? XY : YZ;
+
+    float C = Q.x - min(Q.w, Q.y);
+    float H = abs((Q.w - Q.y) / (6.0 * C + 1e-10) + Q.z);
+
+    return vec3(H, C, Q.x);
+}
+  
+  vec3 RGBtoHSV(vec3 RGB)
+  {
+	vec3 HCV = RGBtoHCV(RGB);
+	float S = HCV.y / (HCV.z + 1e-10);
+	
+	return vec3(HCV.x, S, HCV.z);
+  }
+  
+  // Converting HSV to RGB
+  vec3 HSVtoRGB(vec3 HSV)
+  {
+    vec3 RGB = HUEtoRGB(HSV.x);
+    return ((RGB - 1.0) * HSV.y + 1.0) * HSV.z;
+  }
 
 // conversion from NTSC RGB Reference White D65 ( color space used by NA/Japan TV's ) to XYZ
  vec3 NTSC(vec3 c)
