@@ -34,10 +34,10 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #pragma parameter overscan_percent_x "Horizontal Overscan %" 0.0 -25.0 25.0 1.0
 #pragma parameter overscan_percent_y "Vertical Overscan %" 0.0 -25.0 25.0 1.0
 #pragma parameter saturation "Saturation" 1.0 0.0 5.0 0.1
-#pragma parameter contrast "Contrast" 1.0 0.0 7.5 0.1
+#pragma parameter contrast "Contrast" 1.0 0.0 10.0 0.05
 #pragma parameter luminance "Luminance" 1.0 0.0 2.0 0.1
 #pragma parameter black_level "Black Level" 0.00 -0.30 0.30 0.01
-#pragma parameter bright_boost "Brightness Boost" 0.0 -1.0 1.0 0.1
+#pragma parameter bright_boost "Brightness Boost" 0.0 -1.0 1.0 0.05
 #pragma parameter R "Red Channel" 1.0 0.0 2.0 0.05
 #pragma parameter G "Green Channel" 1.0 0.0 2.0 0.05
 #pragma parameter B "Blue Channel" 1.0 0.0 2.0 0.05
@@ -52,6 +52,8 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //   Image Adjustment
 //   Author: hunterk
 //   License: Public domain
+
+#include "colorspace-tools.h"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -71,32 +73,32 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-vec3 grayscale(vec3 col)
-{
-   // ATSC grayscale standard
-   return vec3(dot(col, vec3(0.2126, 0.7152, 0.0722)));
-}
-
 void main()
 {
    vec3 res = texture(Source, vTexCoord).rgb; // sample the texture
-   vec3 gamma = vec3(registers.monitor_gamma / registers.target_gamma); // setup ratio of display's gamma vs desired gamma
-   vec3 AvgLumin = vec3(0.5, 0.5, 0.5);
-   vec3 intensity = grayscale(res); // find luminance
-   vec3 satColor = mix(intensity, res, registers.saturation); // apply saturation
-   vec3 conColor = mix(AvgLumin, satColor, registers.contrast);   // apply contrast
+   vec3 gamma = vec3(registers.monitor_gamma / registers.target_gamma); // set up ratio of display's gamma vs desired gamma
+
+//saturation and luminance
+   vec3 satColor = clamp(HSVtoRGB(RGBtoHSV(res) * vec3(1.0, registers.saturation, registers.luminance)), 0.0, 1.0);
+
+//contrast and brightness
+   vec3 conColor = clamp((satColor - 0.5) * registers.contrast + 0.5 + registers.bright_boost, 0.0, 1.0);
+   
+   conColor -= vec3(registers.black_level); // apply black level
+   conColor *= (vec3(1.0) / vec3(1.0-registers.black_level));
    conColor = pow(conColor, 1.0 / vec3(gamma)); // Apply gamma correction
-   conColor = clamp(conColor * registers.luminance, 0.0, 1.0); // apply luminance
-   conColor += vec3(registers.bright_boost); // apply brightboost
    conColor *= vec3(registers.R, registers.G, registers.B);
+   
+//overscan mask
 if (vTexCoord.y > registers.TOPMASK && vTexCoord.y < (1.0 - registers.BOTMASK))
-conColor = conColor;
+   conColor = conColor;
 else
-conColor = vec3(0.0);
+   conColor = vec3(0.0);
 
 if (vTexCoord.x > registers.LMASK && vTexCoord.x < (1.0 - registers.RMASK))
-conColor = conColor;
+   conColor = conColor;
 else
-conColor = vec3(0.0);
+   conColor = vec3(0.0);
+   
    FragColor = vec4(conColor, 1.0);
 }
