@@ -3,6 +3,7 @@
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
+	uint FrameCount;
 	float target_gamma;
 	float monitor_gamma;
 	float overscan_percent_x;
@@ -22,6 +23,8 @@ layout(push_constant) uniform Push
 	float BOTMASK;
 	float LMASK;
 	float RMASK;
+	float GRAIN_STR;
+	float SHARPEN;
 } registers;
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -29,7 +32,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
    mat4 MVP;
 } global;
 
-#pragma parameter target_gamma "Target Gamma" 2.4 0.1 5.0 0.1
+#pragma parameter target_gamma "Target Gamma" 2.2 0.1 5.0 0.1
 #pragma parameter monitor_gamma "Monitor Gamma" 2.2 0.1 5.0 0.1
 #pragma parameter overscan_percent_x "Horizontal Overscan %" 0.0 -25.0 25.0 1.0
 #pragma parameter overscan_percent_y "Vertical Overscan %" 0.0 -25.0 25.0 1.0
@@ -48,12 +51,33 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #pragma parameter BOTMASK "Overscan Mask Bottom" 0.0 0.0 1.0 0.0025
 #pragma parameter LMASK "Overscan Mask Left" 0.0 0.0 1.0 0.0025
 #pragma parameter RMASK "Overscan Mask Right" 0.0 0.0 1.0 0.0025
+#pragma parameter GRAIN_STR "Film Grain" 0.0 0.0 72.0 6.0
+#pragma parameter SHARPEN "Sharpen" 0.0 0.0 1.0 0.05
 
 //   Image Adjustment
 //   Author: hunterk
 //   License: Public domain
 
 #include "colorspace-tools.h"
+
+//https://www.shadertoy.com/view/4sXSWs strength= 16.0
+vec3 filmGrain(vec2 uv, float strength ){       
+    float x = (uv.x + 4.0 ) * (uv.y + 4.0 ) * ((mod(vec2(registers.FrameCount, registers.FrameCount).x, 800.0) + 10.0) * 10.0);
+	return  vec3(mod((mod(x, 13.0) + 1.0) * (mod(x, 123.0) + 1.0), 0.01)-0.005) * strength;
+}
+
+// based on "Improved texture interpolation" by Iñigo Quílez
+// Original description: http://www.iquilezles.org/www/articles/texture/texture.htm
+vec3 sharp(sampler2D tex, vec2 texCoord){
+	vec2 p = texCoord.xy;
+	p = p * registers.SourceSize.xy + vec2(0.5, 0.5);
+	vec2 i = floor(p);
+	vec2 f = p - i;
+	f = f * f * f * (f * (f * 6.0 - vec2(15.0, 15.0)) + vec2(10.0, 10.0));
+	p = i + f;
+	p = (p - vec2(0.5, 0.5)) * registers.SourceSize.zw;
+	return texture(tex, p);
+}
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -75,7 +99,9 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
+   vec3 film_grain = filmGrain(vTexCoord, registers.GRAIN_STR);
    vec3 res = texture(Source, vTexCoord).rgb; // sample the texture
+   res = mix(res, sharp(Source, vTexCoord), registers.SHARPEN) + film_grain; // add film grain and sharpness
    vec3 gamma = vec3(registers.monitor_gamma / registers.target_gamma); // set up ratio of display's gamma vs desired gamma
 
 //saturation and luminance
