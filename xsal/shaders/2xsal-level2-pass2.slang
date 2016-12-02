@@ -1,7 +1,7 @@
 #version 450
 
 /*
-    Copyright (C) 2007 guest(r) - guest.r@gmail.com
+    Copyright (C) 2016 guest(r) - guest.r@gmail.com
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -50,14 +50,14 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 struct deltas
 {
-   vec2 UL, UR, DL, DR;
+    vec2 UL, UR, DL, DR;
 };
 
 void main()
 {
     vec2 texsize = params.SourceSize.xy;
-    float dx     = pow(texsize.x, -1.0) * 0.25;
-    float dy     = pow(texsize.y, -1.0) * 0.25;
+    float dx     = pow(texsize.x, -1.0) * 0.5;
+    float dy     = pow(texsize.y, -1.0) * 0.5;
     vec3  dt     = vec3(1.0, 1.0, 1.0);
 
     deltas VAR = { 

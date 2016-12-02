@@ -1,5 +1,4 @@
 #version 450
-
 /*
     Copyright (C) 2016 guest(r) - guest.r@gmail.com
 
@@ -35,7 +34,7 @@ layout(location = 0) in  vec4 Position;
 layout(location = 1) in  vec2 TexCoord;
 layout(location = 0) out vec2 vTexCoord;
 
-/*    VERTEX_SHADER    */
+/* Default Vertex shader */
 void main()
 {
     gl_Position = global.MVP * Position;
@@ -48,31 +47,36 @@ layout(location = 1) in  vec2 FragCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
+
 void main()
 {
-    vec2 tex = vTexCoord;   
-    //vec2 texsize = IN.texture_size;
-    float dx = 0.25*params.SourceSize.z;
-    float dy = 0.25*params.SourceSize.w;
-    vec3  dt = vec3(1.0, 1.0, 1.0);
+    //vec2  texsize = IN.texture_size;
+    float dx      = 0.25*params.SourceSize.z;
+    float dy      = 0.25*params.SourceSize.w;
+    vec3  dt      = vec3(1.0, 1.0, 1.0);
 
-    vec4 yx = vec4(dx, dy, -dx, -dy);
-    vec4 xh = yx*vec4(3.0, 1.0, 3.0, 1.0);
-    vec4 yv = yx*vec4(1.0, 3.0, 1.0, 3.0);
+    vec4 yx = vec4(  dx,   dy,   -dx,   -dy);
+    vec4 xh = vec4(3*dx,   dy, -3*dx,   -dy);
+    vec4 yv = vec4(  dx, 3*dy,   -dx, -3*dy);
+    vec4 ox = 2*yx; 
 
-    vec3 c11 = texture(Source, tex        ).xyz;    
-    vec3 s00 = texture(Source, tex + yx.zw).xyz; 
-    vec3 s20 = texture(Source, tex + yx.xw).xyz; 
-    vec3 s22 = texture(Source, tex + yx.xy).xyz; 
-    vec3 s02 = texture(Source, tex + yx.zy).xyz;
-    vec3 h00 = texture(Source, tex + xh.zw).xyz; 
-    vec3 h20 = texture(Source, tex + xh.xw).xyz; 
-    vec3 h22 = texture(Source, tex + xh.xy).xyz; 
-    vec3 h02 = texture(Source, tex + xh.zy).xyz;
-    vec3 v00 = texture(Source, tex + yv.zw).xyz; 
-    vec3 v20 = texture(Source, tex + yv.xw).xyz; 
-    vec3 v22 = texture(Source, tex + yv.xy).xyz; 
-    vec3 v02 = texture(Source, tex + yv.zy).xyz;     
+    vec3 c11 = texture(Source, vTexCoord        ).xyz;
+    vec3 s00 = texture(Source, vTexCoord + yx.zw).xyz;
+    vec3 s20 = texture(Source, vTexCoord + yx.xw).xyz;
+    vec3 s22 = texture(Source, vTexCoord + yx.xy).xyz;
+    vec3 s02 = texture(Source, vTexCoord + yx.zy).xyz;
+    vec3 h00 = texture(Source, vTexCoord + xh.zw).xyz;
+    vec3 h20 = texture(Source, vTexCoord + xh.xw).xyz;
+    vec3 h22 = texture(Source, vTexCoord + xh.xy).xyz;
+    vec3 h02 = texture(Source, vTexCoord + xh.zy).xyz;
+    vec3 v00 = texture(Source, vTexCoord + yv.zw).xyz;
+    vec3 v20 = texture(Source, vTexCoord + yv.xw).xyz;
+    vec3 v22 = texture(Source, vTexCoord + yv.xy).xyz;
+    vec3 v02 = texture(Source, vTexCoord + yv.zy).xyz;
+    vec3 o00 = texture(Source, vTexCoord + ox.zw).xyz;
+    vec3 o20 = texture(Source, vTexCoord + ox.xw).xyz;
+    vec3 o22 = texture(Source, vTexCoord + ox.xy).xyz;
+    vec3 o02 = texture(Source, vTexCoord + ox.zy).xyz;
 
     float m1 = 1.0/(dot(abs(s00 - s22), dt) + 0.00001);
     float m2 = 1.0/(dot(abs(s02 - s20), dt) + 0.00001);
@@ -89,9 +93,25 @@ void main()
     vec3 t2 = 0.5*(h1*(s00 + h22) + h2*(s02 + h20) + h3*(h00 + s22) + h4*(h02 + s20))/(h1 + h2 + h3 + h4);
     vec3 t3 = 0.5*(v1*(s00 + v22) + v2*(s02 + v20) + v3*(v00 + s22) + v4*(v02 + s20))/(v1 + v2 + v3 + v4);
 
+    float k00 = dot(abs(o00 - c11), dt) + 0.00001;
+    float k20 = dot(abs(o20 - c11), dt) + 0.00001;
+    float k22 = dot(abs(o22 - c11), dt) + 0.00001;
+    float k02 = dot(abs(o02 - c11), dt) + 0.00001;
+
+    float kr1 = min(dot(abs(s00 - s22), dt), dot(abs(o00 - o22), dt));
+    float kr2 = min(dot(abs(s02 - s20), dt), dot(abs(o20 - o02), dt));
+
+    float w1 = (k22 < k00) ? 0.0 : kr2;
+    float w2 = (k02 < k20) ? 0.0 : kr1;
+    float w3 = (k00 < k22) ? 0.0 : kr2;
+    float w4 = (k20 < k02) ? 0.0 : kr1; 
+
+    c11 = (w1*o00 + w2*o20 + w3*o22 + w4*o02 + 0.001*c11)/(w1 + w2 + w3 + w4 + 0.001);   
+
     float k1 = 1.0/(dot(abs(t1 - c11), dt) + 0.00001);
     float k2 = 1.0/(dot(abs(t2 - c11), dt) + 0.00001);
-    float k3 = 1.0/(dot(abs(t3 - c11), dt) + 0.00001);
+    float k3 = 1.0/(dot(abs(t3 - c11), dt) + 0.00001);   
+
 
     FragColor = vec4((k1*t1 + k2*t2 + k3*t3)/(k1 + k2 + k3), 1.0);
 }
