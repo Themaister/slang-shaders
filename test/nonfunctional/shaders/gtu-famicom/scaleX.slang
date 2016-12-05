@@ -30,14 +30,14 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define YIQ_to_RGB 	mat3x3( 1.0   , 1.0      , 1.0      ,	0.9563   , -0.2721   , -1.1070   ,		0.6210   , -0.6474   , 1.7046   )
 #define pi			3.14159265358
-#define a(x) abs(x)
-#define d(x,b) (pi*b*min(a(x)+0.5,1.0/b))
-#define e(x,b) (pi*b*min(max(a(x)-0.5,-1.0/b),1.0/b))
-#define STU(x,b) ((d(x,b)+sin(d(x,b))-e(x,b)-sin(e(x,b)))/(2.0*pi))
-//#define X(i) (offset-(i))
-#define GETC (texture(Source, vec2(vTexCoord.x - X * params.SourceSize.z, vTexCoord.y)).rgb)
-#define VAL vec3((c.x*STU(X,(params.signalResolutionY * params.SourceSize.z))),(c.y*STU(X,(params.signalResolutionI * params.SourceSize.z))),(c.z*STU(X,(params.signalResolutionQ * params.SourceSize.z))))
-#define PROCESS(i) X=(offset-(i));c=GETC;tempColor+=VAL;
+
+float d(float x, float b){
+return (pi*b*min(abs(x)+0.5,1.0/b));
+}
+
+float e(float x, float b){
+return (pi*b*min(max(abs(x)-0.5,-1.0/b),1.0/b));
+}
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -63,13 +63,21 @@ void main()
 	vec3	tempColor = vec3(0.0);
 	float 	X;
 	vec3 	c;
+	float	Y = params.signalResolutionY * params.SourceSize.z;
+	float	I = params.signalResolutionI * params.SourceSize.z;
+	float	Q = params.signalResolutionQ * params.SourceSize.z;
 	
 	float range = ceil(0.5 + params.SourceSize.x / min(min(params.signalResolutionY, params.signalResolutionI), params.signalResolutionQ));
 	
 	float i;
 //	for (i=-range;i<range+2.0;i++){
 	for (i=1.0-range;i<range+1.0;i++){
-		PROCESS(i)
+		X = (offset-(i));
+		c = texture(Source, vec2(vTexCoord.x - X * params.SourceSize.z, vTexCoord.y)).rgb;
+		c.x *= ((d(X,Y) + sin(d(X,Y)) - e(X,Y) - sin(e(X,Y))) / (2.0 * pi));
+		c.y *= ((d(X,I) + sin(d(X,I)) - e(X,I) - sin(e(X,I))) / (2.0 * pi));
+		c.z *= ((d(X,Q) + sin(d(X,Q)) - e(X,Q) - sin(e(X,Q))) / (2.0 * pi));
+		tempColor+=c;
 	}
 
 	tempColor=clamp(YIQ_to_RGB * tempColor,0.0,1.0);
