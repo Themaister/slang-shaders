@@ -24,8 +24,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //	License: GPLv3
 ////////////////////////////////////////////////////////
 
-//#include "config.h"
-
 #define pi			3.14159265358
 
 #pragma stage vertex
@@ -38,8 +36,8 @@ void main()
 {
    gl_Position = global.MVP * Position;
    vTexCoord = TexCoord;
-   vec2 pos = (vTexCoord.xy*params.OutputSize.xy)-0.5;
-   colorPhase = 8.0001 + pos.x + pos.y * 4.0001 + params.FrameCount * 4.0001 + 4.0001 + params.phaseOffset * 12.0001;
+   vec2 pos = (vTexCoord.xy * params.OutputSize.xy * params.SourceSize.xy * params.SourceSize.zw) - 0.5;
+   colorPhase = 8.0 + pos.x + pos.y * 4.0 + params.FrameCount * 4.0 + 4.0 + params.phaseOffset * 12.0;
 }
 
 #pragma stage fragment
@@ -56,18 +54,19 @@ void main()
 	
 	if (params.combFilter > 0.0)
 	{
-		float prev6 = texture(Source, vTexCoord.xy - vec2(5.9999 * (params.OutputSize.z), 0.0)).r;
-		signal = (current + prev6) / 2.0001;
+		float prev6 = texture(Source, vTexCoord.xy - vec2(6.0 * (params.OutputSize.x * params.SourceSize.x * params.SourceSize.z), 0.0)).r;
+		signal = (current + prev6) / 2.0;
 		float chromaSignal = current - signal;
-		I = chromaSignal * cos (colorPhase * (2.0001 * pi / 12.0001))*2.0001;
-		Q = chromaSignal * sin (colorPhase * (2.0001 * pi / 12.0001))*2.0001;
+		I = chromaSignal * cos (colorPhase * (2.0 * pi / 12.0)) * 2.0;
+		Q = chromaSignal * sin (colorPhase * (2.0 * pi / 12.0)) * 2.0;
 	}
 	else
 	{
 		signal = current;
-		I = signal * cos (colorPhase * (2.0001 * pi / 12.0001))*2.0001;
-		Q = signal * sin (colorPhase * (2.0001 * pi / 12.0001))*2.0001;
+		I = signal * cos (colorPhase * (2.0 * pi / 12.0))*2.0;
+		Q = signal * sin (colorPhase * (2.0 * pi / 12.0))*2.0;
 	}
 	
 	FragColor = vec4(signal, I, Q, 1.0);
 }
+

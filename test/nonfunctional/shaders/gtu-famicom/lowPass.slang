@@ -37,7 +37,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define S(i) (texture(Source, vec2(vTexCoord.x - X(i)/params.SourceSize.x,vTexCoord.y)).x)
 #define VAL(i) (S(i)*STU(X(i),(params.signalResolution * params.SourceSize.z)))
 
-float rand(vec2 co)
+float rand2(vec2 co)
 {
     float c = 43758.5453;
     float dt= dot(co.xy ,vec2(12.9898,78.233));
@@ -45,6 +45,9 @@ float rand(vec2 co)
     return fract(sin(sn) * c);
 }
 
+float rand(vec2 co){
+	return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;

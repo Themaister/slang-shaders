@@ -28,7 +28,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //	License: GPLv3
 ////////////////////////////////////////////////////////
 
-#define YIQ_to_RGB 	mat3x3( 1.0   , 1.0      , 1.0      ,	0.9563   , -0.2721   , -1.1070   ,		0.6210   , -0.6474   , 1.7046   )
 #define pi			3.14159265358
 
 float d(float x, float b){
@@ -60,7 +59,8 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 void main()
 {
 	float	offset	= fract((vTexCoord.x * params.SourceSize.x) - 0.5);
-	vec3	tempColor = vec3(0.0);
+	vec3	YIQ	=	vec3(0.0);
+	vec3	RGB	=	vec3(0.0);
 	float 	X;
 	vec3 	c;
 	float	Y = params.signalResolutionY * params.SourceSize.z;
@@ -77,10 +77,12 @@ void main()
 		c.x *= ((d(X,Y) + sin(d(X,Y)) - e(X,Y) - sin(e(X,Y))) / (2.0 * pi));
 		c.y *= ((d(X,I) + sin(d(X,I)) - e(X,I) - sin(e(X,I))) / (2.0 * pi));
 		c.z *= ((d(X,Q) + sin(d(X,Q)) - e(X,Q) - sin(e(X,Q))) / (2.0 * pi));
-		tempColor+=c;
+		YIQ+=c;
 	}
 
-	tempColor=clamp(YIQ_to_RGB * tempColor,0.0,1.0);
-	
-   FragColor = vec4(tempColor, 1.0);
+	RGB.r = YIQ.r + 0.956 * YIQ.g + 0.621 * YIQ.b;
+	RGB.g = YIQ.r - 0.272 * YIQ.g - 0.647 * YIQ.b;
+	RGB.b = YIQ.r - 1.106 * YIQ.g + 1.703 * YIQ.b;
+
+	FragColor = vec4(clamp(RGB, 0.0, 1.0), 1.0);
 }
