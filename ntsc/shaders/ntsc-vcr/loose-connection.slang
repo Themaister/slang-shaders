@@ -16,9 +16,11 @@ layout(push_constant) uniform Push
 	vec4 OutputSize;
 	uint FrameCount;
 	float magnitude;
+	float always_on;
 } params;
 
 #pragma parameter magnitude "Distortion Magnitude" 0.9 0.0 25.0 0.1
+#pragma parameter always_on "OSD Always On" 0.0 0.0 1.0 1.0
 
 #define framecount vec2(params.FrameCount, params.FrameCount).x
 
@@ -132,8 +134,10 @@ float timer = vec2(params.FrameCount, params.FrameCount).x;
 vec3 res = distort(Source, jumpy(vTexCoord), params.magnitude);
 float col = nn(-vTexCoord * params.SourceSize.y * 4.0);
 vec3 play = distort(overlay, jumpy(vTexCoord), params.magnitude);
-float overlay_alpha = (mod(timer, 100.0) < 50.0) && (timer < 500.0) ? texture(overlay, jumpy(vTexCoord)).a : 0.0;
-res = mix(res, play, overlay_alpha);
+float overlay_alpha = texture(overlay, jumpy(vTexCoord)).a;
+float show_overlay = (mod(timer, 100.0) < 50.0) && (timer < 500.0) ? texture(overlay, jumpy(vTexCoord)).a : 0.0;
+show_overlay = clamp(show_overlay + params.always_on * overlay_alpha, 0.0, 1.0);
+res = mix(res, play, show_overlay);
 
    FragColor = vec4(res + clamp(vec3(col), 0.0, 0.5), 1.0);
 }

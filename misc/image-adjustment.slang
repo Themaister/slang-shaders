@@ -76,7 +76,7 @@ vec3 sharp(sampler2D tex, vec2 texCoord){
 	f = f * f * f * (f * (f * 6.0 - vec2(15.0, 15.0)) + vec2(10.0, 10.0));
 	p = i + f;
 	p = (p - vec2(0.5, 0.5)) * registers.SourceSize.zw;
-	return texture(tex, p);
+	return texture(tex, p).rgb;
 }
 
 #pragma stage vertex
