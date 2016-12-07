@@ -41,7 +41,7 @@ void main()
 }
 
 #pragma stage fragment
-#pragma format R32G32B32A32_SFLOAT
+#pragma format R16G16B16A16_SFLOAT
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 1) in float colorPhase;
 layout(location = 0) out vec4 FragColor;
