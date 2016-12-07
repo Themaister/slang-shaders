@@ -2,13 +2,13 @@
 
 layout(push_constant) uniform Push
 {
-	vec4 OutputSize;
-	vec4 OriginalSize;
-	vec4 SourceSize;
-	float signalResolution;
-	float addNoise;
-	float noiseStrength;
-	uint FrameCount;
+    vec4 OutputSize;
+    vec4 OriginalSize;
+    vec4 SourceSize;
+    float signalResolution;
+    float addNoise;
+    float noiseStrength;
+    uint FrameCount;
 } params;
 
 #pragma parameter signalResolution "Signal Resolution" 700.0 20.0 2000.0 10.0
@@ -23,12 +23,12 @@ layout(std140, set = 0, binding = 0) uniform UBO
 } global;
 
 ////////////////////////////////////////////////////////
-//	GTU-famicom version 0.50
-//	Author: aliaspider - aliaspider@gmail.com
-//	License: GPLv3      
+//  GTU-famicom version 0.50
+//  Author: aliaspider - aliaspider@gmail.com
+//  License: GPLv3      
 ////////////////////////////////////////////////////////
 
-#define pi			3.14159265358
+#define pi          3.14159265358
 #define a(x) abs(x)
 #define d(x,b) (pi*b*min(a(x)+0.5,1.0/b))
 #define e(x,b) (pi*b*min(max(a(x)-0.5,-1.0/b),1.0/b))
@@ -40,13 +40,15 @@ layout(std140, set = 0, binding = 0) uniform UBO
 float rand2(vec2 co)
 {
     float c = 43758.5453;
-    float dt= dot(co.xy ,vec2(12.9898,78.233));
-    float sn= mod(dt,3.14);
+    float dt = dot(co.xy, vec2(12.9898, 78.233));
+    float sn = mod(dt, 3.14);
+    
     return fract(sin(sn) * c);
 }
 
-float rand(vec2 co){
-	return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+float rand(vec2 co)
+{
+    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 #pragma stage vertex
@@ -56,8 +58,8 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+    gl_Position = global.MVP * Position;
+    vTexCoord = TexCoord;
 }
 
 #pragma stage fragment
@@ -67,21 +69,22 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	float	offset	=	fract((vTexCoord.x * params.SourceSize.x) - 0.50001);
-	float	signal	=	0.0;
-	float	range	=	ceil(0.50001 + params.SourceSize.x / params.signalResolution);
-			range	=	min(range, 255.0);
-			
-	float i;
-   for (i = 1-range; i < 1+range; i++)
-      signal+=VAL(i);
+    float   offset  =   fract((vTexCoord.x * params.SourceSize.x) - 0.50001);
+    float   signal  =   0.0;
+    float   range   =   ceil(0.50001 + params.SourceSize.x / params.signalResolution);
+    range           =   min(range, 255.0);
+            
+    float i;
+    for (i = 1 - range; i < 1 + range; i++)
+        signal += VAL(i);
 
-   if(params.addNoise > 0.0)
-   {
-      vec2 pos = (vTexCoord.xy * params.SourceSize.xy);
-	  signal -= 0.5;
-      signal += (rand(vec2(pos.x * pos.y, params.FrameCount)) - 0.50001) * params.noiseStrength;
-	  signal += 0.5;
-   }
-   FragColor = vec4(signal);
+    if (params.addNoise > 0.0)
+    {
+        vec2 pos = (vTexCoord.xy * params.SourceSize.xy);
+        signal -= 0.5;
+        signal += (rand(vec2(pos.x * pos.y, params.FrameCount)) - 0.50001) * params.noiseStrength;
+        signal += 0.5;
+    }
+    
+    FragColor = vec4(signal);
 }

@@ -2,16 +2,16 @@
 
 layout(push_constant) uniform Push
 {
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
-	float noScanlines;
-	float tvVerticalResolution;
-	float blackLevel;
-	float contrast;
-	float gamma;
-	float cropOverscan_y;
+    vec4 SourceSize;
+    vec4 OriginalSize;
+    vec4 OutputSize;
+    uint FrameCount;
+    float noScanlines;
+    float tvVerticalResolution;
+    float blackLevel;
+    float contrast;
+    float gamma;
+    float cropOverscan_y;
 } params;
 
 #pragma parameter noScanlines "No Scanlines" 0.0 0.0 1.0 1.0
@@ -23,18 +23,18 @@ layout(push_constant) uniform Push
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-	mat4 MVP;
+    mat4 MVP;
 } global;
 
 ////////////////////////////////////////////////////////
-//	GTU-famicom version 0.50
-//	Author: aliaspider - aliaspider@gmail.com
-//	License: GPLv3
+//  GTU-famicom version 0.50
+//  Author: aliaspider - aliaspider@gmail.com
+//  License: GPLv3
 ////////////////////////////////////////////////////////
 
 //#include "config.h"
 
-#define pi			3.14159265358
+#define pi          3.14159265358
 #define normalGauss(x) ((exp(-(x)*(x)*0.5))/sqrt(2.0*pi))
 
 #define Y(j) (offset.y-(j))
@@ -51,25 +51,27 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 float normalGaussIntegral(float x)
 {
-	float a1 = 0.4361836;
-	float a2 = -0.1201676;
-	float a3 = 0.9372980;
-	float p = 0.3326700;
-	float t = 1.0 / (1.0 + p*abs(x));
-	return (0.5-normalGauss(x) * (t*(a1 + t*(a2 + a3*t))))*sign(x);
+    float a1 = 0.4361836;
+    float a2 = -0.1201676;
+    float a3 = 0.9372980;
+    float p = 0.3326700;
+    float t = 1.0 / (1.0 + p*abs(x));
+    
+    return (0.5-normalGauss(x) * (t*(a1 + t*(a2 + a3*t))))*sign(x);
 }
 
 vec3 scanlines( float x , vec3 c){
-	float temp=sqrt(2*pi)*(params.tvVerticalResolution * params.SourceSize.w);
+    float temp = sqrt(2*pi)*(params.tvVerticalResolution * params.SourceSize.w);
 
-	float rrr=0.5 * (params.SourceSize.y * params.OutputSize.w);
-	float x1=(x+rrr)*temp;
-	float x2=(x-rrr)*temp;
-	c.r=(c.r*(normalGaussIntegral(x1)-normalGaussIntegral(x2)));
-	c.g=(c.g*(normalGaussIntegral(x1)-normalGaussIntegral(x2)));
-	c.b=(c.b*(normalGaussIntegral(x1)-normalGaussIntegral(x2)));
-	c*=(params.OutputSize.y * params.SourceSize.w);
-	return c;
+    float rrr = 0.5 * (params.SourceSize.y * params.OutputSize.w);
+    float x1 = (x + rrr)*temp;
+    float x2 = (x - rrr)*temp;
+    c.r = c.r*(normalGaussIntegral(x1) - normalGaussIntegral(x2));
+    c.g = c.g*(normalGaussIntegral(x1) - normalGaussIntegral(x2));
+    c.b = c.b*(normalGaussIntegral(x1) - normalGaussIntegral(x2));
+    c *= params.OutputSize.y * params.SourceSize.w;
+
+    return c;
 }
 
 #pragma stage vertex
@@ -79,37 +81,39 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   if (params.cropOverscan_y > 0.0)
-	gl_Position.y /= (224.0 / 240.0);
-   vTexCoord = TexCoord;
+    gl_Position = global.MVP * Position;
+    if (params.cropOverscan_y > 0.0)
+        gl_Position.y /= (224.0 / 240.0);
+    
+    vTexCoord = TexCoord;
 }
 
 #pragma stage fragment
-layout(location = 0) in vec2 vTexCoord;
+layout(location = 0) in  vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	vec2 offset = fract((vTexCoord.xy * params.SourceSize.xy) - 0.5);
-	vec3 tempColor = vec3(0.0);
-	
-	float range = ceil(0.5 + params.SourceSize.y / params.tvVerticalResolution);
-	range = min(range, 255.0);
-	
-	float i;
-//	for (i=-range;i<range+2.0;i++){
+    vec2 offset = fract((vTexCoord.xy * params.SourceSize.xy) - 0.5);
+    vec3 tempColor = vec3(0.0);
+    
+    float range = ceil(0.5 + params.SourceSize.y / params.tvVerticalResolution);
+    range = min(range, 255.0);
+    
+    float i;
+//  for (i=-range;i<range+2.0;i++){
 
-   if (params.noScanlines > 0.0)
-      for (i=1.0-range;i<range+1.0;i++)
-         tempColor+=VAL(i);
-   else
-      for (i=1.0-range;i<range+1.0;i++)
-         tempColor+=VAL_scanlines(i);
-		 
-	tempColor -= vec3(params.blackLevel);
-	tempColor *= (params.contrast / vec3(1.0 - params.blackLevel));
-	tempColor = pow(tempColor, vec3(params.gamma));
-	FragColor = vec4(tempColor, 1.0);
+    if (params.noScanlines > 0.0)
+        for (i = 1.0-range; i < range + 1.0; ++i)
+            tempColor += VAL(i);
+    else
+        for (i = 1.0 - range; i < range + 1.0; ++i)
+            tempColor += VAL_scanlines(i);
+
+    tempColor -= vec3(params.blackLevel);
+    tempColor *= (params.contrast / vec3(1.0 - params.blackLevel));
+    tempColor = pow(tempColor, vec3(params.gamma));
+    
+    FragColor = vec4(tempColor, 1.0);
 }
