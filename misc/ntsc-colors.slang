@@ -9,7 +9,7 @@ layout(push_constant) uniform Push
 	float intensity;
 } params;
 
-#pragma parameter intensity "NTSC Intensity" 0.0 0.0 1.0 0.05
+#pragma parameter intensity "NTSC Intensity" 1.0 0.0 1.0 0.05
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -37,6 +37,6 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 void main()
 {
      vec3 color = texture(Source, vTexCoord).rgb;
-     color = mix(NTSCtoSRGB(color.rgb), color.rgb, params.intensity);
+     color = mix(color.rgb, NTSCtoSRGB(color.rgb), params.intensity);
    FragColor = vec4(color, 1.0);
 }
