@@ -29,7 +29,7 @@ scale_type4 = source
 scale4 = 1.0
 
 parameters = "GRAIN_STR;luminance;bright_boost;target_gamma;saturation"
-GRAIN_STR = 0.12
+GRAIN_STR = 12.0
 luminance = 1.10
 bright_boost = 0.10
 target_gamma = 3.50
