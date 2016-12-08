@@ -216,6 +216,7 @@ void main()
 }
 
 #pragma stage fragment
+#pragma format R8G8B8A8_SRGB
 layout(location = 0) in vec2 tex_uv;
 layout(location = 1) in float estimated_viewport_size_x;
 layout(location = 2) in vec2 blur_dxdy;

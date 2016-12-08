@@ -116,6 +116,7 @@ void main()
 }
 
 #pragma stage fragment
+#pragma format R8G8B8A8_SRGB
 layout(location = 0) in vec2 video_uv;
 layout(location = 1) in vec2 scanline_tex_uv;
 layout(location = 2) in vec2 blur3x3_tex_uv;

@@ -63,6 +63,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 ///////////////////////////////  FRAGMENT SHADER  //////////////////////////////
 
 #pragma stage fragment
+#pragma format R8G8B8A8_SRGB
 layout(location = 0) in vec2 tex_uv;
 layout(location = 1) in vec2 blur_dxdy;
 layout(location = 0) out vec4 FragColor;
