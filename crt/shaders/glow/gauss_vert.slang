@@ -32,6 +32,7 @@ void main()
 }
 
 #pragma stage fragment
+#pragma format R8G8B8A8_SRGB
 layout(location = 0) in  vec2  vTexCoord;
 layout(location = 1) in  vec2  data_pix_no;
 layout(location = 2) in  float data_one;

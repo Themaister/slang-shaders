@@ -40,7 +40,7 @@ layout(set = 0, binding = 2) uniform sampler2D CRTPass;
 
 #define CRT_PASS CRTPass
 
-void main() 
+void main()
 {
 #if BLOOM_ONLY
     vec3 source = BLOOM_STRENGTH * texture(Source, vTexCoord).rgb;
