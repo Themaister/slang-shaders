@@ -1,6 +1,6 @@
 shaders = 17
 
-shader0 = shaders/crt-lottes-multipass/glow-trails0.slang
+shader0 = shaders/glow-trails/glow-trails0.slang
 filter_linear0 = false
 scale_type0 = source
 scale0 = 1.0
@@ -18,7 +18,7 @@ scale_type2 = "source"
 scale2 = "1.0"
 srgb_framebuffer2 = "true"
 
-shader3 = shaders/crt-lottes-multipass/glow-trails1.slang
+shader3 = shaders/glow-trails/glow-trails1.slang
 
 shader4 = shaders/crt-royale/src/crt-royale-first-pass-linearize-crt-gamma-bob-fields.slang
 srgb_framebuffer4 = true
