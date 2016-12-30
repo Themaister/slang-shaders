@@ -2,15 +2,19 @@
 
 layout(push_constant) uniform Push
 {
+  vec4 OutputSize;
+  vec4 OriginalSize;
+  vec4 SourceSize;
   float SHARP_BILINEAR_PRE_SCALE;
-} param;
+  float AUTO_PRESCALE;
+} params;
+
+#pragma parameter SHARP_BILINEAR_PRE_SCALE "Sharp Bilinear Prescale" 4.0 1.0 10.0 1.0
+#pragma parameter AUTO_PRESCALE "Automatic Prescale" 1.0 0.0 1.0 1.0
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
 } global;
 
 /*
@@ -21,8 +25,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
  * Does a bilinear stretch, with a preapplied Nx nearest-neighbor scale, giving a
  * sharper image than plain bilinear.
  */
-
-#pragma parameter SHARP_BILINEAR_PRE_SCALE "Sharp Bilinear Prescale" 4.0 1.0 10.0 1.0
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -45,13 +47,14 @@ void main()
    vec2 texel = vTexCoord * global.SourceSize.xy;
    vec2 texel_floored = floor(texel);
    vec2 s = fract(texel);
-   float region_range = 0.5 - 0.5 / param.SHARP_BILINEAR_PRE_SCALE;
+   float scale = (AUTO_PRESCALE > 0.5) ? floor(params.OutputSize.y / params.SourceSize.y) : params.SHARP_BILINEAR_PRE_SCALE;
+   float region_range = 0.5 - 0.5 / scale;
 
    // Figure out where in the texel to sample to get correct pre-scaled bilinear.
    // Uses the hardware bilinear interpolator to avoid having to sample 4 times manually.
 
    vec2 center_dist = s - 0.5;
-   vec2 f = (center_dist - clamp(center_dist, -region_range, region_range)) * param.SHARP_BILINEAR_PRE_SCALE + 0.5;
+   vec2 f = (center_dist - clamp(center_dist, -region_range, region_range)) * scale + 0.5;
 
    vec2 mod_texel = texel_floored + f;
 
