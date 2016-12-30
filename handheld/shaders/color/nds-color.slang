@@ -1,5 +1,10 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+   float target_gamma;
+} params;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
@@ -14,25 +19,26 @@ layout(std140, set = 0, binding = 0) uniform UBO
    Author: hunterk
    License: Public domain
 */
-// Shader that replicates the LCD dynamics from an Original Nintendo DS
+// Shader that replicates the LCD dynamics from a Nintendo DS Phat
 
-#define display_gamma 2.25
-#define target_gamma 2.2
-#define sat 1.0
+#pragma parameter target_gamma "Gamma Mode" 2.0 2.0 2.4 0.2
+
+#define display_gamma 2.20
+#define sat 1.01
 #define lum 1.0
 #define contrast 1.0
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.77
-#define g 0.65
+#define r 0.74
+#define g 0.63
 #define b 0.74
-#define rg 0.09
+#define rg 0.10
 #define rb 0.09
-#define gr 0.23
+#define gr 0.26
 #define gb 0.11
 #define br 0.0
-#define bg 0.26
+#define bg 0.27
 #define overscan_percent_x 0.0
 #define overscan_percent_y 0.0
 
@@ -54,7 +60,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma)).rgba;
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(params.target_gamma)).rgba;
    vec4 avglum = vec4(0.5);
    screen = mix(screen, avglum, (1.0 - contrast));
    

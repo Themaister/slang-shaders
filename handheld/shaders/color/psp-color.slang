@@ -1,5 +1,10 @@
 #version 450
 
+layout(push_constant) uniform Push
+{
+   float target_gamma;
+} params;
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
@@ -14,25 +19,26 @@ layout(std140, set = 0, binding = 0) uniform UBO
    Author: hunterk
    License: Public domain
 */
+
 // Shader that replicates the LCD dynamics from PSP 1000 and PSP 2000
+#pragma parameter target_gamma "Gamma Mode" 2.2 2.2 2.4 0.2
 
 #define display_gamma 2.2
-#define target_gamma 2.21
 #define sat 1.0
 #define lum 1.0
 #define contrast 1.0
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.97
-#define g 0.75
-#define b 0.995
-#define rg 0.01
-#define rb 0.0025
-#define gr 0.005
-#define gb 0.0025
+#define r 0.95
+#define g 0.80
+#define b 0.98
+#define rg 0.03
+#define rb 0.01
+#define gr 0.02
+#define gb 0.01
 #define br 0.0
-#define bg 0.24
+#define bg 0.17
 #define overscan_percent_x 0.0
 #define overscan_percent_y 0.0
 
@@ -54,7 +60,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma)).rgba;
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(params.target_gamma)).rgba;
    vec4 avglum = vec4(0.5);
    screen = mix(screen, avglum, (1.0 - contrast));
    
