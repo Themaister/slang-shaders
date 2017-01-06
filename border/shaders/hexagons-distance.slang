@@ -97,8 +97,8 @@ float noise( in vec3 x )
 void main()
 {
 // from raymarch demo
-    vec2 uv = gl_FragCoord.xy / params.OutputSize.xy;
-	vec2 pos = (-params.OutputSize.xy + 2.0*gl_FragCoord.xy)/ params.OutputSize.y;
+    vec2 uv = vTexCoord;
+	vec2 pos = (-params.OutputSize.xy + 8.0 * (vTexCoord * params.OutputSize.xy))/ params.OutputSize.y;
 	float timer = params.FrameCount * 0.025;
 	
     // distort

@@ -45,8 +45,8 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-	vec2 uv = gl_FragCoord.xy;
-	vec3 col = texture(Source, floor(uv/8.0)*8.0/params.OutputSize.xy + vec2(-0.21, 0.0)).rgb;	
+	vec2 uv = vTexCoord * params.OutputSize.xy;
+	vec3 col = texture(Source, floor(uv/8.0)*8.0/params.OutputSize.xy).rgb;	
 	
 	float gray = dot(col.rgb, vec3(0.299, 0.587, 0.114));
 	
