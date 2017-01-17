@@ -6,7 +6,10 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 OutputSize;
    vec4 OriginalSize;
    vec4 SourceSize;
+   float INTERPOLATE_IN_LINEAR_GAMMA;
 } global;
+
+#pragma parameter INTERPOLATE_IN_LINEAR_GAMMA "Linear Gamma Weight" 1.0 0.0 1.0 1.0
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -35,11 +38,22 @@ void main()
    float top    = vTexCoord.y + range.y;
    float right  = vTexCoord.x + range.x;
    float bottom = vTexCoord.y - range.y;
+   
+   vec3 topLeftColor;
+   vec3 bottomRightColor;
+   vec3 bottomLeftColor;
+   vec3 topRightColor;
 
-   vec3 topLeftColor     = texture(Source, (floor(vec2(left, top)     / texelSize) + 0.5) * texelSize).rgb;
-   vec3 bottomRightColor = texture(Source, (floor(vec2(right, bottom) / texelSize) + 0.5) * texelSize).rgb;
-   vec3 bottomLeftColor  = texture(Source, (floor(vec2(left, bottom)  / texelSize) + 0.5) * texelSize).rgb;
-   vec3 topRightColor    = texture(Source, (floor(vec2(right, top)    / texelSize) + 0.5) * texelSize).rgb;
+   if (global.INTERPOLATE_IN_LINEAR_GAMMA > 0.5){
+   topLeftColor     = pow(texture(Source, (floor(vec2(left, top)     / texelSize) + 0.5) * texelSize).rgb, vec3(2.2));
+   bottomRightColor = pow(texture(Source, (floor(vec2(right, bottom) / texelSize) + 0.5) * texelSize).rgb, vec3(2.2));
+   bottomLeftColor  = pow(texture(Source, (floor(vec2(left, bottom)  / texelSize) + 0.5) * texelSize).rgb, vec3(2.2));
+   topRightColor    = pow(texture(Source, (floor(vec2(right, top)    / texelSize) + 0.5) * texelSize).rgb, vec3(2.2));
+   }else{
+   topLeftColor     = texture(Source, (floor(vec2(left, top)     / texelSize) + 0.5) * texelSize).rgb;
+   bottomRightColor = texture(Source, (floor(vec2(right, bottom) / texelSize) + 0.5) * texelSize).rgb;
+   bottomLeftColor  = texture(Source, (floor(vec2(left, bottom)  / texelSize) + 0.5) * texelSize).rgb;
+   topRightColor    = texture(Source, (floor(vec2(right, top)    / texelSize) + 0.5) * texelSize).rgb;}
 
    vec2 border = clamp(round(vTexCoord / texelSize) * texelSize, vec2(left, bottom), vec2(right, top));
 
@@ -51,5 +65,5 @@ void main()
    averageColor += ((border.x - left)  * (border.y - bottom) / totalArea) * bottomLeftColor;
    averageColor += ((right - border.x) * (top - border.y)    / totalArea) * topRightColor;
 
-   FragColor = vec4(averageColor, 1.0);
+   FragColor = (global.INTERPOLATE_IN_LINEAR_GAMMA > 0.5) ? vec4(pow(averageColor, vec3(1.0 / 2.2)), 1.0) : vec4(averageColor, 1.0);
 }
