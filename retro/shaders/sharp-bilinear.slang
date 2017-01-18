@@ -44,10 +44,10 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec2 texel = vTexCoord * global.SourceSize.xy;
+   vec2 texel = vTexCoord * params.SourceSize.xy;
    vec2 texel_floored = floor(texel);
    vec2 s = fract(texel);
-   float scale = (AUTO_PRESCALE > 0.5) ? floor(params.OutputSize.y / params.SourceSize.y) : params.SHARP_BILINEAR_PRE_SCALE;
+   float scale = (params.AUTO_PRESCALE > 0.5) ? floor(params.OutputSize.y / params.SourceSize.y) : params.SHARP_BILINEAR_PRE_SCALE;
    float region_range = 0.5 - 0.5 / scale;
 
    // Figure out where in the texel to sample to get correct pre-scaled bilinear.
@@ -58,5 +58,5 @@ void main()
 
    vec2 mod_texel = texel_floored + f;
 
-   FragColor = vec4(texture(Source, mod_texel / global.SourceSize.xy).rgb, 1.0);
+   FragColor = vec4(texture(Source, mod_texel / params.SourceSize.xy).rgb, 1.0);
 }
