@@ -1,5 +1,8 @@
 #version 450
 
+// AntiAliased Nearest Neighbor
+// by jimbo1qaz and wareya
+
 layout(push_constant) uniform Push
 {
   float NOGAMMA;
