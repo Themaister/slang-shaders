@@ -2,6 +2,7 @@
 
 // AntiAliased Nearest Neighbor
 // by jimbo1qaz and wareya
+// Licensed MIT
 
 layout(push_constant) uniform Push
 {
@@ -17,10 +18,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
     vec4 OriginalSize;
     vec4 SourceSize;
 } global;
-
-// AntiAliased Nearest Neighbor
-// by jimbo1qaz and wareya
-// Licensed MIT
 
 // set to true to interpolate in sRGB instead of a pseudo-perceptual colorspace
 #pragma parameter NOGAMMA "Interpolate in sRGB" 0.0 0.0 1.0 1.0
