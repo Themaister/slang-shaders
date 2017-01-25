@@ -88,7 +88,7 @@ vec3 filter_lanczos(sampler2D tex, vec2 co, vec2 tex_size, float sharp)
 
     vec2 dx = vec2(1.0 / tex_size.x, 0.0);
     vec2 pix_co = co * tex_size - vec2(0.5, 0.0);
-    vec2 tex_co = (floor(pix_co) + vec2(0.5, 0.0)) / tex_size;
+    vec2 tex_co = (floor(pix_co) + vec2(0.5, 0.001)) / tex_size;
     vec2 dist = fract(pix_co);
     vec4 coef = PI * vec4(dist.x + 1.0, dist.x, dist.x - 1.0, dist.x - 2.0);
 
