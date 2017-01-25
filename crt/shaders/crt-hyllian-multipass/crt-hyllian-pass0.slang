@@ -97,7 +97,7 @@ void main()
    vec2 dy = vec2(0.0, 1.0/texture_size.y);
    vec2 pix_coord = vTexCoord*texture_size+vec2(-0.5,0.0);
 
-   vec2 tc = (floor(pix_coord)+vec2(0.5,0.0))/texture_size;
+   vec2 tc = (floor(pix_coord)+vec2(0.5,0.001))/texture_size;
 
    vec2 fp = fract(pix_coord);
 
