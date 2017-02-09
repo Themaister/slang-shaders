@@ -80,7 +80,7 @@ layout(location = 2) out vec2 loc;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord * 1.00001;
+   vTexCoord = TexCoord * 1.0001;
    
    float2 ps = float2(params.SourceSize.z, params.SourceSize.w);
 	float dx = ps.x;
