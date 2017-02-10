@@ -1,8 +1,10 @@
 #version 450
 
-// Smooth Bilinear
+// HQ2x
 // by Lior Halphon
 // ported to slang by hunterk
+
+/* Based on this (really good) article: http://blog.pkh.me/p/19-butchering-hqx-scaling-filters.html */
 
 /*
 MIT License
@@ -28,7 +30,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
@@ -44,8 +45,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define uResolution params.OutputSize.xy
 #define textureDimensions params.SourceSize.xy
-
-/* Based on this (really good) article: http://blog.pkh.me/p/19-butchering-hqx-scaling-filters.html */
 
 /* The colorspace used by the HQnx filters is not really YUV, despite the algorithm description claims it is. It is
    also not normalized. Therefore, we shall call the colorspace used by HQnx "HQ Colorspace" to avoid confusion. */
