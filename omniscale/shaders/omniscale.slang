@@ -1,5 +1,34 @@
 #version 450
 
+// OmniScale
+// by Lior Halphon
+// ported to slang by hunterk
+
+/*
+MIT License
+
+Copyright (c) 2015-2016 Lior Halphon
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
@@ -33,27 +62,11 @@ bool is_different(vec4 a, vec4 b)
 #define uResolution params.OutputSize.xy
 #define textureDimensions params.SourceSize.xy
 
-#pragma stage vertex
-layout(location = 0) in vec4 Position;
-layout(location = 1) in vec2 TexCoord;
-layout(location = 0) out vec2 vTexCoord;
-
-void main()
-{
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord * 1.0001;
-}
-
-#pragma stage fragment
-layout(location = 0) in vec2 vTexCoord;
-layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
-
-void main()
+vec4 scale(sampler2D image, vec2 coord)
 {
     // o = offset, the width of a pixel
     vec2 o = 1.0 / textureDimensions;
-    vec2 texCoord = vTexCoord;
+    vec2 texCoord = coord;
 
     /* We always calculate the top left quarter.  If we need a different quarter, we flip our co-ordinates */
 
@@ -69,15 +82,17 @@ void main()
         p.y = 1.0 - p.y;
     }
 
-    vec4 w0 = texture(Source, texCoord + vec2( -o.x, -o.y));
-    vec4 w1 = texture(Source, texCoord + vec2(    0, -o.y));
-    vec4 w2 = texture(Source, texCoord + vec2(  o.x, -o.y));
-    vec4 w3 = texture(Source, texCoord + vec2( -o.x,    0));
-    vec4 w4 = texture(Source, texCoord + vec2(    0,    0));
-    vec4 w5 = texture(Source, texCoord + vec2(  o.x,    0));
-    vec4 w6 = texture(Source, texCoord + vec2( -o.x,  o.y));
-    vec4 w7 = texture(Source, texCoord + vec2(    0,  o.y));
-    vec4 w8 = texture(Source, texCoord + vec2(  o.x,  o.y));
+
+
+    vec4 w0 = texture(image, texCoord + vec2( -o.x, -o.y));
+    vec4 w1 = texture(image, texCoord + vec2(    0, -o.y));
+    vec4 w2 = texture(image, texCoord + vec2(  o.x, -o.y));
+    vec4 w3 = texture(image, texCoord + vec2( -o.x,    0));
+    vec4 w4 = texture(image, texCoord + vec2(    0,    0));
+    vec4 w5 = texture(image, texCoord + vec2(  o.x,    0));
+    vec4 w6 = texture(image, texCoord + vec2( -o.x,  o.y));
+    vec4 w7 = texture(image, texCoord + vec2(    0,  o.y));
+    vec4 w8 = texture(image, texCoord + vec2(  o.x,  o.y));
 
     int pattern = 0;
     if (is_different(w0, w4)) pattern |= 1 << 0;
@@ -90,25 +105,25 @@ void main()
     if (is_different(w8, w4)) pattern |= 1 << 7;
 
     if ((P(0xbf,0x37) || P(0xdb,0x13)) && is_different(w1, w5))
-        FragColor =  mix(w4, w3, 0.5 - p.x);
+        return mix(w4, w3, 0.5 - p.x);
     if ((P(0xdb,0x49) || P(0xef,0x6d)) && is_different(w7, w3))
-        FragColor =  mix(w4, w1, 0.5 - p.y);
+        return mix(w4, w1, 0.5 - p.y);
     if ((P(0x0b,0x0b) || P(0xfe,0x4a) || P(0xfe,0x1a)) && is_different(w3, w1))
-        FragColor =  w4;
+        return w4;
     if ((P(0x6f,0x2a) || P(0x5b,0x0a) || P(0xbf,0x3a) || P(0xdf,0x5a) ||
          P(0x9f,0x8a) || P(0xcf,0x8a) || P(0xef,0x4e) || P(0x3f,0x0e) ||
          P(0xfb,0x5a) || P(0xbb,0x8a) || P(0x7f,0x5a) || P(0xaf,0x8a) ||
          P(0xeb,0x8a)) && is_different(w3, w1))
-        FragColor =  mix(w4, mix(w4, w0, 0.5 - p.x), 0.5 - p.y);
+        return mix(w4, mix(w4, w0, 0.5 - p.x), 0.5 - p.y);
     if (P(0x0b,0x08))
-        FragColor =  mix(mix(w0 * 0.375 + w1 * 0.25 + w4 * 0.375, w4 * 0.5 + w1 * 0.5, p.x * 2.0), w4, p.y * 2.0);
+        return mix(mix(w0 * 0.375 + w1 * 0.25 + w4 * 0.375, w4 * 0.5 + w1 * 0.5, p.x * 2.0), w4, p.y * 2.0);
     if (P(0x0b,0x02))
-        FragColor =  mix(mix(w0 * 0.375 + w3 * 0.25 + w4 * 0.375, w4 * 0.5 + w3 * 0.5, p.y * 2.0), w4, p.x * 2.0);
+        return mix(mix(w0 * 0.375 + w3 * 0.25 + w4 * 0.375, w4 * 0.5 + w3 * 0.5, p.y * 2.0), w4, p.x * 2.0);
     if (P(0x2f,0x2f)) {
         float dist = length(p - vec2(0.5));
         float pixel_size = length(1.0 / (uResolution / textureDimensions));
         if (dist < 0.5 - pixel_size / 2) {
-            FragColor =  w4;
+            return w4;
         }
         vec4 r;
         if (is_different(w0, w1) || is_different(w0, w3)) {
@@ -119,40 +134,40 @@ void main()
         }
 
         if (dist > 0.5 + pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
-        FragColor =  mix(w4, r, (dist - 0.5 + pixel_size / 2) / pixel_size);
+        return mix(w4, r, (dist - 0.5 + pixel_size / 2) / pixel_size);
     }
     if (P(0xbf,0x37) || P(0xdb,0x13)) {
         float dist = p.x - 2.0 * p.y;
         float pixel_size = length(1.0 / (uResolution / textureDimensions)) * sqrt(5);
         if (dist > pixel_size / 2) {
-            FragColor =  w1;
+            return w1;
         }
         vec4 r = mix(w3, w4, p.x + 0.5);
         if (dist < -pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
-        FragColor =  mix(r, w1, (dist + pixel_size / 2) / pixel_size);
+        return mix(r, w1, (dist + pixel_size / 2) / pixel_size);
     }
     if (P(0xdb,0x49) || P(0xef,0x6d)) {
         float dist = p.y - 2.0 * p.x;
         float pixel_size = length(1.0 / (uResolution / textureDimensions)) * sqrt(5);
         if (p.y - 2.0 * p.x > pixel_size / 2) {
-            FragColor =  w3;
+            return w3;
         }
         vec4 r = mix(w1, w4, p.x + 0.5);
         if (dist < -pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
-        FragColor =  mix(r, w3, (dist + pixel_size / 2) / pixel_size);
+        return mix(r, w3, (dist + pixel_size / 2) / pixel_size);
     }
     if (P(0xbf,0x8f) || P(0x7e,0x0e)) {
         float dist = p.x + 2.0 * p.y;
         float pixel_size = length(1.0 / (uResolution / textureDimensions)) * sqrt(5);
 
         if (dist > 1.0 + pixel_size / 2) {
-            FragColor =  w4;
+            return w4;
         }
 
         vec4 r;
@@ -164,10 +179,10 @@ void main()
         }
 
         if (dist < 1.0 - pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
 
-        FragColor =  mix(r, w4, (dist + pixel_size / 2 - 1.0) / pixel_size);
+        return mix(r, w4, (dist + pixel_size / 2 - 1.0) / pixel_size);
 
     }
 
@@ -176,7 +191,7 @@ void main()
         float pixel_size = length(1.0 / (uResolution / textureDimensions)) * sqrt(5);
 
         if (p.y + 2.0 * p.x > 1.0 + pixel_size / 2) {
-            FragColor =  w4;
+            return w4;
         }
 
         vec4 r;
@@ -189,21 +204,21 @@ void main()
         }
 
         if (dist < 1.0 - pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
 
-        FragColor =  mix(r, w4, (dist + pixel_size / 2 - 1.0) / pixel_size);
+        return mix(r, w4, (dist + pixel_size / 2 - 1.0) / pixel_size);
     }
 
     if (P(0x1b,0x03) || P(0x4f,0x43) || P(0x8b,0x83) || P(0x6b,0x43))
-        FragColor =  mix(w4, w3, 0.5 - p.x);
+        return mix(w4, w3, 0.5 - p.x);
 
     if (P(0x4b,0x09) || P(0x8b,0x89) || P(0x1f,0x19) || P(0x3b,0x19))
-        FragColor =  mix(w4, w1, 0.5 - p.y);
+        return mix(w4, w1, 0.5 - p.y);
 
     if (P(0xfb,0x6a) || P(0x6f,0x6e) || P(0x3f,0x3e) || P(0xfb,0xfa) ||
         P(0xdf,0xde) || P(0xdf,0x1e))
-        FragColor =  mix(w4, w0, (1.0 - p.x - p.y) / 2.0);
+        return mix(w4, w0, (1.0 - p.x - p.y) / 2.0);
 
     if (P(0x4f,0x4b) || P(0x9f,0x1b) || P(0x2f,0x0b) ||
         P(0xbe,0x0a) || P(0xee,0x0a) || P(0x7e,0x0a) || P(0xeb,0x4b) ||
@@ -212,7 +227,7 @@ void main()
         float pixel_size = length(1.0 / (uResolution / textureDimensions));
 
         if (dist > 0.5 + pixel_size / 2) {
-            FragColor =  w4;
+            return w4;
         }
 
         vec4 r;
@@ -224,32 +239,32 @@ void main()
         }
 
         if (dist < 0.5 - pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
 
-        FragColor =  mix(r, w4, (dist + pixel_size / 2 - 0.5) / pixel_size);
+        return mix(r, w4, (dist + pixel_size / 2 - 0.5) / pixel_size);
     }
 
     if (P(0x0b,0x01))
-        FragColor =  mix(mix(w4, w3, 0.5 - p.x), mix(w1, (w1 + w3) / 2.0, 0.5 - p.x), 0.5 - p.y);
+        return mix(mix(w4, w3, 0.5 - p.x), mix(w1, (w1 + w3) / 2.0, 0.5 - p.x), 0.5 - p.y);
 
     if (P(0x0b,0x00))
-        FragColor =  mix(mix(w4, w3, 0.5 - p.x), mix(w1, w0, 0.5 - p.x), 0.5 - p.y);
+        return mix(mix(w4, w3, 0.5 - p.x), mix(w1, w0, 0.5 - p.x), 0.5 - p.y);
 
     float dist = p.x + p.y;
     float pixel_size = length(1.0 / (uResolution / textureDimensions));
 
     if (dist > 0.5 + pixel_size / 2)
-        FragColor =  w4;
+        return w4;
 
     /* We need more samples to "solve" this diagonal */
-    vec4 x0 = texture(Source, texCoord + vec2( -o.x * 2.0, -o.y * 2.0));
-    vec4 x1 = texture(Source, texCoord + vec2( -o.x      , -o.y * 2.0));
-    vec4 x2 = texture(Source, texCoord + vec2(  0.0      , -o.y * 2.0));
-    vec4 x3 = texture(Source, texCoord + vec2(  o.x      , -o.y * 2.0));
-    vec4 x4 = texture(Source, texCoord + vec2( -o.x * 2.0, -o.y      ));
-    vec4 x5 = texture(Source, texCoord + vec2( -o.x * 2.0,  0.0      ));
-    vec4 x6 = texture(Source, texCoord + vec2( -o.x * 2.0,  o.y      ));
+    vec4 x0 = texture(image, texCoord + vec2( -o.x * 2.0, -o.y * 2.0));
+    vec4 x1 = texture(image, texCoord + vec2( -o.x      , -o.y * 2.0));
+    vec4 x2 = texture(image, texCoord + vec2(  0.0      , -o.y * 2.0));
+    vec4 x3 = texture(image, texCoord + vec2(  o.x      , -o.y * 2.0));
+    vec4 x4 = texture(image, texCoord + vec2( -o.x * 2.0, -o.y      ));
+    vec4 x5 = texture(image, texCoord + vec2( -o.x * 2.0,  0.0      ));
+    vec4 x6 = texture(image, texCoord + vec2( -o.x * 2.0,  o.y      ));
 
     if (is_different(x0, w4)) pattern |= 1 << 8;
     if (is_different(x1, w4)) pattern |= 1 << 9;
@@ -268,9 +283,31 @@ void main()
     if (diagonal_bias <=  0) {
         vec4 r = mix(w1, w3, p.y - p.x + 0.5);
         if (dist < 0.5 - pixel_size / 2) {
-            FragColor =  r;
+            return r;
         }
-        FragColor =  mix(r, w4, (dist + pixel_size / 2 - 0.5) / pixel_size);
+        return mix(r, w4, (dist + pixel_size / 2 - 0.5) / pixel_size);
     }
+    
+    return w4;
+}
 
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+
+void main()
+{
+   gl_Position = global.MVP * Position;
+   vTexCoord = TexCoord * 1.0001;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 0) out vec4 FragColor;
+layout(set = 0, binding = 2) uniform sampler2D Source;
+
+void main()
+{
+FragColor = scale(Source, vTexCoord);
 }
