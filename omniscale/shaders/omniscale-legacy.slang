@@ -1,6 +1,6 @@
 #version 450
 
-// OmniScale
+// OmniScale-Legacy
 // by Lior Halphon
 // ported to slang format by hunterk
 
@@ -53,10 +53,10 @@ vec4 omniScale(sampler2D image, vec2 texCoord)
 {
     vec2 pixel = texCoord * textureDimensions - vec2(0.5, 0.5);
 
-    vec4 q11 = texture(image, vec2(floor(pixel.x) / textureDimensions.x, floor(pixel.y) / textureDimensions.y));
-    vec4 q12 = texture(image, vec2(floor(pixel.x) / textureDimensions.x, ceil(pixel.y) / textureDimensions.y));
-    vec4 q21 = texture(image, vec2(ceil(pixel.x) / textureDimensions.x, floor(pixel.y) / textureDimensions.y));
-    vec4 q22 = texture(image, vec2(ceil(pixel.x) / textureDimensions.x, ceil(pixel.y) / textureDimensions.y));
+    vec4 q11 = texture(image, vec2(floor(pixel.x) / textureDimensions.x, floor(pixel.y) / textureDimensions.y+0.001));
+    vec4 q12 = texture(image, vec2(floor(pixel.x) / textureDimensions.x, ceil(pixel.y) / textureDimensions.y+0.001));
+    vec4 q21 = texture(image, vec2(ceil(pixel.x) / textureDimensions.x, floor(pixel.y) / textureDimensions.y+0.001));
+    vec4 q22 = texture(image, vec2(ceil(pixel.x) / textureDimensions.x, ceil(pixel.y) / textureDimensions.y+0.001));
 
     vec2 pos = fract(pixel);
 
@@ -122,12 +122,12 @@ vec4 omniScale(sampler2D image, vec2 texCoord)
     vec4 r1 = mix(q11, q21, fract(pos.x));
     vec4 r2 = mix(q12, q22, fract(pos.x));
 
-    vec4 unqunatized = mix(r1, r2, fract(pos.y));
+    vec4 unquantized = mix(r1, r2, fract(pos.y));
 
-    float q11d = quickDistance(unqunatized, q11);
-    float q21d = quickDistance(unqunatized, q21);
-    float q12d = quickDistance(unqunatized, q12);
-    float q22d = quickDistance(unqunatized, q22);
+    float q11d = quickDistance(unquantized, q11);
+    float q21d = quickDistance(unquantized, q21);
+    float q12d = quickDistance(unquantized, q12);
+    float q22d = quickDistance(unquantized, q22);
 
     float best = min(q11d,
                      min(q21d,
@@ -149,6 +149,19 @@ vec4 omniScale(sampler2D image, vec2 texCoord)
     return q22;
 }
 
+vec4 scale(sampler2D tex, vec2 coord){
+    vec2 texCoord = coord;
+    vec2 pixel = vec2(1.0, 1.0) / uResolution;
+    // 4-pixel super sampling
+
+    vec4 q11 = omniScale(tex, texCoord + pixel * vec2(-0.25, -0.25));
+    vec4 q21 = omniScale(tex, texCoord + pixel * vec2(+0.25, -0.25));
+    vec4 q12 = omniScale(tex, texCoord + pixel * vec2(-0.25, +0.25));
+    vec4 q22 = omniScale(tex, texCoord + pixel * vec2(+0.25, +0.25));
+	
+	return (q11 + q21 + q12 + q22) / 4.0;
+}
+
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
 layout(location = 1) in vec2 TexCoord;
@@ -167,14 +180,5 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-    vec2 texCoord = vTexCoord;
-    vec2 pixel = vec2(1.0, 1.0) / uResolution;
-    // 4-pixel super sampling
-
-    vec4 q11 = omniScale(Source, texCoord + pixel * vec2(-0.25, -0.25));
-    vec4 q21 = omniScale(Source, texCoord + pixel * vec2(+0.25, -0.25));
-    vec4 q12 = omniScale(Source, texCoord + pixel * vec2(-0.25, +0.25));
-    vec4 q22 = omniScale(Source, texCoord + pixel * vec2(+0.25, +0.25));
-	
-	FragColor = (q11 + q21 + q12 + q22) / 4.0;
+    FragColor = scale(Source, vTexCoord);
 }
