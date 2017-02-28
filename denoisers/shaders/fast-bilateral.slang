@@ -88,7 +88,7 @@ void main()
 {
       float ds, sd2, si2;
       float sigma_d = 3.0;
-      float sigma_r = params.SIGMA_R*0.04;
+      float sigma_r = SIGMA_R*0.04;
 
       float3 color = float3(0.0, 0.0, 0.0);
       float3 wsum = float3(0.0, 0.0, 0.0);
