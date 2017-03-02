@@ -2,7 +2,7 @@
 
 /*
 	ScaleFX - Pass 0
-	by Sp00kyFox, 2017-03-01
+	by Sp00kyFox, 2016-03-30
 
 Filter:	Nearest
 Scale:	1x
@@ -41,15 +41,25 @@ THE SOFTWARE.
 */
 
 
-layout(push_constant) uniform Push
+#pragma name sfxp0
+
+
+// Reference: http://www.compuphase.com/cmetric.htm
+float eq(vec3 A, vec3 B)
 {
-	vec4 SourceSize;
-} params;
+	float  r = 0.5 * (A.r + B.r);
+	vec3 d = A - B;
+	vec3 c = vec3(2 + r, 4, 3 - r);
+
+	return 1 - sqrt(dot(c*d, d)) / 3;
+}
+
 
 layout(set = 0, binding = 0, std140) uniform UBO
 {
    mat4 MVP;
-} global;
+   vec4 SourceSize;
+};
 
 
 #pragma stage vertex
@@ -59,7 +69,7 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-	gl_Position = global.MVP * Position;
+	gl_Position = MVP * Position;
 	vTexCoord = TexCoord;
 }
 
@@ -70,16 +80,7 @@ layout(location = 0) out vec4 FragColor;
 layout(binding = 1) uniform sampler2D Source;
 
 
-// Reference: http://www.compuphase.com/cmetric.htm
-float dist(vec3 A, vec3 B)
-{
-	float r = 0.5 * (A.r + B.r);
-	vec3 d = A - B;
-	vec3 c = vec3(2 + r, 4, 3 - r);
-
-	return sqrt(dot(c*d, d)) / 3;
-}
-
+#define TEX(x, y) textureOffset(Source, vTexCoord, ivec2(x, y))
 
 void main()
 {
@@ -91,15 +92,13 @@ void main()
 	*/
 
 
-#define TEX(x, y) textureOffset(Source, vTexCoord, ivec2(x, y)).rgb
-
 	// read texels
-	vec3 A = TEX(-1,-1);
-	vec3 B = TEX( 0,-1);
-	vec3 C = TEX( 1,-1);
-	vec3 E = TEX( 0, 0);
-	vec3 F = TEX( 1, 0);
+	vec3 A = TEX(-1,-1).rgb;
+	vec3 B = TEX( 0,-1).rgb;
+	vec3 C = TEX( 1,-1).rgb;
+	vec3 E = TEX( 0, 0).rgb;
+	vec3 F = TEX( 1, 0).rgb;
 
 	// output
-	FragColor = vec4(dist(E,A), dist(E,B), dist(E,C), dist(E,F));
+	FragColor = vec4(eq(E,A), eq(E,B), eq(E,C), eq(E,F));
 }

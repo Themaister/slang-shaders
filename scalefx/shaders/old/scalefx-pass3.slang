@@ -1,11 +1,11 @@
 #version 450
 
 /*
-	ScaleFX - Pass 0
-	by Sp00kyFox, 2017-03-01
+	ScaleFX - Pass 3
+	by Sp00kyFox, 2016-03-30
 
 Filter:	Nearest
-Scale:	1x
+Scale:	3x
 
 ScaleFX is an edge interpolation algorithm specialized in pixel art. It was
 originally intended as an improvement upon Scale3x but became a new filter in
@@ -14,7 +14,7 @@ ScaleFX interpolates edges up to level 6 and makes smooth transitions between
 different slopes. The filtered picture will only consist of colours present
 in the original.
 
-Pass 0 prepares metric data for the next pass.
+Pass 3 outputs subpixels based on previously calculated tags.
 
 
 
@@ -41,15 +41,14 @@ THE SOFTWARE.
 */
 
 
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-} params;
+#pragma name sfxp3
+
 
 layout(set = 0, binding = 0, std140) uniform UBO
 {
    mat4 MVP;
-} global;
+   vec4 SourceSize;
+};
 
 
 #pragma stage vertex
@@ -59,7 +58,7 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-	gl_Position = global.MVP * Position;
+	gl_Position = MVP * Position;
 	vTexCoord = TexCoord;
 }
 
@@ -68,38 +67,48 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(binding = 1) uniform sampler2D Source;
+layout(binding = 2) uniform sampler2D Original;
 
 
-// Reference: http://www.compuphase.com/cmetric.htm
-float dist(vec3 A, vec3 B)
-{
-	float r = 0.5 * (A.r + B.r);
-	vec3 d = A - B;
-	vec3 c = vec3(2 + r, 4, 3 - r);
 
-	return sqrt(dot(c*d, d)) / 3;
+// extract corners
+vec4 loadCrn(vec4 x){
+	return floor(mod(x*80.0 + 0.5, 9.0));
 }
+
+// extract mids
+vec4 loadMid(vec4 x){
+	return floor(mod(x*8.888888 + 0.055555, 9.0));
+}
+
 
 
 void main()
 {
 
-	/*	grid		metric
+	/*	grid		corners		mids
 
-		A B C		x y z
-		  E F		  o w
+		  B		x   y	  	  x
+		D E F				w   y
+		  H		w   z	  	  z
 	*/
 
 
-#define TEX(x, y) textureOffset(Source, vTexCoord, ivec2(x, y)).rgb
+	// read data
+	vec4 E = texture(Source, vTexCoord);
 
-	// read texels
-	vec3 A = TEX(-1,-1);
-	vec3 B = TEX( 0,-1);
-	vec3 C = TEX( 1,-1);
-	vec3 E = TEX( 0, 0);
-	vec3 F = TEX( 1, 0);
+	// extract data
+	vec4 crn = loadCrn(E);
+	vec4 mid = loadMid(E);
 
-	// output
-	FragColor = vec4(dist(E,A), dist(E,B), dist(E,C), dist(E,F));
+	// determine subpixel
+	vec2 fp = floor(3.0 * fract(vTexCoord*SourceSize.xy));
+	float sp = fp.y == 0 ? (fp.x == 0 ? crn.x : fp.x == 1 ? mid.x : crn.y) : (fp.y == 1 ? (fp.x == 0 ? mid.w : fp.x == 1 ? 0 : mid.y) : (fp.x == 0 ? crn.w : fp.x == 1 ? mid.z : crn.z));
+
+	// output coordinate - 0 = E, 1 = D, 2 = D0, 3 = F, 4 = F0, 5 = B, 6 = B0, 7 = H, 8 = H0
+	vec2 res = sp == 0 ? vec2(0,0) : sp == 1 ? vec2(-1,0) : sp == 2 ? vec2(-2,0) : sp == 3 ? vec2(1,0) : sp == 4 ? vec2(2,0) : sp == 5 ? vec2(0,-1) : sp == 6 ? vec2(0,-2) : sp == 7 ? vec2(0,1) : vec2(0,2);
+
+	// ouput
+	FragColor = texture(Original, vTexCoord + 1/SourceSize.xy * res);
+
 }

@@ -1,8 +1,8 @@
 #version 450
 
 /*
-	ScaleFX - Pass 3
-	by Sp00kyFox, 2017-03-01
+	ScaleFX - Pass 2
+	by Sp00kyFox, 2016-03-30
 
 Filter:	Nearest
 Scale:	1x
@@ -14,7 +14,7 @@ ScaleFX interpolates edges up to level 6 and makes smooth transitions between
 different slopes. The filtered picture will only consist of colours present
 in the original.
 
-Pass 3 determines which edge level is present and prepares tags for subpixel
+Pass 2 determines which edge level is present and prepares tags for subpixel
 output in the final pass.
 
 
@@ -42,20 +42,14 @@ THE SOFTWARE.
 */
 
 
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-	float SFX_SCN;
-} params;
-
-
-#pragma parameter SFX_SCN "ScaleFX Filter Corners" 1.0 0.0 1.0 1.0
+#pragma name sfxp2
 
 
 layout(set = 0, binding = 0, std140) uniform UBO
 {
    mat4 MVP;
-} global;
+   vec4 SourceSize;
+};
 
 
 #pragma stage vertex
@@ -65,7 +59,7 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-	gl_Position = global.MVP * Position;
+	gl_Position = MVP * Position;
 	vTexCoord = TexCoord;
 }
 
@@ -78,22 +72,22 @@ layout(binding = 1) uniform sampler2D Source;
 
 // extract first bool4 from float4 - corners
 bvec4 loadCorn(vec4 x){
-	return bvec4(floor(mod(x*15 + 0.5, 2)));
+	return bvec4(floor(mod(x*15 + 0.5, 2.0)));
 }
 
 // extract second bool4 from float4 - horizontal edges
 bvec4 loadHori(vec4 x){
-	return bvec4(floor(mod(x*7.5 + 0.25, 2)));
+	return bvec4(floor(mod(x*7.5 + 0.25, 2.0)));
 }
 
 // extract third bool4 from float4 - vertical edges
 bvec4 loadVert(vec4 x){
-	return bvec4(floor(mod(x*3.75 + 0.125, 2)));
+	return bvec4(floor(mod(x*3.75 + 0.125, 2.0)));
 }
 
 // extract fourth bool4 from float4 - orientation
 bvec4 loadOr(vec4 x){
-	return bvec4(floor(mod(x*1.875 + 0.0625, 2)));
+	return bvec4(floor(mod(x*1.875 + 0.0625, 2.0)));
 }
 
 
@@ -124,12 +118,6 @@ void main()
 	bvec4 Bc = loadCorn(B),	Bv = loadVert(B), Bo = loadOr(B), B0c = loadCorn(B0), B0v = loadVert(B0), B1v = loadVert(B1);
 	bvec4 Hc = loadCorn(H),	Hv = loadVert(H), Ho = loadOr(H), H0c = loadCorn(H0), H0v = loadVert(H0), H1v = loadVert(H1);
 
-	
-	// lvl1 corners (hori, vert)
-	bool lvl1x = Ec.x && (Dc.z || Bc.z || params.SFX_SCN == 1);
-	bool lvl1y = Ec.y && (Fc.w || Bc.w || params.SFX_SCN == 1);
-	bool lvl1z = Ec.z && (Fc.x || Hc.x || params.SFX_SCN == 1);
-	bool lvl1w = Ec.w && (Dc.y || Hc.y || params.SFX_SCN == 1);
 
 	// lvl2 mid (left, right / up, down)
 	bvec2 lvl2x = bvec2((Ec.x && Eh.y) && Dc.z, (Ec.y && Eh.x) && Fc.w);
@@ -165,10 +153,10 @@ void main()
 	// subpixels - 0 = E, 1 = D, 2 = D0, 3 = F, 4 = F0, 5 = B, 6 = B0, 7 = H, 8 = H0
 
 	vec4 crn;
-	crn.x = (lvl1x && Eo.x || lvl3x.x && Eo.y || lvl4x.x && Do.x || lvl6x.x && Fo.y) ? 5 : (lvl1x || lvl3x.y && !Eo.w || lvl4x.y && !Bo.x || lvl6x.y && !Ho.w) ? 1 : lvl3x.x ? 3 : lvl3x.y ? 7 : lvl4x.x ? 2 : lvl4x.y ? 6 : lvl6x.x ? 4 : lvl6x.y ? 8 : 0;
-	crn.y = (lvl1y && Eo.y || lvl3y.x && Eo.x || lvl4y.x && Fo.y || lvl6y.x && Do.x) ? 5 : (lvl1y || lvl3y.y && !Eo.z || lvl4y.y && !Bo.y || lvl6y.y && !Ho.z) ? 3 : lvl3y.x ? 1 : lvl3y.y ? 7 : lvl4y.x ? 4 : lvl4y.y ? 6 : lvl6y.x ? 2 : lvl6y.y ? 8 : 0;
-	crn.z = (lvl1z && Eo.z || lvl3z.x && Eo.w || lvl4z.x && Fo.z || lvl6z.x && Do.w) ? 7 : (lvl1z || lvl3z.y && !Eo.y || lvl4z.y && !Ho.z || lvl6z.y && !Bo.y) ? 3 : lvl3z.x ? 1 : lvl3z.y ? 5 : lvl4z.x ? 4 : lvl4z.y ? 8 : lvl6z.x ? 2 : lvl6z.y ? 6 : 0;
-	crn.w = (lvl1w && Eo.w || lvl3w.x && Eo.z || lvl4w.x && Do.w || lvl6w.x && Fo.z) ? 7 : (lvl1w || lvl3w.y && !Eo.x || lvl4w.y && !Ho.w || lvl6w.y && !Bo.x) ? 1 : lvl3w.x ? 3 : lvl3w.y ? 5 : lvl4w.x ? 2 : lvl4w.y ? 8 : lvl6w.x ? 4 : lvl6w.y ? 6 : 0;
+	crn.x = (Ec.x && Eo.x || lvl3x.x && Eo.y || lvl4x.x && Do.x || lvl6x.x && Fo.y) ? 5 : (Ec.x || lvl3x.y && !Eo.w || lvl4x.y && !Bo.x || lvl6x.y && !Ho.w) ? 1 : lvl3x.x ? 3 : lvl3x.y ? 7 : lvl4x.x ? 2 : lvl4x.y ? 6 : lvl6x.x ? 4 : lvl6x.y ? 8 : 0;
+	crn.y = (Ec.y && Eo.y || lvl3y.x && Eo.x || lvl4y.x && Fo.y || lvl6y.x && Do.x) ? 5 : (Ec.y || lvl3y.y && !Eo.z || lvl4y.y && !Bo.y || lvl6y.y && !Ho.z) ? 3 : lvl3y.x ? 1 : lvl3y.y ? 7 : lvl4y.x ? 4 : lvl4y.y ? 6 : lvl6y.x ? 2 : lvl6y.y ? 8 : 0;
+	crn.z = (Ec.z && Eo.z || lvl3z.x && Eo.w || lvl4z.x && Fo.z || lvl6z.x && Do.w) ? 7 : (Ec.z || lvl3z.y && !Eo.y || lvl4z.y && !Ho.z || lvl6z.y && !Bo.y) ? 3 : lvl3z.x ? 1 : lvl3z.y ? 5 : lvl4z.x ? 4 : lvl4z.y ? 8 : lvl6z.x ? 2 : lvl6z.y ? 6 : 0;
+	crn.w = (Ec.w && Eo.w || lvl3w.x && Eo.z || lvl4w.x && Do.w || lvl6w.x && Fo.z) ? 7 : (Ec.w || lvl3w.y && !Eo.x || lvl4w.y && !Ho.w || lvl6w.y && !Bo.x) ? 1 : lvl3w.x ? 3 : lvl3w.y ? 5 : lvl4w.x ? 2 : lvl4w.y ? 8 : lvl6w.x ? 4 : lvl6w.y ? 6 : 0;
 
 	vec4 mid;
 	mid.x = (lvl2x.x &&  Eo.x || lvl2x.y &&  Eo.y || lvl5x.x &&  Do.x || lvl5x.y &&  Fo.y) ? 5 : lvl2x.x ? 1 : lvl2x.y ? 3 : lvl5x.x ? 2 : lvl5x.y ? 4 : (Ec.x && Dc.z && Ec.y && Fc.w) ? ( Eo.x ?  Eo.y ? 5 : 3 : 1) : 0;
