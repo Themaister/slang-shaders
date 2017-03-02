@@ -255,7 +255,7 @@ void main()
                     vec2 xy =  (bkwtrans(cd, sinangle, cosangle)/overscan/aspect+vec2(0.5));// * ORIG.video_size / ORIG.texture_size;
 
             #else
-                    vec2 xy = texCoord;
+                    vec2 xy = vTexCoord;
             #endif
                     vec2 cd2 = xy;
                     //cd2 *= ORIG.texture_size / ORIG.video_size;
