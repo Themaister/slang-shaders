@@ -10,6 +10,7 @@ layout(push_constant) uniform Push
 } params;
 
 #pragma parameter MAP "Tone Map Method" 0.0 0.0 6.0 1.0
+#define MAP params.MAP
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
