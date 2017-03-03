@@ -6,19 +6,27 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float MAP;
+	float MAP1;
+	float MAP2;
 	float COMPARE;
 	float SPLIT_LINE;
 } params;
 
-#pragma parameter MAP "Tone Map Method" 0.0 0.0 6.0 1.0
-#define MAP params.MAP
-
 #pragma parameter COMPARE "Splitscreen" 0.0 0.0 1.0 1.0
 #define COMPARE params.COMPARE
 
+#pragma parameter MAP1 "Tone Map Method Left" 0.0 0.0 7.0 1.0
+#define MAP1 params.MAP1
+
+#pragma parameter MAP2 "Tone Map Method Right" 0.0 0.0 7.0 1.0
+#define MAP2 params.MAP2
+
 #pragma parameter SPLIT_LINE "Split Location" 0.5 0.0 1.0 0.05
 #define SPLIT_LINE params.SPLIT_LINE
+
+// uncomment the following line to divide the screen into sections
+// using each tonemapping method
+// #define BANDED
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -117,7 +125,7 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+   vTexCoord = TexCoord * 1.0001;
 }
 
 #pragma stage fragment
@@ -129,13 +137,33 @@ void main()
 {
     vec3 color = texture(Source, vTexCoord.xy).rgb;
 	vec4 mapped;
-if (MAP == 0.0) mapped = vec4(linearToneMapping(color), 1.0);
-if (MAP == 1.0) mapped = vec4(simpleReinhardToneMapping(color), 1.0);
-if (MAP == 2.0) mapped = vec4(lumaBasedReinhardToneMapping(color), 1.0);
-if (MAP == 3.0) mapped = vec4(whitePreservingLumaBasedReinhardToneMapping(color), 1.0);
-if (MAP == 4.0) mapped = vec4(RomBinDaHouseToneMapping(color), 1.0);
-if (MAP == 5.0) mapped = vec4(filmicToneMapping(color), 1.0);
-if (MAP == 6.0) mapped = vec4(Uncharted2ToneMapping(color), 1.0);
-if (COMPARE > 0.5) mapped = (vTexCoord.x < SPLIT_LINE) ? vec4(color, 1.0) : mapped;
-		FragColor = mapped;
+	vec4 right;
+#ifdef BANDED
+	if (vTexCoord.x < 0.15) mapped = vec4(linearToneMapping(color), 1.0);
+	else if (vTexCoord.x > 0.15 && vTexCoord.x < 0.30) mapped = vec4(simpleReinhardToneMapping(color), 1.0);
+	else if (vTexCoord.x > 0.30 && vTexCoord.x < 0.45) mapped = vec4(lumaBasedReinhardToneMapping(color), 1.0);
+	else if (vTexCoord.x > 0.45 && vTexCoord.x < 0.60) mapped = vec4(whitePreservingLumaBasedReinhardToneMapping(color), 1.0);
+	else if (vTexCoord.x > 0.60 && vTexCoord.x < 0.75) mapped = vec4(RomBinDaHouseToneMapping(color), 1.0);
+	else if (vTexCoord.x > 0.75 && vTexCoord.x < 0.90) mapped = vec4(filmicToneMapping(color), 1.0);
+	else mapped = vec4(Uncharted2ToneMapping(color), 1.0);
+#else
+	if (MAP1 == 0.0) mapped = vec4(linearToneMapping(color), 1.0);
+	if (MAP1 == 1.0) mapped = vec4(simpleReinhardToneMapping(color), 1.0);
+	if (MAP1 == 2.0) mapped = vec4(lumaBasedReinhardToneMapping(color), 1.0);
+	if (MAP1 == 3.0) mapped = vec4(whitePreservingLumaBasedReinhardToneMapping(color), 1.0);
+	if (MAP1 == 4.0) mapped = vec4(RomBinDaHouseToneMapping(color), 1.0);
+	if (MAP1 == 5.0) mapped = vec4(filmicToneMapping(color), 1.0);
+	if (MAP1 == 6.0) mapped = vec4(Uncharted2ToneMapping(color), 1.0);
+	if (MAP1 == 7.0) mapped = vec4(color, 1.0);
+	if (MAP2 == 0.0) right = vec4(linearToneMapping(color), 1.0);
+	if (MAP2 == 1.0) right = vec4(simpleReinhardToneMapping(color), 1.0);
+	if (MAP2 == 2.0) right = vec4(lumaBasedReinhardToneMapping(color), 1.0);
+	if (MAP2 == 3.0) right = vec4(whitePreservingLumaBasedReinhardToneMapping(color), 1.0);
+	if (MAP2 == 4.0) right = vec4(RomBinDaHouseToneMapping(color), 1.0);
+	if (MAP2 == 5.0) right = vec4(filmicToneMapping(color), 1.0);
+	if (MAP2 == 6.0) right = vec4(Uncharted2ToneMapping(color), 1.0);
+	if (MAP2 == 7.0) right = vec4(color, 1.0);
+	if (COMPARE > 0.5) mapped = (vTexCoord.x < SPLIT_LINE) ? mapped : right;
+#endif
+	FragColor = mapped;
 }
