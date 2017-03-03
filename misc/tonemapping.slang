@@ -119,7 +119,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-    vec3 color = COMPAT_TEXTURE(Texture, TEX0.xy).rgb;
+    vec3 color = texture(Source, vTexCoord.xy).rgb;
 if (MAP == 0.0) FragColor = vec4(linearToneMapping(color), 1.0);
 if (MAP == 1.0) FragColor = vec4(simpleReinhardToneMapping(color), 1.0);
 if (MAP == 2.0) FragColor = vec4(lumaBasedReinhardToneMapping(color), 1.0);
