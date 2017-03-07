@@ -89,7 +89,7 @@ vec3 ToLinear(vec3 c)
 }
 vec3 ToSrgb(vec3 c)
 {
-    return pow(c, 1.0 / 2.2);
+    return pow(c, vec3(1.0 / 2.2));
 }
 #else
 float ToLinear1(float c)
@@ -134,10 +134,11 @@ vec3 ToSrgb(vec3 c)
 vec3 Fetch(vec2 pos,vec2 off){
   pos=(floor(pos*global.SourceSize.xy+off)+vec2(0.5,0.5))/global.SourceSize.xy;
 #ifdef SIMPLE_LINEAR_GAMMA
-  return ToLinear(param.brightBoost * pow(texture(Source,pos.xy).rgb, 2.2));
+  return ToLinear(param.brightBoost * pow(texture(Source,pos.xy).rgb, vec3(2.2)));
 #else
-  return ToLinear(param.brightBoost * texture(Source,pos.xy).rgb);}
+  return ToLinear(param.brightBoost * texture(Source,pos.xy).rgb);
 #endif
+}
   
 // Distance in emulated pixels to nearest texel.
 vec2 Dist(vec2 pos)
