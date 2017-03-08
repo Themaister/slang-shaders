@@ -14,9 +14,6 @@ layout(push_constant) uniform Push
 	float bloomAmount;
 	float hardBloomScan;
 	float shape;
-	float glowFactor;
-	float gamma;
-	float ntsc;
 } params;
 
 #pragma parameter hardScan "hardScan" -8.0 -20.0 0.0 1.0
@@ -24,16 +21,12 @@ layout(push_constant) uniform Push
 #pragma parameter warpY "warpY" 0.041 0.0 0.125 0.01
 #pragma parameter maskDark "maskDark" 0.5 0.0 2.0 0.1
 #pragma parameter maskLight "maskLight" 1.5 0.0 2.0 0.1
-#pragma parameter shadowMask "shadowMask" 1.0 0.0 4.0 1.0
+#pragma parameter shadowMask "shadowMask" 3.0 0.0 4.0 1.0
 #pragma parameter hardBloomScan "bloom-y soft" -2.0 -4.0 -1.0 0.1
 #pragma parameter bloomAmount "bloom amount" 0.15 0.0 1.0 0.05
 #pragma parameter shape "filter kernel shape" 2.0 0.0 10.0 0.05
-#pragma parameter glowFactor "Glow Strength" 0.15 0.0 1.0 0.01
-#pragma parameter gamma "Gamma Adjustment" 1.5 0.0 5.0 0.05
-#pragma parameter ntsc "NTSC Colors" 0.0 0.0 1.0 1.0
 
 #define DO_BLOOM
-#include "../../../misc/colorspace-tools.h"
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -76,7 +69,6 @@ layout(set = 0, binding = 6) uniform sampler2D horz5plus2;
 layout(set = 0, binding = 7) uniform sampler2D horz7minus1;
 layout(set = 0, binding = 8) uniform sampler2D horz7;
 layout(set = 0, binding = 9) uniform sampler2D horz7plus1;
-layout(set = 0, binding = 10) uniform sampler2D HALATION_BLUR;
 
 // Linear to sRGB.
 // Assuming using sRGB typed textures this should not be needed.
@@ -231,11 +223,6 @@ void main()
 
     if (params.shadowMask > 0.0)
         outColor.rgb *= Mask(vTexCoord.xy / params.OutputSize.zw * 1.000001);
-		
-	if (params.glowFactor > 0.0)
-		outColor = mix(outColor, texture(HALATION_BLUR, pos.xy).rgb, params.glowFactor);
-    if (params.ntsc > 0.0)
-    FragColor = vec4(NTSCtoSRGB(pow(ToSrgb(outColor.rgb), vec3(1.0 / params.gamma))), 1.0);
-    else
-    FragColor = vec4(pow(ToSrgb(outColor.rgb), vec3(1.0 / params.gamma)), 1.0);
+
+    FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
 }
