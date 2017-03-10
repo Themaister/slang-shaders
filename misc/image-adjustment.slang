@@ -30,6 +30,8 @@ layout(push_constant) uniform Push
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
+   float FLIP_HORZ;
+   float FLIP_VERT;
 } global;
 
 #pragma parameter target_gamma "Target Gamma" 2.2 0.1 5.0 0.1
@@ -53,6 +55,8 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #pragma parameter RMASK "Overscan Mask Right" 0.0 0.0 1.0 0.0025
 #pragma parameter GRAIN_STR "Film Grain" 0.0 0.0 72.0 6.0
 #pragma parameter SHARPEN "Sharpen" 0.0 0.0 1.0 0.05
+#pragma parameter FLIP_HORZ "Flip Horiz Axis" 0.0 0.0 1.0 1.0
+#pragma parameter FLIP_VERT "Flip Vert Axis" 0.0 0.0 1.0 1.0
 
 //   Image Adjustment
 //   Author: hunterk
@@ -86,7 +90,10 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
+   vec4 flip_pos = Position;
+   if (global.FLIP_HORZ > 0.5) flip_pos.x = 1.0 - flip_pos.x;
+   if (global.FLIP_VERT > 0.5) flip_pos.y = 1.0 - flip_pos.y;   
+   gl_Position = global.MVP * flip_pos;
    vec2 shift = vec2(0.5);
    vec2 overscan_coord = ((TexCoord - shift) / registers.ZOOM) * (1.0 - vec2(registers.overscan_percent_x / 100.0, registers.overscan_percent_y / 100.0)) + shift;
    vTexCoord = overscan_coord + vec2(registers.XPOS, registers.YPOS);
