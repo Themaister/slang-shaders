@@ -75,7 +75,7 @@ vec3 XYZtoSRGB(vec3 XYZ)
     return XYZ * m;
   }
   
-  vec3 RGBtoYUV(vec3 RGB)
+vec3 RGBtoYUV(vec3 RGB)
  {
      const mat3x3 m = mat3x3(
      0.2126, 0.7152, 0.0722,
@@ -85,7 +85,7 @@ vec3 XYZtoSRGB(vec3 XYZ)
      return RGB * m;
  }
  
- vec3 YUVtoRGB(vec3 YUV)
+vec3 YUVtoRGB(vec3 YUV)
  {
      const mat3x3 m = mat3x3(
      1.000, 0.000, 1.28033,
@@ -124,7 +124,7 @@ vec3 XYZtoYxy(vec3 XYZ)
       return Yxy;
   }
   
-  vec3 YxytoXYZ(vec3 Yxy)
+vec3 YxytoXYZ(vec3 Yxy)
   {
     vec3 XYZ;
     XYZ.g = Yxy.r;
@@ -134,7 +134,30 @@ vec3 XYZtoYxy(vec3 XYZ)
     return XYZ;
   }
   
-  // Converting pure hue to RGB
+// RGB <-> CMYK conversions require 4 channels
+vec4 RGBtoCMYK(vec3 RGB){
+	float Red     = RGB.r;
+	float Green   = RGB.g;
+	float Blue    = RGB.b;
+	float Black   = min(1.0 - Red, min(1.0 - Green, 1.0 - Blue));
+	float Cyan    =    (1.0 - Red   - Black) / (1.0 - Black);
+	float Magenta =    (1.0 - Green - Black) / (1.0 - Black);
+	float Yellow  =    (1.0 - Blue  - Black) / (1.0 - Black);
+	return vec4(Cyan, Magenta, Yellow, Black);
+}
+ 
+vec3 CMYKtoRGB(vec4 CMYK){
+	float Cyan    = CMYK.x;
+	float Magenta = CMYK.y;
+	float Yellow  = CMYK.z;
+	float Black   = CMYK.w;
+	float Red     = 1.0 - min(1.0, Cyan    * (1.0 - Black) + Black);
+	float Green   = 1.0 - min(1.0, Magenta * (1.0 - Black) + Black);
+	float Blue    = 1.0 - min(1.0, Yellow  * (1.0 - Black) + Black);
+	return vec3(Red, Green, Blue);
+}
+  
+// Converting pure hue to RGB
 vec3 HUEtoRGB(float H)
 {
     float R = abs(H * 6.0 - 3.0) - 1.0;
@@ -182,14 +205,14 @@ vec3 HSVtoRGB(vec3 c)
 }
 
 // conversion from NTSC RGB Reference White D65 ( color space used by NA/Japan TV's ) to XYZ
- vec3 NTSC(vec3 c)
+vec3 NTSC(vec3 c)
  {
      vec3 v = vec3(pow(c.r, 2.2), pow(c.g, 2.2), pow(c.b, 2.2)); //Inverse Companding
      return RGBtoXYZ(v);
  }
  
- // conversion from XYZ to sRGB Reference White D65 ( color space used by windows ) 
- vec3 sRGB(vec3 c)
+// conversion from XYZ to sRGB Reference White D65 ( color space used by windows ) 
+vec3 sRGB(vec3 c)
  {
      vec3 v = XYZtoSRGB(c);
      v = DecodeGamma(v, 2.4); //Companding
@@ -197,8 +220,8 @@ vec3 HSVtoRGB(vec3 c)
      return v;
  }
  
- // NTSC RGB to sRGB
- vec3 NTSCtoSRGB( vec3 c )
+// NTSC RGB to sRGB
+vec3 NTSCtoSRGB( vec3 c )
  { 
      return sRGB(NTSC( c )); 
  }
