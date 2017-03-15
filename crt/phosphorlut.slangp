@@ -32,10 +32,7 @@ srgb_framebuffer3 = true
 shader4 = shaders/phosphorlut/phosphorlut-pass1.slang
 filter_linear4 = true
 
-textures = "Phosphors"
-Phosphors = shaders/phosphorlut/luts/rgb-shadowmask.png
-//Phosphors = shaders/phosphorlut/luts/cmy-shadowmask.png
-//Phosphors = shaders/phosphorlut/luts/rgb-aperture-grille.png
-//Phosphors = shaders/phosphorlut/luts/cmy-aperture-grille.png
-//Phosphors = shaders/phosphorlut/luts/rgb-slotmask.png
-//Phosphors = shaders/phosphorlut/luts/cmy-slotmask.png
+textures = "shadow;aperture;slot"
+shadow = shaders/phosphorlut/luts/shadowmask.png
+aperture = shaders/phosphorlut/luts/aperture-grille.png
+slot = shaders/phosphorlut/luts/slotmask.png
