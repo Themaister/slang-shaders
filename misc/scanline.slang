@@ -12,7 +12,7 @@ layout(push_constant) uniform Push
 } params;
 
 #pragma parameter SCANLINE_BASE_BRIGHTNESS "Scanline Base Brightness" 0.95 0.0 1.0 0.01
-#pragma parameter SCANLINE_SINE_COMP_A "Scanline Sine Comp A" 0.05 0.0 0.10 0.01
+#pragma parameter SCANLINE_SINE_COMP_A "Scanline Sine Comp A" 0.0 0.0 0.10 0.01
 #pragma parameter SCANLINE_SINE_COMP_B "Scanline Sine Comp B" 0.15 0.0 1.0 0.05
 
 #define SCANLINE_BASE_BRIGHTNESS params.SCANLINE_BASE_BRIGHTNESS
