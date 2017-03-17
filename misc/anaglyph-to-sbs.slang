@@ -71,19 +71,7 @@ void main()
 {
 	vec2 coord1 = (params.warp_enable > 0.5) ? Warp((vTexCoord.xy - vec2(params.eye_sep, params.y_loc))) : (vTexCoord.xy - vec2(params.eye_sep, params.y_loc));
 	vec2 coord2 = (params.warp_enable > 0.5) ? Warp((vTexCoord.xy + vec2(params.eye_sep, -params.y_loc))) : (vTexCoord.xy + vec2(params.eye_sep, -params.y_loc));
-#if __VERSION__ < 130
-	vec2 fragCoord1 = coord1;
-	vec2 fragCoord2 = coord2;
 
-//ghetto imitation of CLAMP_TO_BORDER
-	vec4 frame1 = vec4(0.0);
-if ( fragCoord1.x < 1.0 && fragCoord1.x > 0.0 && fragCoord1.y < 1.0 && fragCoord1.y > 0.0 )
-	frame1 = texture(Source, coord1);
-
-	vec4 frame2 = vec4(0.0);
-if ( fragCoord2.x < 1.0 && fragCoord2.x > 0.0 && fragCoord2.y < 1.0 && fragCoord2.y > 0.0 )
-	frame2 = texture(Source, coord2);
-#else
 	vec4 frame1;
 	vec4 frame2;
 if (params.eye_swap < 0.5){
@@ -92,7 +80,6 @@ if (params.eye_swap < 0.5){
 else {
 	frame1 = texture(Source, coord2);
 	frame2 = texture(Source, coord1);}
-#endif
 
 if (params.anaglyph_selector == 0.0){ //red/blue and red/cyan
 	frame1.rgb = vec3(frame1.r);
