@@ -227,8 +227,7 @@ layout(location = 7) in vec4 xyp_21_22_23;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-void main()
-{
+vec4 Sharp(sampler2D tex, vec2 tc, vec4 xyp_1_2_3, vec4 xyp_5_10_15, vec4 xyp_6_7_8, vec4 xyp_9_14_9, vec4 xyp_11_12_13, vec4 xyp_16_17_18, vec4 xyp_21_22_23){
 /*
 Mask for algorhithm
 +-----+-----+-----+-----+-----+
@@ -353,9 +352,10 @@ color
 	res2 = mix(res2, mix(P7, P13, px.y), mac.y);
 	res2 = mix(res2, mix(P13, P17, px.x), mac.x);
 	
-	vec4 Sharp = vec4(mix(res1, res2, step(c_df(P12, res1), c_df(P12, res2))), 1.0);
-	
+	return vec4(mix(res1, res2, step(c_df(P12, res1), c_df(P12, res2))), 1.0);
+}
 
+vec4 Smooth(sampler2D tex, vec2 tc){
 // single-pass gaussian blur from mrharicot https://www.shadertoy.com/view/XdfGDH
 		//declare stuff
 		const int mSize = 7;
@@ -387,9 +387,14 @@ color
 			}
 		}
 				
-		vec4 Smooth = vec4(final_colour/(Z*Z), 1.0);
-	
+		return vec4(final_colour/(Z*Z), 1.0);
+}
+
+void main()
+{
 	float test = IsEdge(Source, tc);
-	vec4 hybrid = mix(Smooth, Sharp, test);
+	vec4 hybrid = vec4(0.0);
+	hybrid = (test < 0.5) ? Smooth(Source, tc) : Sharp(Source, tc, xyp_1_2_3, xyp_5_10_15, xyp_6_7_8, xyp_9_14_9, xyp_11_12_13, xyp_16_17_18, xyp_21_22_23);
+//	vec4 hybrid = mix(Smooth, Sharp, test);
    FragColor = hybrid;
 }
