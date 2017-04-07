@@ -122,7 +122,7 @@ layout(location = 4) out vec4 t4;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+   vTexCoord = TexCoord * 1.0001;
    
    float dx = params.SourceSize.z;
    float dy = params.SourceSize.w;
