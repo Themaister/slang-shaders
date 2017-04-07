@@ -131,7 +131,9 @@ void main()
 {
 	//Skip pixels on wrong grid
 	vec2 dir = fract(vTexCoord*params.SourceSize.xy/XBR_RES) - vec2(0.5,0.5);
- 	if ((dir.x*dir.y)>0.0) FragColor = texture(Source, vTexCoord);
+ 	if ((dir.x*dir.y)>0.0){
+	FragColor = texture(Source, vTexCoord);
+	}else{
 	
 	vec2 tex = (floor(vTexCoord*params.SourceSize.xy/XBR_RES) + vec2(0.5, 0.5))*XBR_RES/params.SourceSize.xy;
 
@@ -244,4 +246,5 @@ void main()
 	color = block_3d ? color : E;
 
 	FragColor = vec4(color, 1.0);
+	}
 }
