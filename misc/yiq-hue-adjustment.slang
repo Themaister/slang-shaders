@@ -1,8 +1,8 @@
 #version 450
 
 /* 
-     YIQ Hue Adjustment Shader
-     Ported from https://github.com/AnalyticalGraphicsInc/cesium/blob/master/Source/Shaders/Builtin/Functions/hue.glsl
+	YIQ Hue Adjustment Shader
+	Ported from https://github.com/AnalyticalGraphicsInc/cesium/blob/master/Source/Shaders/Builtin/Functions/hue.glsl
 */
 
 layout(push_constant) uniform Push
@@ -11,7 +11,7 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-     float hue_degrees;
+	float hue_degrees;
 } params;
 
 layout(std140, set = 0, binding = 0) uniform UBO
