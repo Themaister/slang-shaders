@@ -19,24 +19,24 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 layout(push_constant) uniform Push
 {
-   float saturation;
-   float hue_tweak;
-   float contrast;
-   float brightness;
-   float gamma;
+   float nes_saturation;
+   float nes_hue_tweak;
+   float nes_contrast;
+   float nes_brightness;
+   float nes_gamma;
 } params;
 
-#pragma parameter saturation "Saturation" 1.0 0.0 5.0 0.05
-#pragma parameter hue_tweak "Hue" 0.0 -10.0 10.0 0.05
-#pragma parameter contrast "Contrast" 1.0 0.0 2.0 0.05
-#pragma parameter brightness "Brightness" 1.0 0.0 2.0 0.05
-#pragma parameter gamma "Gamma" 1.8 1.0 2.5 0.05
+#pragma parameter nes_saturation "Saturation" 1.0 0.0 5.0 0.05
+#pragma parameter nes_hue_tweak "Hue" 0.0 -10.0 10.0 0.05
+#pragma parameter nes_contrast "Contrast" 1.0 0.0 2.0 0.05
+#pragma parameter nes_brightness "Brightness" 1.0 0.0 2.0 0.05
+#pragma parameter nes_gamma "Gamma" 1.8 1.0 2.5 0.05
 
-#define saturation params.saturation
-#define hue_tweak params.hue_tweak
-#define contrast params.contrast
-#define brightness params.brightness
-#define gamma params.gamma
+#define saturation params.nes_saturation
+#define hue_tweak params.nes_hue_tweak
+#define contrast params.nes_contrast
+#define brightness params.nes_brightness
+#define gamma params.nes_gamma
 
 bool wave (int p, int color)
 {
