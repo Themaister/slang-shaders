@@ -20,20 +20,20 @@ layout(std140, set = 0, binding = 0) uniform UBO
 layout(push_constant) uniform Push
 {
    float nes_saturation;
-   float nes_hue_tweak;
+   float nes_hue;
    float nes_contrast;
    float nes_brightness;
    float nes_gamma;
 } params;
 
 #pragma parameter nes_saturation "Saturation" 1.0 0.0 5.0 0.05
-#pragma parameter nes_hue_tweak "Hue" 0.0 -10.0 10.0 0.05
+#pragma parameter nes_hue "Hue" 0.0 -360.0 360.0 1.0
 #pragma parameter nes_contrast "Contrast" 1.0 0.0 2.0 0.05
 #pragma parameter nes_brightness "Brightness" 1.0 0.0 2.0 0.05
 #pragma parameter nes_gamma "Gamma" 1.8 1.0 2.5 0.05
 
 #define saturation params.nes_saturation
-#define hue_tweak params.nes_hue_tweak
+#define hue params.nes_hue
 #define contrast params.nes_contrast
 #define brightness params.nes_brightness
 #define gamma params.nes_gamma
@@ -89,6 +89,8 @@ vec3 MakeRGBColor(int emphasis, int level, int color)
       // Apply contrast/brightness
       v = (v - 0.5) * contrast + 0.5;
       v *= (brightness / 12.0);
+
+      float hue_tweak = hue * 12.0 / 360.0;
 
       y += v;
       i += v * cos((3.141592653 / 6.0) * (p + hue_tweak) );
