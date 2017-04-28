@@ -100,11 +100,11 @@ void main()
 	half2 scanuv = vec2(fract(vTexCoord * 1.0001 * params.SourceSize.xy / params.NTSCArtifactScale));
 	half4 NTSCArtifact1 = tex2D(NTSCArtifactSampler, scanuv);
 	half4 NTSCArtifact2 = tex2D(NTSCArtifactSampler, scanuv + vec2(0.0, 1.0 / params.SourceSize.y));
-	half4 NTSCArtifact = lerp(NTSCArtifact1, NTSCArtifact2, 1.0 - params.NTSCLerp);
+	float lerpfactor = (params.animate_artifacts > 0.5) ? mod(params.FrameCount, 2.0) : params.NTSCLerp;
+	half4 NTSCArtifact = lerp(NTSCArtifact1, NTSCArtifact2, 1.0 - lerpfactor);
 	
-	float artifacting = (params.animate_artifacts > 0.5) ? mod(params.FrameCount, 2.0) : 1.0;
-	half2 LeftUV = vTexCoord - vec2(artifacting / params.SourceSize.x, 0.0);//RcpScrWidth;
-	half2 RightUV = vTexCoord + vec2(artifacting / params.SourceSize.x, 0.0);//RcpScrWidth;
+	half2 LeftUV = vTexCoord - vec2(1.0 / params.SourceSize.x, 0.0);//RcpScrWidth;
+	half2 RightUV = vTexCoord + vec2(1.0 / params.SourceSize.x, 0.0);//RcpScrWidth;
 	
 	half4 Cur_Left = tex2D(curFrameSampler, LeftUV);
 	half4 Cur_Local = tex2D(curFrameSampler, vTexCoord);

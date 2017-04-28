@@ -101,10 +101,10 @@ void main()
 	
 	half4 emissive = SampleCRT(shadowMaskSampler, Source, vTexCoord);
 	
-	colorspec += (emissive * blend * Tuning_ReflScalar);
+	colorspec += (emissive * blend * params.Tuning_ReflScalar);
 	
 	half fres = 1.0 - dot(camDir, norm);
-	fres = (fres*fres) * Tuning_Fres_Brightness;
+	fres = (fres*fres) * params.Tuning_Fres_Brightness;
 	half4 colorfres = half4(0.15, 0.15, 0.15, 1.) * fres;
 	
 	half4 nearfinal = (colorfres + colordiff + colorspec);
