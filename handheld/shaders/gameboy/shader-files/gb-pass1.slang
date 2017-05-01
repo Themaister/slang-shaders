@@ -97,7 +97,10 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 // Fragment definitions                                                       //
 ////////////////////////////////////////////////////////////////////////////////
 
-//#define blending_modifier(color) clamp((color.a == 0) + registers.blending_mode, 0.0, 1.0)
+float blending_modifier(float color){
+	float blend_bool = (color == 0.0) ? 1 : 0;
+	return clamp(blend_bool + registers.blending_mode, 0.0, 1.0);
+}
 
 void main()
 {
@@ -127,9 +130,7 @@ void main()
         (out_color.a - adjacent_texel_2.a) + 
         (out_color.a - adjacent_texel_3.a) + 
         (out_color.a - adjacent_texel_4.a) 
-    ) * registers.adjacent_texel_alpha_blending;
-    
-    out_color.a *= clamp((0.0) + registers.blending_mode, 0.0, 1.0);
+    ) * registers.adjacent_texel_alpha_blending * blending_modifier(out_color.a);
 
     FragColor = out_color;
 }
