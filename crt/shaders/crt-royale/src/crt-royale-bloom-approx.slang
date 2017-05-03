@@ -269,9 +269,9 @@ void main()
 	
 	if(beam_misconvergence == true)
     {
-        const vec2 convergence_offsets_r = get_convergence_offsets_r_vector();
-        const vec2 convergence_offsets_g = get_convergence_offsets_g_vector();
-        const vec2 convergence_offsets_b = get_convergence_offsets_b_vector();
+        const vec2 convergence_offsets_r = vec2(params.convergence_offset_x_r, params.convergence_offset_y_r);//get_convergence_offsets_r_vector();
+        const vec2 convergence_offsets_g = vec2(params.convergence_offset_x_g, params.convergence_offset_y_g);//get_convergence_offsets_g_vector();
+        const vec2 convergence_offsets_b = vec2(params.convergence_offset_x_b, params.convergence_offset_y_b);//get_convergence_offsets_b_vector();
         tex_uv_r = tex_uv - vec2(params.convergence_offset_x_r, params.convergence_offset_y_r) * uv_scanline_step;
         tex_uv_g = tex_uv - vec2(params.convergence_offset_x_g, params.convergence_offset_y_g) * uv_scanline_step;
         tex_uv_b = tex_uv - vec2(params.convergence_offset_x_b, params.convergence_offset_y_b) * uv_scanline_step;
@@ -350,5 +350,5 @@ void main()
         color = vec3(color_r.r, color_g.g, color_b.b);
     }
     //  Encode and output the blurred image:
-   FragColor = vec4(color, 1.0);
+   FragColor = vec4(color, 1.0);//vec4(texture(ORIG_LINEARIZED, tex_uv));//
 }

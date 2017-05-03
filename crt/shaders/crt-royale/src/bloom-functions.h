@@ -246,9 +246,9 @@ float get_bloom_approx_sigma(const float output_size_x_runtime,
     const float mask_num_triads_static =
         max(min_allowed_viewport_triads.x, mask_num_triads_desired_static);
     const float mask_num_triads_from_size =
-        estimated_viewport_size_x/mask_triad_size_desired;
+        estimated_viewport_size_x/params.mask_triad_size_desired;
     const float mask_num_triads_runtime = max(min_allowed_viewport_triads.x,
-        mix(mask_num_triads_from_size, mask_num_triads_desired,
+        mix(mask_num_triads_from_size, params.mask_num_triads_desired,
             mask_specify_num_triads));
     //  Assume an extremely large viewport size for asymptotic results:
      const float max_viewport_size_x = 1080.0*1024.0*(4.0/3.0);
@@ -303,7 +303,7 @@ float get_final_bloom_sigma(const float bloom_sigma_runtime)
     //  Notes:      Call this from the fragment shader, NOT the vertex shader,
     //              so static sigmas can be constant-folded!
     const float bloom_sigma_optimistic = get_min_sigma_to_blur_triad(
-        mask_triad_size_desired_static, bloom_diff_thresh);
+        params.mask_triad_size_desired, bloom_diff_thresh);
     #ifdef RUNTIME_PHOSPHOR_BLOOM_SIGMA
         return bloom_sigma_runtime;
     #else

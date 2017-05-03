@@ -31,7 +31,7 @@ layout(push_constant) uniform Push
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "../user-settings.h"
+//#include "../user-settings.h"
 #include "derived-settings-and-constants.h"
 #include "bind-shader-params.h"
 #include "scanline-functions.h"
@@ -164,7 +164,7 @@ void main()
     if(beam_misconvergence == true)
     {
         const vec3 convergence_offsets_vert_rgb =
-            get_convergence_offsets_y_vector();
+            vec3(params.convergence_offset_y_r, params.convergence_offset_y_g, params.convergence_offset_y_b);//get_convergence_offsets_y_vector();
         dist2 = vec3(dist) - convergence_offsets_vert_rgb;
     }
 	//  Calculate {sigma, shape}_range outside of scanline_contrib so it's only

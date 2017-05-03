@@ -39,7 +39,7 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
 
 //  Bind option names to shader parameter uniforms or static constants.
 #ifdef PARAMETER_UNIFORM
-    uniform float crt_gamma;
+/*    uniform float crt_gamma;
     uniform float lcd_gamma;
     uniform float levels_contrast;
     uniform float halation_weight;
@@ -97,7 +97,7 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
     uniform float border_darkness;
     uniform float border_compress;
     uniform float interlace_bff;
-    uniform float interlace_1080i;
+    uniform float interlace_1080i; */
 #else
     //  Use constants from user-settings.h, and limit ranges appropriately:
     const float crt_gamma = max(0.0, crt_gamma_static);
@@ -126,7 +126,7 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
     const float mask_type = clamp(mask_type_static, 0.0, 2.0);
     const float mask_sample_mode_desired = clamp(mask_sample_mode_static, 0.0, 2.0);
     const float mask_specify_num_triads = clamp(mask_specify_num_triads_static, 0.0, 1.0);
-    const float mask_triad_size_desired = clamp(mask_triad_size_desired_static, 1.0, 18.0);
+ //   const float mask_triad_size_desired = clamp(mask_triad_size_desired_static, 1.0, 18.0);
     const float mask_num_triads_desired = clamp(mask_num_triads_desired_static, 342.0, 1920.0);
     const float aa_subpixel_r_offset_x_runtime = clamp(aa_subpixel_r_offset_static.x, -0.5, 0.5);
     const float aa_subpixel_r_offset_y_runtime = clamp(aa_subpixel_r_offset_static.y, -0.5, 0.5);

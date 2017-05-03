@@ -74,7 +74,7 @@
 //  Enable runtime shader parameters in the Retroarch (etc.) GUI?  They override
 //  many of the options in this file and allow real-time tuning, but many of
 //  them are slower.  Disabling them and using this text file will boost FPS.
-//#define RUNTIME_SHADER_PARAMS_ENABLE
+#define RUNTIME_SHADER_PARAMS_ENABLE
 //  Specify the phosphor bloom sigma at runtime?  This option is 10% slower, but
 //  it's the only way to do a wide-enough full bloom with a runtime dot pitch.
 #define RUNTIME_PHOSPHOR_BLOOM_SIGMA
@@ -172,7 +172,7 @@
     //      4 scanlines, max_beam_sigma = 0.5723; distortions begin ~0.70; 134.7 FPS pure; 117.2 FPS generalized
     //      5 scanlines, max_beam_sigma = 0.7591; distortions begin ~0.89; 131.6 FPS pure; 112.1 FPS generalized
     //      6 scanlines, max_beam_sigma = 0.9483; distortions begin ~1.08; 127.9 FPS pure; 105.6 FPS generalized
-//    const float beam_num_scanlines = 3.0;                //  range [2, 6]
+    const float beam_num_scanlines = 3.0;                //  range [2, 6]
     //  A generalized Gaussian beam varies shape with color too, now just width.
     //  It's slower but more flexible (static option only for now).
     bool beam_generalized_gaussian = true;
@@ -218,9 +218,9 @@
     bool beam_misconvergence = true;
     //  Convergence offsets in x/y directions for R/G/B scanline beams in units
     //  of scanlines.  Positive offsets go right/down; ranges [-2, 2]
-    const vec2 convergence_offsets_r_static = vec2(0.1, 0.2);
-    const vec2 convergence_offsets_g_static = vec2(0.3, 0.4);
-    const vec2 convergence_offsets_b_static = vec2(0.5, 0.6);
+    const vec2 convergence_offsets_r_static = vec2(0.0, 0.0);
+    const vec2 convergence_offsets_g_static = vec2(0.0, 0.0);
+    const vec2 convergence_offsets_b_static = vec2(0.0, 0.0);
     //  Detect interlacing (static option only for now)?
     bool interlace_detect = true;
     //  Assume 1080-line sources are interlaced?
@@ -280,7 +280,7 @@
     //  To increase the size limit, double the viewport-relative scales for the
     //  two MASK_RESIZE passes in crt-royale.cgp and user-cgp-contants.h.
     //      range [1, mask_texture_small_size/mask_triads_per_tile]
-    const float mask_triad_size_desired_static = 24.0 / 8.0;
+//    const float mask_triad_size_desired_static = 24.0 / 8.0;
     //  If mask_specify_num_triads is 1.0/true, we'll go by this instead (the
     //  final size will be rounded and constrained as above); default 480.0
     const float mask_num_triads_desired_static = 480.0;

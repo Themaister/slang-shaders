@@ -12,7 +12,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
     float interlace_bff;
 } params;
 
-#pragma parameter interlace_bff "interlace_bff" 0.0 0.0 1.0 1.0
+#pragma parameter interlace_bff "interlace_bff" 1.0 0.0 1.0 1.0
 
 /////////////////////////////  GPL LICENSE NOTICE  /////////////////////////////
 
@@ -94,9 +94,7 @@ if(interlace_detect == true)
             Source, tex_uv + v_step).rgb;
         const vec3 interpolated_line = 0.5 * (last_line + next_line);
         //  If we're interlacing, determine which field curr_line is in:
-		float interlace_check = 0.0;
-		if (interlaced == true) interlace_check = 1.0;
-        const float modulus = interlace_check + 1.0;
+        const float modulus = float(interlaced) + 1.0;
         const float field_offset =
             mod(registers.FrameCount + float(params.interlace_bff), modulus);
         const float curr_line_texel = tex_uv.y * registers.SourceSize.y;
