@@ -156,7 +156,7 @@ vec3 get_scanline_color(const sampler2D tex, const vec2 scanline_uv,
     const vec3 color2 = texture(tex, scanline_uv + uv_step_x).rgb;
     vec3 color0 = vec3(0.0);
     vec3 color3 = vec3(0.0);
-    if(beam_horiz_filter > 0.5)
+    if(params.beam_horiz_filter > 0.5)
     {
         color0 = texture(tex, scanline_uv - uv_step_x).rgb;
         color3 = texture(tex, scanline_uv + 2.0 * uv_step_x).rgb;
@@ -183,14 +183,14 @@ vec3 sample_single_scanline_horizontal(const sampler2D texture,
         1.0 - prev_dist, 2.0 - prev_dist);
     //  Get Quilez, Lanczos2, or Gaussian resize weights for 2/4 nearby texels:
     vec4 weights;
-    if(beam_horiz_filter < 0.5)
+    if(params.beam_horiz_filter < 0.5)
     {
         //  Quilez:
         const float x = sample_dists.y;
         const float w2 = x*x*x*(x*(x*6.0 - 15.0) + 10.0);
         weights = vec4(0.0, 1.0 - w2, w2, 0.0);
     }
-    else if(beam_horiz_filter < 1.5)
+    else if(params.beam_horiz_filter < 1.5)
     {
         //  Gaussian:
         float inner_denom_inv = 1.0/(2.0*beam_horiz_sigma*beam_horiz_sigma);

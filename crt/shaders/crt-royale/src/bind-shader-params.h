@@ -113,7 +113,7 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
     const float beam_min_shape = max(2.0, beam_min_shape_static);
     const float beam_max_shape = max(beam_min_shape, beam_max_shape_static);
     const float beam_shape_power = max(0.0, beam_shape_power_static);
-    const float beam_horiz_filter = clamp(beam_horiz_filter_static, 0.0, 2.0);
+//    const float beam_horiz_filter = clamp(beam_horiz_filter_static, 0.0, 2.0);
     const float beam_horiz_sigma = max(FIX_ZERO(0.0), beam_horiz_sigma_static);
     const float beam_horiz_linear_rgb_weight = clamp(beam_horiz_linear_rgb_weight_static, 0.0, 1.0);
     //  Unpack vector elements to match scalar uniforms:

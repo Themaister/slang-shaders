@@ -108,7 +108,7 @@ void main()
     //  easier tiled sampling later.
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         //  Discard unneeded fragments in case our profile allows real branches.
-        const vec2 tile_uv_wrap = tile_uv_wrap;
+//        const vec2 tile_uv_wrap = tile_uv_wrap;
         if(params.mask_sample_mode_desired < 0.5 &&
             max(tile_uv_wrap.x, tile_uv_wrap.y) <= mask_resize_num_tiles)
         {

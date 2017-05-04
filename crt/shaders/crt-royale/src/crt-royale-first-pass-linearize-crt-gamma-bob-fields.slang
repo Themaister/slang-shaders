@@ -10,9 +10,11 @@ layout(std140, set = 0, binding = 0) uniform UBO
 {
 	mat4 MVP;
     float interlace_bff;
+	float beam_horiz_filter;
 } params;
 
 #pragma parameter interlace_bff "interlace_bff" 1.0 0.0 1.0 1.0
+#pragma parameter beam_horiz_filter "beam_horiz_filter" 0.0 0.0 2.0 1.0
 
 /////////////////////////////  GPL LICENSE NOTICE  /////////////////////////////
 
