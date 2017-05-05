@@ -19,9 +19,6 @@
 // This is where we apply effects "inside the screen," including spatial and temporal bleeding,
 // an unsharp mask to simulate overshoot/undershoot, NTSC artifacts, and so on.
 
-#define RcpScrWidth vec2(params.SourceSize.x, 0.0)
-#define RcpScrHeight vec2(0.0, params.SourceSize.w)
-
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
@@ -46,7 +43,7 @@ layout(push_constant) uniform Push
 #pragma parameter Tuning_Bleed "Composite Bleed" 0.5 0.0 1.0 0.05
 #pragma parameter Tuning_Artifacts "Composite Artifacts" 0.5 0.0 1.0 0.05
 #pragma parameter NTSCLerp "NTSC Artifacts" 1.0 0.0 1.0 1.0
-#pragma parameter NTSCArtifactScale "NTSC Artifact Scale" 200.0 0.0 1000.0 5.0
+#pragma parameter NTSCArtifactScale "NTSC Artifact Scale" 255.0 0.0 1000.0 5.0
 #pragma parameter animate_artifacts "Animate NTSC Artifacts" 1.0 0.0 1.0 1.0
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -103,8 +100,8 @@ void main()
 	float lerpfactor = (params.animate_artifacts > 0.5) ? mod(params.FrameCount, 2.0) : params.NTSCLerp;
 	half4 NTSCArtifact = lerp(NTSCArtifact1, NTSCArtifact2, 1.0 - lerpfactor);
 	
-	half2 LeftUV = vTexCoord - vec2(1.0 / params.SourceSize.x, 0.0);//RcpScrWidth;
-	half2 RightUV = vTexCoord + vec2(1.0 / params.SourceSize.x, 0.0);//RcpScrWidth;
+	half2 LeftUV = vTexCoord - vec2(1.0 / params.SourceSize.x, 0.0);
+	half2 RightUV = vTexCoord + vec2(1.0 / params.SourceSize.x, 0.0);
 	
 	half4 Cur_Left = tex2D(curFrameSampler, LeftUV);
 	half4 Cur_Local = tex2D(curFrameSampler, vTexCoord);
