@@ -75,7 +75,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define width  (params.SourceSize.x)
 #define height (params.SourceSize.y)
 
-#define px (0.4999 * (params.SourceSize.z))
+#define px (1.0 * (params.SourceSize.z))
 #define py (0.4999 * (params.SourceSize.w))
 
 #define offset NEDI_OFFSET2
