@@ -50,10 +50,7 @@ parameters = "diffusion;PHOSPHOR_SCALE_X"
 diffusion = 0.6
 PHOSPHOR_SCALE_X = 4.0
 
-textures = "Phosphors"
-Phosphors = ../crt/shaders/phosphorlut/luts/rgb-shadowmask.png
-//Phosphors = ../crt/shaders/phosphorlut/luts/cmy-shadowmask.png
-//Phosphors = ../crt/shaders/phosphorlut/luts/rgb-aperture-grille.png
-//Phosphors = ../crt/shaders/phosphorlut/luts/cmy-aperture-grille.png
-//Phosphors = ../crt/shaders/phosphorlut/luts/rgb-slotmask.png
-//Phosphors = ../crt/shaders/phosphorlut/luts/cmy-slotmask.png
+textures = "shadow;aperture;slot"
+shadow = ../crt/shaders/phosphorlut/luts/shadowmask.png
+aperture = ../crt/shaders/phosphorlut/luts/aperture-grille.png
+slot = ../crt/shaders/phosphorlut/luts/slotmask.png
