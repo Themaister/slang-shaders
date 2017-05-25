@@ -1,5 +1,12 @@
 #version 450
 
+/*
+Adapted for RetroArch from Flyguy's "Apple II-Like Artifact Colors" from shadertoy:
+https://www.shadertoy.com/view/llyGzR
+
+"Colors created through NTSC artifacting on 4-bit patterns, similar to the Apple II's lo-res mode."
+*/ 
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
