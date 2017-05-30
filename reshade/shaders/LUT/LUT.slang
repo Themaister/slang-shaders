@@ -6,11 +6,10 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float opacity;
+	float LUT_Size;
 } params;
 
-#pragma parameter opacity "Scanlines dark" 50.0 0.0 100.0 1.0
-#define opacity params.opacity
+#pragma parameter LUT_Size "LUT Size" 16.0 16.0 64.0 1.0
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -32,14 +31,14 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 3) uniform sampler2D SamplerLUT;
 
 void main()
 {
-   vec4 frame = texture(Source, vTexCoord);
-   vec2 fragpos   = floor(vTexCoord.xy*params.OutputSize.xy);
-   vec4 background;
-   if (mod(fragpos.y,2.0) == 0.0) background = vec4(0.0, 0.0, 0.0, 1.0); else background = vec4(1.0, 1.0, 1.0, 0.0);
-   if (params.OutputSize.y > 1600) { if (mod(fragpos.y,4.0) < 2.0) background = vec4(0.0, 0.0, 0.0, 1.0); else background = vec4(1.0, 1.0, 1.0, 0.0);} 
-   background.a *= opacity / 100.0;
-   FragColor = mix(frame, background, background.a);
+	vec4 imgColor = texture(Source, vTexCoord.xy);
+    float red = ( imgColor.r * (params.LUT_Size - 1.0) + 0.5 ) / (params.LUT_Size * params.LUT_Size);
+    float green = ( imgColor.g * (params.LUT_Size - 1.0) + 0.5 ) / params.LUT_Size;
+    float blue = floor( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size;
+    vec4 color = texture( SamplerLUT, vec2( blue + red, green ));
+   FragColor = color;
 }
