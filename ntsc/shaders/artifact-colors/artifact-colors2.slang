@@ -22,7 +22,7 @@ layout(push_constant) uniform Push
 } params;
 
 #pragma parameter FIR_SIZE "FIR Size" 29.0 1.0 50.0 1.0
-#pragma parameter F_COL "F Col" 0.25 0.25 1.5 0.25
+#pragma parameter F_COL "F Col" 0.25 0.25 0.5 0.25
 #pragma parameter SATURATION "Saturation" 30.0 0.0 100.0 1.0
 #pragma parameter BRIGHTNESS "Brightness" 1.0 0.0 2.0 0.01
 #pragma parameter F_LUMA_LP "F Luma LP" 0.16667 0.0001 0.333333 0.02

@@ -17,8 +17,4 @@ scale2 = 1.0
 scale_type2 = source
 filter_linear2 = false
 
-shader3 = ../crt/shaders/crt-geom.slang
-
-parameters = "F_COL;FIR_SIZE"
-F_COL = 0.25
-FIR_SIZE = 29.00
+shader3 = ../crt/shaders/crt-lottes.slang

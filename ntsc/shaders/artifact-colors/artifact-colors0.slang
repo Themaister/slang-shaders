@@ -16,7 +16,7 @@ layout(push_constant) uniform Push
 	float F_COL;
 } params;
 
-#pragma parameter F_COL "F Col" 0.25 0.25 1.5 0.25
+#pragma parameter F_COL "F Col" 0.25 0.25 0.5 0.25
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
