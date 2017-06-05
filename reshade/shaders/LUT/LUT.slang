@@ -35,10 +35,13 @@ layout(set = 0, binding = 3) uniform sampler2D SamplerLUT;
 
 void main()
 {
-	vec4 imgColor = pow(texture(Source, vTexCoord.xy), vec4(2.2));
+	vec4 imgColor = texture(Source, vTexCoord.xy);
     float red = ( imgColor.r * (params.LUT_Size - 1.0) + 0.5 ) / (params.LUT_Size * params.LUT_Size);
     float green = ( imgColor.g * (params.LUT_Size - 1.0) + 0.5 ) / params.LUT_Size;
-    float blue = floor( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size;
-    vec4 color = texture( SamplerLUT, vec2( blue + red, green ));
-   FragColor = pow(color, vec4(1.0 / 2.2));
+    float blue1 = floor( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size;
+	float blue2 = ceil( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size;
+	float mixer = (imgColor.b - (blue1 + red)) / ((blue2 + red) - (blue1 + red));
+    vec4 color1 = texture( SamplerLUT, vec2( blue1 + red, green ));
+	vec4 color2 = texture( SamplerLUT, vec2( blue2 + red, green ));
+   FragColor = mix(color1, color2, mixer);
 }
