@@ -16,10 +16,12 @@ layout(push_constant) uniform Push
 	uint FrameCount;
 	float STEPS;
 	float DEBUG;
+	float linear_gamma;
 } params;
 
 #pragma parameter STEPS "GDAPT Error Prevention LVL"	1.0 0.0 5.0 1.0
 #pragma parameter DEBUG "GDAPT Adjust View"		0.0 0.0 1.0 1.0
+#pragma parameter linear_gamma "Use Linear Gamma"		0.0 0.0 1.0 1.0
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -53,7 +55,13 @@ void main()
 	vec4 L = TEX(-1, 0);
 	vec4 R = TEX( 1, 0);
 	
-
+	if(params.linear_gamma > 0.5)
+	{
+		C.xyz = pow(C.xyz, vec3(2.2)).xyz;
+		L.xyz = pow(L.xyz, vec3(2.2)).xyz;
+		R.xyz = pow(R.xyz, vec3(2.2)).xyz;
+	}
+	
 	float str = 0.0;
 
 	if(params.STEPS == 0.0){
@@ -89,5 +97,7 @@ void main()
 	float wght = max(L.w, R.w);
 	      wght = (wght == 0.0) ? 1.0 : sum/wght;
 
-   FragColor = vec4(mix(C.xyz, (wght*C.xyz + L.w*L.xyz + R.w*R.xyz)/(wght + sum), str), 1.0);	
+   vec4 final = vec4(mix(C.xyz, (wght*C.xyz + L.w*L.xyz + R.w*R.xyz)/(wght + sum), str), 1.0);
+   FragColor = final;
+   if(params.linear_gamma > 0.5) FragColor = pow(final, vec4(1.0 / 2.2));
 }
