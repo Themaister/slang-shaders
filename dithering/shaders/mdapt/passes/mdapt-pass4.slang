@@ -17,19 +17,48 @@ layout(push_constant) uniform Push
 	float VL;
 	float CB;
 	float DEBUG;
+	float linear_gamma;
 } params;
 
 #pragma parameter VL    "MDAPT Vertical Lines"	0.0 0.0 1.0 1.0
 #pragma parameter CB    "MDAPT Checkerboard"	1.0 0.0 1.0 1.0
 #pragma parameter DEBUG "MDAPT Adjust View"	0.0 0.0 1.0 1.0
+#pragma parameter linear_gamma "MDAPT Linear Gamma Blend"	0.0 0.0 1.0 1.0
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
 	mat4 MVP;
 } global;
 
-#define TEX(dx,dy)   texture(Source, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw)
-#define TEXt0(dx,dy) texture(Original, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw)
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+
+void main()
+{
+   gl_Position = global.MVP * Position;
+   vTexCoord = TexCoord;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 0) out vec4 FragColor;
+layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 3) uniform sampler2D Original;
+
+//#define TEX(dx,dy)   texture(Source, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw)
+//#define TEXt0(dx,dy) texture(Original, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw)
+
+vec4 TEX(float dx, float dy){
+	if(params.linear_gamma > 0.5) return pow(texture(Source, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw), vec4(2.2));
+	else return texture(Source, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw);
+}
+
+vec4 TEXt0(float dx, float dy){
+	if(params.linear_gamma > 0.5) return pow(texture(Original, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw), vec4(2.2));
+	else return texture(Original, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw);
+}
 
 bool eq(vec3 A, vec3 B){
 	return (A == B);
@@ -58,23 +87,6 @@ vec2 or(vec2 a, vec2 b){
 vec2 or(vec2 a, vec2 b, vec2 c, vec2 d){
 	return max(a, max(b, max(c,d)));
 }
-
-#pragma stage vertex
-layout(location = 0) in vec4 Position;
-layout(location = 1) in vec2 TexCoord;
-layout(location = 0) out vec2 vTexCoord;
-
-void main()
-{
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
-}
-
-#pragma stage fragment
-layout(location = 0) in vec2 vTexCoord;
-layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D Original;
 
 void main()
 {
@@ -142,9 +154,9 @@ void main()
 		prCB = or(C.y, and(L.y, eqCL), and(R.y, eqCR), and(U.y, eqCU), and(D.y, eqCD), and(UL, float(eq(c,ul))), and(UR, float(eq(c,ur))), and(DL, float(eq(c,dl))), and(DR, float(eq(c,dr))));
 	}
 
-	
 	if(params.DEBUG > 0.5)
 		FragColor = vec4(prVL, prCB, 0.0, 0.0);
 		
-   FragColor = (prCB >= prVL) ? vec4(mix(c, fCB, prCB), 1.0) : vec4(mix(c, fVL, prVL), 1.0);
+	vec4 final = (prCB >= prVL) ? vec4(mix(c, fCB, prCB), 1.0) : vec4(mix(c, fVL, prVL), 1.0);
+	FragColor = (params.linear_gamma > 0.5) ? pow(final, vec4(1.0 / 2.2)) : final;
 }
