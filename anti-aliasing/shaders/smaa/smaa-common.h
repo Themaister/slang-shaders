@@ -614,7 +614,7 @@ SamplerState PointSampler { Filter = MIN_MAG_MIP_POINT; AddressU = Clamp; Addres
 	vec3 neighbours = SMAAGatherNeighbours(coord, offset, predicationTex);
 	vec2 delta = abs(neighbours.xx - neighbours.yz);
 	vec2 edges = step(SMAA_PREDICATION_THRESHOLD, delta);
-	return SMAA_PREDICATION_SCALE * SMAA_THRESHOLD * (1.0 - SMAA_PREDICATION_STRENGTH * edges); 
+	return vec3(SMAA_PREDICATION_SCALE * SMAA_THRESHOLD * (1.0 - SMAA_PREDICATION_STRENGTH * edges), 1.0); 
  }
 
 /**
