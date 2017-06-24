@@ -24,7 +24,7 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+   vTexCoord = TexCoord * 1.0001;
 }
 
 #pragma stage fragment
@@ -44,12 +44,12 @@ vec4 mixfix(vec4 a, vec4 b, float c)
 void main()
 {
 	vec4 imgColor = texture(Source, vTexCoord.xy);
-	float red = ( imgColor.r * (params.LUT_Size - 1.0) + 0.5 ) / (params.LUT_Size * params.LUT_Size);
-	float green = ( imgColor.g * (params.LUT_Size - 1.0) + 0.5 ) / params.LUT_Size;
-	float blue1 = floor( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size;
-	float blue2 = ceil( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size;
-	float mixer = (imgColor.b - (blue1 + red)) / ((blue2 + red) - (blue1 + red));
-	vec4 color1 = texture( SamplerLUT, vec2( blue1 + red, green ));
-	vec4 color2 = texture( SamplerLUT, vec2( blue2 + red, green ));
+	float red = ( imgColor.r * (params.LUT_Size - 1.0) + 0.4999 ) / (params.LUT_Size * params.LUT_Size);
+	float green = ( imgColor.g * (params.LUT_Size - 1.0) + 0.4999 ) / params.LUT_Size;
+	float blue1 = (floor( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size) + red;
+	float blue2 = (ceil( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size) + red;
+	float mixer = max((imgColor.b - blue1) / (blue2 - blue1), 0.0);
+	vec4 color1 = texture( SamplerLUT, vec2( blue1, green ));
+	vec4 color2 = texture( SamplerLUT, vec2( blue2, green ));
 	FragColor = mixfix(color1, color2, mixer);
 }
