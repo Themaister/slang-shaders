@@ -171,7 +171,6 @@ void main()
 	float h5 = RGBtoYUV( H5 ); float p2 = RGBtoYUV( P2 );
 	float f4 = RGBtoYUV( F4 ); float p3 = RGBtoYUV( P3 );
 
-
 	/* Calc edgeness in diagonal directions. */
 	float d_edge  = (d_wd( d, b, g, e, c, p2, h, f, p1, h5, i, f4, i5, i4 ) - d_wd( c, f4, b, f, i4, p0, e, i, p3, d, h, i5, g, h5 ));
 
@@ -199,5 +198,5 @@ void main()
 	vec3 max_sample = max4( E, F, H, I ) - (1.-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
 	color = clamp(color, min_sample, max_sample);
 
-   FragColor = vec4(color, 1.0);
+	FragColor = vec4(color, 1.0);
 }

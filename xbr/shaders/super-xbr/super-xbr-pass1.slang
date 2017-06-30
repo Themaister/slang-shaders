@@ -116,12 +116,14 @@ layout(set = 0, binding = 3) uniform sampler2D Original;
 void main()
 {
 	//Skip pixels on wrong grid
-	vec2 fp = fract(vTexCoord*params.SourceSize.xy);
+	vec2 fp = fract(vTexCoord.xy * params.SourceSize.xy);
 	vec2 dir = fp - vec2(0.5,0.5);
- 	if ((dir.x*dir.y)>0.0){
-	FragColor = (fp.x>0.5) ? texture(Source, vTexCoord) : texture(Original, vTexCoord);
-	}else{
-
+ 	if ((dir.x*dir.y)>0.0)
+	{
+		FragColor = (fp.x>0.5) ? texture(Source, vTexCoord) : texture(Original, vTexCoord);
+	}
+	else
+	{
 	vec2 g1 = (fp.x>0.5) ? vec2(0.5/params.SourceSize.x, 0.0) : vec2(0.0, 0.5/params.SourceSize.y);
 	vec2 g2 = (fp.x>0.5) ? vec2(0.0, 0.5/params.SourceSize.y) : vec2(0.5/params.SourceSize.x, 0.0);
 
@@ -185,6 +187,6 @@ void main()
 	vec3 max_sample = max4( E, F, H, I ) - (1.-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
 	color = clamp(color, min_sample, max_sample);
 	
-   FragColor = vec4(color, 1.0);
-   }
+	FragColor = vec4(color, 1.0);
+	}
 }
