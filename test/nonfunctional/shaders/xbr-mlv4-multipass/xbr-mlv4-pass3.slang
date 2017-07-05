@@ -213,7 +213,7 @@ void main()
 		lparam.xyz = ((infoE == 7.0) ? lines7 : lparam.xyz);
 		lparam.xyz = ((infoE == 8.0) ? lines8 : lparam.xyz);
 	}
-/*
+
 	bool inv = (dir.x*dir.y) < 0.0 ? true : false;
 
 	// Rotate address from relative to absolute.
@@ -228,8 +228,8 @@ void main()
 	addr.y += 2.0;
 
 	lparam.w = addr.x * 8.0 + addr.y;
-*/
-	FragColor = vec4(dir.xyxy);//vec4(remapTo01(lparam, low, high));
+
+	FragColor = vec4(remapTo01(lparam, low, high));
 }
 
 /*
