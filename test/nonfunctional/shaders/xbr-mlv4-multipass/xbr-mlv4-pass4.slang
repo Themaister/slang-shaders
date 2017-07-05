@@ -1,18 +1,5 @@
 #version 450
 
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
-} params;
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
-
 /*
 
    Hyllian's xBR MultiLevel4 Shader - Pass4
@@ -39,11 +26,26 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 */
 
-#define round(X) floor((X)+0.5)
+layout(push_constant) uniform Push
+{
+	vec4 SourceSize;
+	vec4 OriginalSize;
+	vec4 OutputSize;
+	uint FrameCount;
+} params;
 
-const vec3 bin            = vec3( 4.0f,  2.0f,  1.0f);
-const vec4 low            = vec4(-64.0f, -64.0f, -64.0f, -64.0f);
-const vec4 high           = vec4( 64.0f,  64.0f,  64.0f,  64.0f);
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+	mat4 MVP;
+} global;
+
+#define round(X) floor((X)+0.5)
+#define mul(a,b) (b*a)
+#define saturate(c) clamp(c, 0.0, 1.0)
+
+const vec3 bin            = vec3(  4.0,   2.0,   1.0);
+const vec4 low            = vec4(-64.0, -64.0, -64.0, -64.0);
+const vec4 high           = vec4( 64.0,  64.0,  64.0,  64.0);
 
 vec4 remapFrom01(vec4 v, vec4 low, vec4 high)
 {
@@ -56,18 +58,16 @@ float c_df(vec3 c1, vec3 c2)
 	return df.r + df.g + df.b;
 }
 
-
 vec4 unpack_info(float i)
 {
 	vec4 info;
-	info.x = round(modf(i/2.0f, i));
-	info.y = round(modf(i/2.0f, i));
-	info.z = round(modf(i/2.0f, i));
+	info.x = round(modf(i / 2.0, i));
+	info.y = round(modf(i / 2.0, i));
+	info.z = round(modf(i / 2.0, i));
 	info.w = i;
 
 	return info;
 }
-
 
 float df(float A, float B)
 {
@@ -76,15 +76,15 @@ float df(float A, float B)
 
 #define GET_PIXEL(PARAM, PIXEL)\
 	info = PARAM;\
-	ay.z = round(  modf( info/2.0f, info )  );\
-	ay.y = round(  modf( info/2.0f, info )  );\
-	ay.x = round(  modf( info/2.0f, info )  );\
-	ax.z = round(  modf( info/2.0f, info )  );\
-	ax.y = round(  modf( info/2.0f, info )  );\
+	ay.z = round(  modf( info / 2.0, info )  );\
+	ay.y = round(  modf( info / 2.0, info )  );\
+	ay.x = round(  modf( info / 2.0, info )  );\
+	ax.z = round(  modf( info / 2.0, info )  );\
+	ax.y = round(  modf( info / 2.0, info )  );\
 	ax.x = round(  info  );\
 	iq.x = dot( ax, bin ) - 2.0;\
 	iq.y = dot( ay, bin ) - 2.0;\
-	PIXEL = texture( Original, vTexCoord + iq.x * t1.xy + iq.y * t1.zw ).xyz;\
+	PIXEL = texture( Original, vTexCoord + iq.x * t1.xy + iq.y * t1.zw ).xyz;
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -95,8 +95,8 @@ layout(location = 2) out float scale_factor;
 
 void main()
 {
-	gl_Position	=	global.MVP * Position;
-	vTexCoord	=	TexCoord;
+   gl_Position = global.MVP * Position;
+   vTexCoord = TexCoord * 1.0004;
 	float dx	=	params.OriginalSize.z;
 	float dy	=	params.OriginalSize.w;
    
@@ -107,7 +107,7 @@ void main()
 	//G2 G0  G  H  I I4 I6
 	//      G5 H5 I5
 	//      G7 H7 I7
-	t1	=	vec4(dx, 0, 0, dy);  // F  H
+	t1	=	vec4(dx, 0., 0., dy);  // F  H
 	scale_factor	=	params.OutputSize.x * params.OriginalSize.z;
 }
 
@@ -146,7 +146,7 @@ void main()
 	GET_PIXEL(dlparam.w, PZ);
 	GET_PIXEL(drparam.w, PW);
 	
-	vec3 fp1 = vec3( fp, -1 );
+	vec3 fp1 = vec3( fp, -1. );
 
 	vec3 color;
 	vec4 fx;
@@ -154,10 +154,10 @@ void main()
 	vec4 inc	=	vec4(abs(ulparam.x / ulparam.y), abs(urparam.x / urparam.y), abs(dlparam.x / dlparam.y), abs(drparam.x / drparam.y));
 	vec4 level	=	max(inc, 1.0 / inc);
 	
-	fx.x	=	clamp( dot( fp1, ulparam.xyz ) * scale_factor / ( 8 * level.x ) + 0.5 , 0.0, 1.0);
-	fx.y	=	clamp( dot( fp1, urparam.xyz ) * scale_factor / ( 8 * level.y ) + 0.5 , 0.0, 1.0);
-	fx.z	=	clamp( dot( fp1, dlparam.xyz ) * scale_factor / ( 8 * level.z ) + 0.5 , 0.0, 1.0);
-	fx.w	=	clamp( dot( fp1, drparam.xyz ) * scale_factor / ( 8 * level.w ) + 0.5 , 0.0, 1.0);
+	fx.x	=	saturate( dot( fp1, ulparam.xyz ) * scale_factor / ( 8. * level.x ) + 0.5 );
+	fx.y	=	saturate( dot( fp1, urparam.xyz ) * scale_factor / ( 8. * level.y ) + 0.5 );
+	fx.z	=	saturate( dot( fp1, dlparam.xyz ) * scale_factor / ( 8. * level.z ) + 0.5 );
+	fx.w	=	saturate( dot( fp1, drparam.xyz ) * scale_factor / ( 8. * level.w ) + 0.5 );
 	
 	vec3 c1, c2, c3, c4;
 
@@ -165,11 +165,11 @@ void main()
 	c2	=	mix( E, PY, fx.y );
 	c3	=	mix( E, PZ, fx.z );
 	c4	=	mix( E, PW, fx.w );
-
-	color	=	c1;
-	color	=	( (c_df(c2, E) > c_df(color, E)) ) ? c2 : color;
-	color	=	( (c_df(c3, E) > c_df(color, E)) ) ? c3 : color;
-	color	=	( (c_df(c4, E) > c_df(color, E)) ) ? c4 : color;
 	
-	FragColor	=	vec4(color, 1.0);
+	color = c1;
+	color = ( (c_df(c2, E) > c_df(color, E)) ) ? c2 : color;
+	color = ( (c_df(c3, E) > c_df(color, E)) ) ? c3 : color;
+	color = ( (c_df(c4, E) > c_df(color, E)) ) ? c4 : color;
+	
+	FragColor = vec4(color, 1.0);
 }

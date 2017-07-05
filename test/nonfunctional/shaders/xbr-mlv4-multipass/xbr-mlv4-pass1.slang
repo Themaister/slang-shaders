@@ -1,18 +1,5 @@
 #version 450
 
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
-} params;
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
-
 /*
 
    Hyllian's xBR MultiLevel4 Shader - Pass1
@@ -39,24 +26,36 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 */
 
-#define round(X) floor((X)+0.5)
-#define TEX(dx,dy) texture(Source, vTexCoord + vec2((dx), (dy)) * t1).rgb
+layout(push_constant) uniform Push
+{
+	vec4 SourceSize;
+	vec4 OriginalSize;
+	vec4 OutputSize;
+	uint FrameCount;
+} params;
 
-const float cf2	=	2.0;
-const float cf3	=	4.0;
-const float cf4	=	4.0;
-const vec4 eq_thresholdold	=	vec4(15.0, 15.0, 15.0, 15.0);
-const vec4 eq_threshold	=	vec4( 2.0,  2.0,  2.0,  2.0);
-const vec4 eq_threshold3	=	vec4(25.0, 25.0, 25.0, 25.0);
-const vec3 Yuv_weight	=	vec3(4.0, 1.0, 2.0);
-const mat3x3	yuv	=	mat3x3(0.299, 0.587, 0.114,
-								-0.169, -0.331, 0.499,
-								0.499, -0.418, -0.0813);
-const mat3x3	yuvT	=	mat3x3(0.299, -0.169,  0.499,
-								0.587, -0.331, -0.418,
-								0.114,  0.499, -0.0813); 
-const mat3x3	yuv_weighted	=	mat3x3(Yuv_weight.x * yuv[0], Yuv_weight.y * yuv[1], Yuv_weight.z * yuv[2]);
-const vec4 maximo	=	vec4(255.0f, 255.0f, 255.0f, 255.0f);
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+	mat4 MVP;
+} global;
+
+#define round(X) floor((X)+0.5)
+#define TEX(dx,dy) texture(Source, vTexCoord+vec2((dx),(dy))*t1).rgb
+
+const float cf2             = 2.0;
+const float cf3             = 4.0;
+const float cf4             = 4.0;
+const vec4 eq_thresholdold	= vec4(15.0, 15.0, 15.0, 15.0);
+const vec4 eq_threshold	= vec4( 2.0,  2.0,  2.0,  2.0);
+const vec4 eq_threshold3	= vec4(25.0, 25.0, 25.0, 25.0);
+const vec3 Yuv_weight	= vec3(4.0, 1.0, 2.0);
+const mat3 yuv	= mat3(0.299, 0.587, 0.114, -0.169, -0.331, 0.499, 0.499, -0.418, -0.0813);
+const mat3 yuvT	= mat3(0.299, -0.169, 0.499, 0.587, -0.331, -0.418, 0.114, 0.499, -0.0813); 
+const vec3 yuv_weighted0	=	vec3( 1.196,  2.348,  0.228);//precalculate Yuv_weight.x * yuv[0];
+const vec3 yuv_weighted1	=	vec3(-0.169, -0.331,  0.499);//precalculate Yuv_weight.y * yuv[1];
+const vec3 yuv_weighted2	=	vec3( 0.898, -0.836, -0.163);//precalculate Yuv_weight.z * yuv[2];
+const vec4 maximo	= vec4(255.0, 255.0, 255.0, 255.0);
+
 
 vec4 df(vec4 A, vec4 B)
 {
@@ -72,6 +71,7 @@ bvec4 id(vec4 A, vec4 B, vec4 C, vec4 D)
 {
     return greaterThan(df(C,D) , df(A,B));
 }
+
 
 vec4 remapTo01(vec4 v, vec4 high)
 {
@@ -90,7 +90,17 @@ bvec4 eq3(vec4 A, vec4 B)
 
 vec4 weighted_distance(vec4 a, vec4 b, vec4 c, vec4 d, vec4 e, vec4 f, vec4 g, vec4 h)
 {
-	return (df(a,b) + df(a,c) + df(d,e) + df(d,f) + 4.0 * df(g,h));
+	return (df(a,b) + df(a,c) + df(d,e) + df(d,f) + 4.0*df(g,h));
+}
+
+bvec4 and(bvec4 A, bvec4 B)
+{
+	return bvec4(A.x && B.x, A.y && B.y, A.z && B.z, A.w && B.w);
+}
+
+bvec4 or(bvec4 A, bvec4 B)
+{
+	return bvec4(A.x || B.x, A.y || B.y, A.z || B.z, A.w || B.w);
 }
 
 #pragma stage vertex
@@ -101,8 +111,8 @@ layout(location = 1) out vec2 t1;
 
 void main()
 {
-	gl_Position	=	global.MVP * Position;
-	vTexCoord	=	TexCoord;
+   gl_Position = global.MVP * Position;
+   vTexCoord = TexCoord * 1.0004;
 
 	//      A3 B3 C3
 	//      A1 B1 C1
@@ -190,36 +200,69 @@ void main()
 	vec4 b3	=	h7.zwxy;
 	vec4 d2	=	h7.wxyz;
 	
-	interp_restriction_lv1     	=	(notEqual(e,f )	==	bvec4(true)	&&	notEqual(e,h)	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	interp_restriction_lv2_left	=	(notEqual(e,g )	==	bvec4(true)	&&	notEqual(d,g)	==	bvec4(true)	&&	(eq(e, d)	==	bvec4(true)	||	eq(h, g)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
-	interp_restriction_lv2_up  	=	(notEqual(e,c )	==	bvec4(true)	&&	notEqual(b,c)	==	bvec4(true)	&&	(eq(e, b)	==	bvec4(true)	||	eq(f, c)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
-	interp_restriction_lv3_left	=	(notEqual(e,g0)	==	bvec4(true)	&&	notEqual(d0,g0)	==	bvec4(true)	&&	(eq(d,d0)	==	bvec4(true)	||	eq(g,g0)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
-	interp_restriction_lv3_up  	=	(notEqual(e,c1)	==	bvec4(true)	&&	notEqual(b1,c1)	==	bvec4(true)	&&	(eq(b,b1)	==	bvec4(true)	||	eq(c,c1)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
-	interp_restriction_lv4_left	=	(notEqual(e,g2)	==	bvec4(true)	&&	notEqual(d2,g2)	==	bvec4(true)	&&	(eq(d0,d2)	==	bvec4(true)	||	eq(g0,g2)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
-	interp_restriction_lv4_up  	=	(notEqual(e,c3)	==	bvec4(true)	&&	notEqual(b3,c3)	==	bvec4(true)	&&	(eq(b1,b3)	==	bvec4(true)	||	eq(c1,c3)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
+	interp_restriction_lv1      = and(notEqual(e,f)  ,  notEqual(e,h));
+	interp_restriction_lv2_left = or(and(and(notEqual(e,g)  ,  notEqual(d,g))  , eq(e, d)) , eq(h, g));
+	interp_restriction_lv2_up   = or(and(and(notEqual(e,c)  ,  notEqual(b,c))  , eq(e, b)) , eq(f, c));
+	interp_restriction_lv3_left = or(and(and(notEqual(e,g0) , notEqual(d0,g0)) , eq(d,d0)) , eq(g,g0));
+	interp_restriction_lv3_up   = or(and(and(notEqual(e,c1) , notEqual(b1,c1)) , eq(b,b1)) , eq(c,c1));
+	interp_restriction_lv4_left = or(and(and(notEqual(e,g2) , notEqual(d2,g2)) , eq(d0,d2)) , eq(g0,g2));
+	interp_restriction_lv4_up   = or(and(and(notEqual(e,c3) , notEqual(b3,c3)) , eq(b1,b3)) , eq(c1,c3));
 
-	vec4	wd1	=	weighted_distance( e, c, g, i, h5, f4, h, f);
-	vec4	wd2	=	weighted_distance( h, d, i5, f, i4, b, e, i);
+	vec4 wd1 = weighted_distance( e, c, g, i, h5, f4, h, f);
+	vec4 wd2 = weighted_distance( h, d, i5, f, i4, b, e, i);
+	
+	bvec4 comp1 = and(not(eq(h,d)) , not(id(h,g,h,d)));
+	bvec4 comp2 = and(not(eq(f,b)) , not(id(f,c,f,b)));
 
-	edr0	=	(lessThanEqual(wd1	,	wd2)	==	bvec4(true)	&&	interp_restriction_lv1	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	edr	=	(lessThan(wd1 ,  wd2)	==	bvec4(true)	&&	interp_restriction_lv1	==	bvec4(true)	&&	( eq(f,b)	==	bvec4(false)	&&	id(f,c,f,b)	==	bvec4(false)	||	eq(h,d)	==	bvec4(false)	&&	id(h,g,h,d)	==	bvec4(false)	||	eq(e,g)	==	bvec4(true)	||	eq(e,c)	==	bvec4(true)))	?	bvec4(true)	:	bvec4(false);
-	edr_left	=	(lessThanEqual((cf2*df(f,g))	,	df(h,c))	==	bvec4(true)	&&	interp_restriction_lv2_left	==	bvec4(true)	&&	edr	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	edr_up	=	(greaterThanEqual(df(f,g)	,	(cf2*df(h,c)))	==	bvec4(true)	&&	interp_restriction_lv2_up	==	bvec4(true)	&&	edr	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	edr3_left	=	(lessThanEqual((cf3*df(f,g0))	,	df(h,c1))	==	bvec4(true)	&&	interp_restriction_lv3_left	==	bvec4(true)	&&	edr_left	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	edr3_up	=	(greaterThanEqual(df(f,g0)	,	(cf3*df(h,c1)))	==	bvec4(true)	&&	interp_restriction_lv3_up	==	bvec4(true)	&&	edr_up	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	edr4_left	=	(lessThanEqual((cf4*df(f,g2))	,	df(h,c3))	==	bvec4(true)	&&	interp_restriction_lv4_left	==	bvec4(true)	&&	edr3_left	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
-	edr4_up	=	(greaterThanEqual(df(f,g2)	,	(cf4*df(h,c3)))	==	bvec4(true)	&&	interp_restriction_lv4_up	==	bvec4(true)	&&	edr3_up	==	bvec4(true))	?	bvec4(true)	:	bvec4(false);
+	edr0      = and(lessThanEqual(wd1 , wd2) , interp_restriction_lv1);
+	edr       = and(lessThan(wd1 ,  wd2) , and(interp_restriction_lv1 , ( or(comp2 , or(comp1 , or(eq(e,g) , eq(e,c)))) ) ));
+	edr_left  = and(lessThanEqual((cf2*df(f,g))  , df(h,c))   , and(interp_restriction_lv2_left , edr));
+	edr_up    = and(greaterThanEqual(df(f,g)  , (cf2*df(h,c)))   , and(interp_restriction_lv2_up   , edr));
+	edr3_left = and(lessThanEqual((cf3*df(f,g0)) , df(h,c1)) , and(interp_restriction_lv3_left , edr_left));
+	edr3_up   = and(greaterThanEqual(df(f,g0) , (cf3*df(h,c1))) , and(interp_restriction_lv3_up   , edr_up));
+	edr4_left = and(lessThanEqual((cf4*df(f,g2)) , df(h,c3)) , and(interp_restriction_lv4_left , edr3_left));
+	edr4_up   = and(greaterThanEqual(df(f,g2) , (cf4*df(h,c3))) , and(interp_restriction_lv4_up   , edr3_up));
 
-	vec4	info;
-	info	=	(edr0	==	bvec4(true))	?	vec4(1.0)	:	vec4(0.0);
-	info	=	(edr	==	bvec4(true))	?	vec4(2.0)	:	info;
-	info	=	(edr_up	==	bvec4(true)	&&	edr_left	==	bvec4(false))	?	vec4(3.0)	:	info;
-	info	=	(edr_left	==	bvec4(true)	&&	edr_up	==	bvec4(false))	?	vec4(4.0)	:	info;
-	info	=	(edr3_up	==	bvec4(true)	&&	edr3_left	==	bvec4(false))	?	vec4(5.0)	:	info;
-	info	=	(edr3_left	==	bvec4(true)	&&	edr3_up	==	bvec4(false))	?	vec4(6.0)	:	info;
-	info	=	(edr4_up	==	bvec4(true)	&&	edr4_left	==	bvec4(false))	?	vec4(7.0)	:	info;
-	info	=	(edr4_left	==	bvec4(true)	&&	edr4_up	==	bvec4(false))	?	vec4(8.0)	:	info;
-//	info	=	(edr4_left	==	bvec4(true)	&&	edr4_up	==	bvec4(false))	?	vec4(8.0)	:	((edr4_up	==	bvec4(true)	&&	edr4_left	==	bvec4(false))	?	vec4(7.0)	:	((edr3_left	==	bvec4(true)	&&	edr3_up	==	bvec4(false))	?	vec4(6.0)	:	((edr3_up	==	bvec4(true)	&&	edr3_left	==	bvec4(false))	?	vec4(5.0)	:	((edr_left	==	bvec4(true)	&&	edr_up	==	bvec4(false))	?	vec4(4.0)	:	((edr_up	==	bvec4(true)	&&	edr_left	==	bvec4(false))	?	vec4(3.0)	:	(edr	==	bvec4(true)	?	vec4(2.0)	:	(edr0	==	bvec4(true)	?	vec4(1.0)	:	vec4(0.0))))))));
-
-	FragColor	=	vec4(remapTo01(info, maximo));
+	vec4 info; //groan, gotta separate these into their components???
+	info.x = (edr0.x == true) ? 1.0 : 0.0;
+	info.y = (edr0.y == true) ? 1.0 : 0.0;
+	info.z = (edr0.z == true) ? 1.0 : 0.0;
+	info.w = (edr0.w == true) ? 1.0 : 0.0;
+	
+	info.x = (edr.x == true) ? 2.0 : info.x;
+	info.y = (edr.y == true) ? 2.0 : info.y;
+	info.z = (edr.z == true) ? 2.0 : info.z;
+	info.w = (edr.w == true) ? 2.0 : info.w;
+	
+	info.x = and(edr_up , not(edr_left)).x == true ? 3.0 : info.x;
+	info.y = and(edr_up , not(edr_left)).y == true ? 3.0 : info.y;
+	info.z = and(edr_up , not(edr_left)).z == true ? 3.0 : info.z;
+	info.w = and(edr_up , not(edr_left)).w == true ? 3.0 : info.w;
+	
+	info.x = and(edr_left , not(edr_up)).x == true ? 4.0 : info.x;
+	info.y = and(edr_left , not(edr_up)).y == true ? 4.0 : info.y;
+	info.z = and(edr_left , not(edr_up)).z == true ? 4.0 : info.z;
+	info.w = and(edr_left , not(edr_up)).w == true ? 4.0 : info.w;
+	
+	info.x = and(edr3_up , not(edr3_left)).x == true ? 5.0 : info.x;
+	info.y = and(edr3_up , not(edr3_left)).y == true ? 5.0 : info.y;
+	info.z = and(edr3_up , not(edr3_left)).z == true ? 5.0 : info.z;
+	info.w = and(edr3_up , not(edr3_left)).w == true ? 5.0 : info.w;
+	
+	info.x = and(edr3_left , not(edr3_up)).x == true ? 6.0 : info.x;
+	info.y = and(edr3_left , not(edr3_up)).y == true ? 6.0 : info.y;
+	info.z = and(edr3_left , not(edr3_up)).z == true ? 6.0 : info.z;
+	info.w = and(edr3_left , not(edr3_up)).w == true ? 6.0 : info.w;
+	
+	info.x = and(edr4_up , not(edr4_left)).x == true ? 7.0 : info.x;
+	info.y = and(edr4_up , not(edr4_left)).y == true ? 7.0 : info.y;
+	info.z = and(edr4_up , not(edr4_left)).z == true ? 7.0 : info.z;
+	info.w = and(edr4_up , not(edr4_left)).w == true ? 7.0 : info.w;
+	
+	info.x = and(edr4_left , not(edr4_up)).x == true ? 8.0 : info.x;
+	info.y = and(edr4_left , not(edr4_up)).y == true ? 8.0 : info.y;
+	info.z = and(edr4_left , not(edr4_up)).z == true ? 8.0 : info.z;
+	info.w = and(edr4_left , not(edr4_up)).w == true ? 8.0 : info.w;
+	
+	FragColor = vec4(remapTo01(info, maximo));
 }
