@@ -19,6 +19,8 @@ layout(push_constant) uniform Push
 	float BRIGHTNESS;
 	float F_LUMA_LP;
 	float HUE;
+	float split;
+	float split_line;
 } params;
 
 #pragma parameter FIR_SIZE "FIR Size" 29.0 1.0 50.0 1.0
@@ -27,6 +29,8 @@ layout(push_constant) uniform Push
 #pragma parameter BRIGHTNESS "Brightness" 1.0 0.0 2.0 0.01
 #pragma parameter F_LUMA_LP "F Luma LP" 0.16667 0.0001 0.333333 0.02
 #pragma parameter HUE "Hue" 0.0 0.0 1.0 0.01
+#pragma parameter split "Split Toggle" 0.0 0.0 1.0 1.0
+#pragma parameter split_line "Split Line Location" 0.5 0.0 1.0 0.05
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -41,7 +45,7 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord * 1.001;
+   vTexCoord = TexCoord * 1.0004;
 }
 
 #pragma stage fragment
@@ -50,6 +54,7 @@ layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D Original;
 layout(set = 0, binding = 4) uniform sampler2D Pass2;
+layout(set = 0, binding = 5) uniform sampler2D Pass1;
 
 //Composite color artifact simulator
 //Change Buf A to change the input image.
@@ -160,15 +165,12 @@ void main()
     
     #elif(VIEW_MODE == SIGNAL)
     	FragColor = 0.5 * texture(Pass2, uv / params.SourceSize.xy).rrrr+0.25;
+	#endif
     
-    #elif(VIEW_MODE == SPLIT)
-    	if(uv.x < params.SourceSize.x/2.0)
+    	if(params.split > 0.5)
         {
-            FragColor = texture(Original, uv / params.SourceSize.xy);
+            FragColor = vec4(texture(Pass1, uv / params.SourceSize.xy).r);
         }
-        else
-        {
-    		FragColor = vec4(color, 0.);
-        }
-    #endif
+    		FragColor = (vTexCoord.x > params.split_line) ? vec4(color, 0.) : FragColor;
+    
 }
