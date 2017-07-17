@@ -48,8 +48,8 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define wp1  1.0
 #define wp2  0.0
 #define wp3  0.0
-#define wp4  0.0
-#define wp5 -1.0
+#define wp4  2.0
+#define wp5 -2.0
 #define wp6  0.0
 
 #define weight1 (XBR_WEIGHT*1.29633/10.0)
