@@ -7,6 +7,7 @@ layout(push_constant) uniform Push
 	vec4 SourceSize;
 	vec4 OriginalHistorySize1;
 	float baseline_alpha;
+   float grey_balance;
 	float response_time;
 	float console_border_enable;
 	float video_scale;
@@ -24,6 +25,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
 // The alpha value of dots in their "off" state
 // Does not affect the border region of the screen - [0, 1]
 #pragma parameter baseline_alpha "Baseline Alpha" 0.10 0.0 1.0 0.01
+
+// Fine-tune the balance between the different shades of grey
+#pragma parameter grey_balance "Grey Balance" 3.0 2.0 4.0 0.1
 
 // Simulate response time
 // Higher values result in longer color transition periods - [0, 1]
@@ -148,7 +152,7 @@ void main()
     input_rgb += (prev5_rgb - input_rgb) * pow(registers.response_time, 6.0);
     input_rgb += (prev6_rgb - input_rgb) * pow(registers.response_time, 7.0);
 
-    float rgb_to_alpha = (input_rgb.r + input_rgb.g + input_rgb.b) * 0.333333333
+    float rgb_to_alpha = (input_rgb.r + input_rgb.g + input_rgb.b) / registers.grey_balance
                         + (is_on_dot * registers.baseline_alpha);
 
     // Apply foreground color and assign alpha value
