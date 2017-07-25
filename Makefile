@@ -1,4 +1,5 @@
-INSTALLDIR := /usr/share/libretro/shaders/shaders_slang
+PREFIX := /usr
+INSTALLDIR := $(PREFIX)/share/libretro/shaders/shaders_slang
 
 all:
 	@echo "Nothing to make for slang-shaders."
