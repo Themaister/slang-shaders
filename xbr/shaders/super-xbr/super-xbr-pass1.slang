@@ -45,7 +45,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define mul(a,b) (b*a)
 
-#define wp1  8.0
+#define wp1  1.0
 #define wp2  0.0
 #define wp3  0.0
 #define wp4  0.0
