@@ -14,5 +14,6 @@ scale_y1 = "2.000000"
 shader2 = "shaders/super-xbr/custom-jinc2-sharper.slang"
 filter_linear2 = false
 
-parameters = "DETAILS"
+parameters = "DETAILS;XBR_EDGE_STR"
 DETAILS = "1.0"
+XBR_EDGE_STR = "2.0"
