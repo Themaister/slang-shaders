@@ -5,7 +5,7 @@ filter_linear0 = "false"
 scale_type0 = "viewport"
 scale0 = "1.0"
 
-shader1 = "shaders/color/psp-color.slang"
+shader1 = "shaders/color/palm-color.slang"
 filter_linear1 = "false"
 scale_type1 = "source"
 scale1 = "1.0"

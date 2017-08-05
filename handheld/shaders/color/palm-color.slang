@@ -2,7 +2,7 @@
 
 layout(push_constant) uniform Push
 {
-   float darken_screen;
+   float palm_gamma;
 } params;
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -19,9 +19,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
    Author: hunterk
    License: Public domain
 */
-// Shader that replicates the LCD dynamics from a GameBoy Advance
+// Shader that replicates the LCD dynamics from Palm OS Phones
 
-#pragma parameter darken_screen "Darken Screen" 0.5 0.0 2.0 0.05
+#pragma parameter palm_gamma "Use Palm's Gamma" 0.0 0.0 1.0 1.0
 
 #define target_gamma 2.2
 #define display_gamma 2.2
@@ -31,15 +31,15 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.82
-#define g 0.67
-#define b 0.73
-#define rg 0.09
-#define rb 0.16
-#define gr 0.24
-#define gb 0.11
+#define r 0.745
+#define g 0.69
+#define b 0.775
+#define rg 0.06
+#define rb 0.085
+#define gr 0.315
+#define gb 0.14
 #define br -0.06
-#define bg 0.24
+#define bg 0.25
 #define overscan_percent_x 0.0
 #define overscan_percent_y 0.0
 
@@ -61,7 +61,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma + params.darken_screen)).rgba;
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma + (params.palm_gamma * 0.4))).rgba;
    vec4 avglum = vec4(0.5);
    screen = mix(screen, avglum, (1.0 - contrast));
    
