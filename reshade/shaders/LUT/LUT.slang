@@ -48,7 +48,7 @@ void main()
 	float green = ( imgColor.g * (params.LUT_Size - 1.0) + 0.4999 ) / params.LUT_Size;
 	float blue1 = (floor( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size) + red;
 	float blue2 = (ceil( imgColor.b  * (params.LUT_Size - 1.0) ) / params.LUT_Size) + red;
-	float mixer = clamp(max((imgColor.b - blue1) / (blue2 - blue1), 0.0), 0.0, 1.0);
+	float mixer = clamp(max((imgColor.b - blue1) / (blue2 - blue1), 0.0), 0.0, 32.0);
 	vec4 color1 = texture( SamplerLUT, vec2( blue1, green ));
 	vec4 color2 = texture( SamplerLUT, vec2( blue2, green ));
 	FragColor = mixfix(color1, color2, mixer);
