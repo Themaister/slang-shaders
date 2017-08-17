@@ -1,10 +1,10 @@
 shaders = 1
 
-shader0 = shaders/hexagons-distance.slang
+shader0 = shaders/effect-border-iq.slang
 filter_linear0 = false
 scale_type0 = viewport
 scale0 = 1.0
-alias0 = "HEXAGONS"
+alias0 = "BORDERS"
 framecount_mod0 = 10000.0
 
 textures = "iChannel0"
