@@ -1,6 +1,13 @@
 #version 450
 
-// All effects created by inigo quilez - iq/2014
+// All effects created by inigo quilez - iq/2013-2017
+// Hexagons - distance : https://www.shadertoy.com/view/Xd2GR3
+// Voronoi - smooth    : https://www.shadertoy.com/view/ldB3zc
+// Color grid          : https://www.shadertoy.com/view/4dBSRK
+// Voronoi - metrics   : https://www.shadertoy.com/view/MdSGRc
+// Iterations - shiny  : https://www.shadertoy.com/view/MslXz8
+// Fractal Tiling      : https://www.shadertoy.com/view/Ml2GWy
+// Bubbles             : https://www.shadertoy.com/view/4dl3zn
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // modified for slang border shader by hunterk
 
@@ -32,21 +39,21 @@ layout(std140, set = 0, binding = 0) uniform UBO
    mat4 MVP;
 } global;
 
-#pragma parameter effect "Effect Choice" 1.0 1.0 6.0 1.0
+#pragma parameter effect "Effect Choice" 1.0 1.0 7.0 1.0
 #pragma parameter aspect_x "Aspect Ratio Numerator" 64.0 1.0 256. 1.0
 #pragma parameter aspect_y "Aspect Ratio Denominator" 49.0 1.0 256. 1.0
-#pragma parameter border_zoom "Border Zoom" 8.0 0.5 16.0 0.5
 #pragma parameter integer_scale "Force Integer Scaling" 1.0 0.0 1.0 1.0
 #pragma parameter overscale "Integer Overscale" 0.0 0.0 1.0 1.0
+#pragma parameter border_zoom "Border Zoom" 8.0 0.5 16.0 0.5
 #pragma parameter border_speed "Border Animation Speed" 0.5 0.5 10 0.5
-#pragma parameter scanline_toggle "Scanline Toggle" 0.0 0.0 1.0 1.0
 #pragma parameter interp_toggle "Sharpen Linear Scaling" 0.0 0.0 1.0 1.0
+#pragma parameter scanline_toggle "Scanline Toggle" 0.0 0.0 1.0 1.0
 #pragma parameter THICKNESS "Scanline Thickness" 2.0 1.0 12.0 1.0
 #pragma parameter DARKNESS "Scanline Darkness" 0.35 0.0 1.0 0.05
-#pragma parameter OS_MASK_TOP "OS Mask Top" 0.0 0.0 1.0 0.005
-#pragma parameter OS_MASK_BOTTOM "OS Mask Bottom" 0.0 0.0 1.0 0.005
-#pragma parameter OS_MASK_LEFT "OS Mask Left" 0.0 0.0 1.0 0.005
-#pragma parameter OS_MASK_RIGHT "OS Mask Right" 0.0 0.0 1.0 0.005
+#pragma parameter OS_MASK_TOP "Overscan Mask Top" 0.0 0.0 1.0 0.005
+#pragma parameter OS_MASK_BOTTOM "Overscan Mask Bottom" 0.0 0.0 1.0 0.005
+#pragma parameter OS_MASK_LEFT "Overscan Mask Left" 0.0 0.0 1.0 0.005
+#pragma parameter OS_MASK_RIGHT "Overscan Mask Right" 0.0 0.0 1.0 0.005
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -171,6 +178,12 @@ float hash1( float n )
 	return fract(sin(n)*43758.5453);
 }
 
+vec2  hash2( vec2  p )
+{
+	p = vec2( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)) );
+	return fract(sin(p)*43758.5453);
+}
+
 float noise( in vec3 x )
 {
     vec3 p = floor(x);
@@ -217,7 +230,7 @@ vec4 hexagons_bg(vec2 coord, vec2 output_size, float frame_count)
 	return vec4(col, 1.0);
 }
 
-vec4 voronoi( in vec2 x, float w, float frame_count )
+vec4 voronoi_1( in vec2 x, float w, float frame_count )
 {
     vec2 n = floor( x );
     vec2 f = fract( x );
@@ -246,13 +259,13 @@ vec4 voronoi( in vec2 x, float w, float frame_count )
 	return m;
 }
 
-vec4 voronoi_bg(vec2 texture_size, float frame_count, vec2 uv)
+vec4 voronoi_smooth(vec2 texture_size, float frame_count, vec2 uv)
 {
     vec2 p = uv * vec2(2.0,1.0);
 	
 	float k = 2.0 + 70.0 * pow( 0.5 + 0.5*sin(0.25*6.2831*0.03 * frame_count), 4.0 );
 	k = 0.5 - 0.5*cos(0.25*6.2831*0.01 * frame_count);
-    vec4 c = voronoi( 6.0*p, k, frame_count );
+    vec4 c = voronoi_1( 6.0*p, k, frame_count );
 
     vec3 col = c.yzw;
 	
@@ -263,6 +276,70 @@ vec4 voronoi_bg(vec2 texture_size, float frame_count, vec2 uv)
 	col *= smoothstep( 0.005, 0.007, abs(p.y-0.66) );
 	
 	return vec4( col, 1.0 );
+}
+
+vec4 voronoi_2( in vec2 x, float mode, float timer )
+{
+    vec2 n = floor( x );
+    vec2 f = fract( x );
+
+	vec3 m = vec3( 8.0 );
+	float m2 = 8.0;
+    for( int j=-1; j<=2; j++ )
+    for( int i=-1; i<=2; i++ )
+    {
+        vec2 g = vec2( float(i),float(j) );
+        vec2 o = hash2( n + g );
+
+		// animate
+        o = 0.5 + 0.5*sin( timer + 6.2831*o );
+
+		vec2 r = g - f + o;
+
+        // euclidean		
+		vec2 d0 = vec2( sqrt(dot(r,r)), 1.0 );
+        // manhattam		
+		vec2 d1 = vec2( 0.71*(abs(r.x) + abs(r.y)), 1.0 );
+        // triangular		
+		vec2 d2 = vec2( max(abs(r.x)*0.866025+r.y*0.5,-r.y), 
+				        step(0.0,0.5*abs(r.x)+0.866025*r.y)*(1.0+step(0.0,r.x)) );
+
+		vec2 d = d0; 
+		if( mode<3.0 ) d=mix( d2, d0, fract(mode) );
+		if( mode<2.0 ) d=mix( d1, d2, fract(mode) );
+		if( mode<1.0 ) d=mix( d0, d1, fract(mode) );
+		
+        if( d.x<m.x )
+        {
+			m2 = m.x;
+            m.x = d.x;
+            m.y = hash1( dot(n+g,vec2(7.0,113.0) ) );
+			m.z = d.y;
+        }
+		else if( d.x<m2 )
+		{
+			m2 = d.x;
+		}
+
+    }
+    return vec4( m, m2-m.x );
+}
+
+vec4 voronoi_metrics(vec2 texture_size, float frame_count, vec2 uv)
+{
+	float mode = 2.0;//mod(frame_count/5.0,3.0);
+//	mode = floor(mode) + smoothstep( 0.8, 1.0, fract(mode) );
+	
+    vec2 p = -uv.xy/texture_size.xx;
+    vec4 c = voronoi_2( 8.0*p, mode, frame_count / 4.0 );
+
+    vec3 col = 0.5 + 0.5*sin( c.y*2.5 + vec3(1.5,1.0,1.0) );
+    col *= sqrt( clamp( 1.0 - c.x, 0.0, 1.0 ) );
+	col *= clamp( 0.5 + (1.0-c.z/2.0)*0.5, 0.0, 1.0 );
+	col *= 0.4 + 0.6*sqrt(clamp( 4.0*c.w, 0.0, 1.0 ));
+	
+	
+    return vec4( col, 1.0 );
 }
 
 vec4 colorgrid(vec2 texture_size, float frame_count, vec2 uv)
@@ -379,10 +456,11 @@ vec4 border(vec2 screen_coord, vec2 border_coord, vec2 texture_size, vec2 video_
 {
 	vec4 background;
 	if (params.effect == 1.0) background = hexagons_bg(border_coord * (2.0 / params.border_zoom), output_size.xy, frame_count);
-	else if (params.effect == 2.0) background = voronoi_bg(texture_size, frame_count, border_coord);
+	else if (params.effect == 2.0) background = voronoi_smooth(texture_size, frame_count, border_coord);
 	else if (params.effect == 3.0) background = colorgrid(texture_size, frame_count * 6.0, border_coord / vec2(output_size.y / output_size.x, 1.0));
 	else if (params.effect == 4.0) background = shiny_iterations(texture_size, frame_count, border_coord);
-	else if (params.effect == 5.0)background = bubbles(texture_size.xy, border_coord / vec2(output_size.y / output_size.x, 1.0) * (30.0 * params.border_zoom));
+	else if (params.effect == 5.0) background = bubbles(texture_size.xy, border_coord / vec2(output_size.y / output_size.x, 1.0) * (15.0 * params.border_zoom));
+	else if (params.effect == 6.0) background = voronoi_metrics(texture_size, frame_count / 10 * params.border_speed, border_coord * 75.0 * params.border_zoom);
 	else background = fractal_tiling(texture_size.xy, border_coord / vec2(output_size.y / output_size.x, 1.0) * (30.0 * params.border_zoom));
 	
 	vec2 coord = (params.interp_toggle < 0.5) ? screen_coord : interp_coord(screen_coord, texture_size);
