@@ -34,5 +34,11 @@ filter_linear4 = true
 
 textures = "shadow;aperture;slot"
 shadow = shaders/phosphorlut/luts/shadowmask.png
+shadow_linear = true
+shadow_wrap_mode = "repeat"
 aperture = shaders/phosphorlut/luts/aperture-grille.png
+aperture_linear = true
+aperture_wrap_mode = "repeat"
 slot = shaders/phosphorlut/luts/slotmask.png
+slot_linear = true
+slot_wrap_mode = "repeat"
