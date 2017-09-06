@@ -7,9 +7,8 @@ layout(push_constant) uniform Push
 	vec4 SourceSize;
 	vec4 OriginalHistorySize1;
 	float baseline_alpha;
-   float grey_balance;
+	float grey_balance;
 	float response_time;
-	float console_border_enable;
 	float video_scale;
 } registers;
 
@@ -32,9 +31,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 // Simulate response time
 // Higher values result in longer color transition periods - [0, 1]
 #pragma parameter response_time "LCD Response Time" 0.333 0.0 0.777 0.111
-
-// Change scaling to enable use in console-border shaders
-#pragma parameter console_border_enable "Console-Border Enable" 0.0 0.0 1.0 1.0
 
 // Set video scale when used in console-border shaders
 #pragma parameter video_scale "Video Scale" 3.0 3.0 5.0 1.0
@@ -88,7 +84,6 @@ layout(location = 3) out vec2 one_texel;
 void main()
 {
 	float video_scale_factor = floor(registers.OutputSize.y * registers.SourceSize.w);
-	if (registers.console_border_enable > 0.5) video_scale_factor = registers.video_scale;
 	vec2 scaled_video_out = (registers.SourceSize.xy * vec2(video_scale_factor));
     // Remaps position to integer scaled output
     gl_Position = global.MVP * Position / vec4( vec2(registers.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
