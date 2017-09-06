@@ -28,37 +28,37 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 // Useful to fine-tune the colors.
 // Higher values make the "black" color closer to black - [0, 1] [DEFAULT: 0.95]
-#pragma parameter contrast "Contrast" 0.95 0.0 1.0 0.05
+#pragma parameter contrast "Contrast" 0.70 0.0 1.0 0.05
 
 // Controls the ambient light of the screen. 
 // Lower values darken the screen - [0, 2] [DEFAULT: 1.00]
-#pragma parameter screen_light "Ambient Screen Light" 1.0 0.0 2.0 0.05
+#pragma parameter screen_light "Ambient Screen Light" 0.85 0.0 2.0 0.05
 
 // Controls the opacity of the dot-matrix pixels. 
 // Lower values make pixels more transparent - [0, 1] [DEFAULT: 1.00]
-#pragma parameter pixel_opacity "Pixel Opacity" 1.0 0.01 1.0 0.01
+#pragma parameter pixel_opacity "Pixel Opacity" 0.9 0.01 1.0 0.01
 
 // Higher values suppress changes in background color directly beneath
 // the foreground to improve image clarity - [0, 1] [DEFAULT: 0.75]
-#pragma parameter bg_smoothing "Background Smooth" 0.75 0.0 1.0 0.05
+#pragma parameter bg_smoothing "Background Smooth" 0.0 0.0 1.0 0.05
 
 // How strongly shadows affect the background
 // Higher values darken the shadows - [0, 1] [DEFAULT: 0.55]
-#pragma parameter shadow_opacity "Shadow Opacity" 0.55 0.01 1.0 0.01
+#pragma parameter shadow_opacity "Shadow Opacity" 0.90 0.01 1.0 0.01
 
 // How far the shadow should be shifted to the
 // right in pixels - [-infinity, infinity] [DEFAULT: 1.0]
-#pragma parameter shadow_offset_x "Shadow Offset Horiz" 1.0 -5.0 5.0 0.5
+#pragma parameter shadow_offset_x "Shadow Offset Horiz" -1.5 -5.0 5.0 0.5
 
 // How far the shadow should be shifted
 // down in pixels - [-infinity, infinity] [DEFAULT: 1.5]
-#pragma parameter shadow_offset_y "Shadow Offset Vert" 1.0 -5.0 5.0 0.5
+#pragma parameter shadow_offset_y "Shadow Offset Vert" 1.5 -5.0 5.0 0.5
 
 // Screen offset - [-infinity, infinity] [DEFAULT: 0]
 #pragma parameter screen_offset_x "Screen Offset Horiz" 0.0 -5.0 5.0 0.5
 
 // Screen offset - [-infinity, infinity] [DEFAULT: 0]
-#pragma parameter screen_offset_y "Screen Offset Vert" 0.0 -5.0 5.0 0.5    
+#pragma parameter screen_offset_y "Screen Offset Vert" 0.0 -5.0 5.0 0.5      
 
 ///////////////////////////////////////////////////////////////////////////
 //                                                                       //
@@ -126,7 +126,7 @@ layout(set = 0, binding = 4) uniform sampler2D COLOR_PALETTE;
 void main()
 {
     vec2 tex = floor(registers.PassOutputSize1.xy * vTexCoord);
-    tex = (tex + 0.5) * registers.PassOutputSize1.zw;
+    tex = (tex ) * registers.PassOutputSize1.zw;
     
     // Sample all the relevant textures
     vec4 foreground = texture(PassOutput1, tex - screen_offset);
@@ -136,6 +136,7 @@ void main()
 
     // Foreground and background are blended with the background color
     foreground *= 1.0;
+	
     background -= (background - 0.5) * registers.bg_smoothing * float(foreground.a > 0.0);	//suppress drastic background color changes under the foreground to improve clarity
 
     // Allows for highlights,

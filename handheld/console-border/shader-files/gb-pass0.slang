@@ -9,7 +9,6 @@ layout(push_constant) uniform Push
 	float baseline_alpha;
    float grey_balance;
 	float response_time;
-	float console_border_enable;
 	float video_scale;
 } registers;
 
@@ -24,17 +23,14 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 // The alpha value of dots in their "off" state
 // Does not affect the border region of the screen - [0, 1]
-#pragma parameter baseline_alpha "Baseline Alpha" 0.10 0.0 1.0 0.01
+#pragma parameter baseline_alpha "Baseline Alpha" 0.05 0.0 1.0 0.01
 
 // Fine-tune the balance between the different shades of grey
-#pragma parameter grey_balance "Grey Balance" 3.0 2.0 4.0 0.1
+#pragma parameter grey_balance "Grey Balance" 2.6 2.0 4.0 0.1
 
 // Simulate response time
 // Higher values result in longer color transition periods - [0, 1]
-#pragma parameter response_time "LCD Response Time" 0.333 0.0 0.777 0.111
-
-// Change scaling to enable use in console-border shaders
-#pragma parameter console_border_enable "Console-Border Enable" 0.0 0.0 1.0 1.0
+#pragma parameter response_time "LCD Response Time" 0.20 0.0 0.777 0.111
 
 // Set video scale when used in console-border shaders
 #pragma parameter video_scale "Video Scale" 3.0 3.0 5.0 1.0
@@ -87,14 +83,12 @@ layout(location = 3) out vec2 one_texel;
 
 void main()
 {
-	float video_scale_factor = floor(registers.OutputSize.y * registers.SourceSize.w);
-	if (registers.console_border_enable > 0.5) video_scale_factor = registers.video_scale;
-	vec2 scaled_video_out = (registers.SourceSize.xy * vec2(video_scale_factor));
+	vec2 scaled_video_out = (registers.SourceSize.xy * vec2(registers.video_scale));
     // Remaps position to integer scaled output
     gl_Position = global.MVP * Position / vec4( vec2(registers.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
-    vTexCoord = TexCoord + half_pixel;
+    vTexCoord = TexCoord;// + half_pixel;
     dot_size = registers.SourceSize.zw;
-    one_texel = 1.0 / (registers.SourceSize.xy * video_scale_factor);
+    one_texel = 1.0 / (registers.SourceSize.xy * registers.video_scale);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
