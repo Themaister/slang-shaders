@@ -38,9 +38,6 @@ video_scale = "4.0"
 SCALE = "1.5"
 OUT_X = "4800.0"
 OUT_Y = "2400.0"
-adjacent_texel_alpha_blending = "0.34"
-pixel_opacity = "0.80"
-shadow_opacity = "0.80"
 
 textures = COLOR_PALETTE;BACKGROUND;BORDER
 COLOR_PALETTE = resources/dmg-palette.png

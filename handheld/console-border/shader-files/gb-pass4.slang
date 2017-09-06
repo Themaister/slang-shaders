@@ -126,7 +126,7 @@ layout(set = 0, binding = 4) uniform sampler2D COLOR_PALETTE;
 void main()
 {
     vec2 tex = floor(registers.PassOutputSize1.xy * vTexCoord);
-    tex = (tex ) * registers.PassOutputSize1.zw;
+    tex = (tex + 0.5) * registers.PassOutputSize1.zw;
     
     // Sample all the relevant textures
     vec4 foreground = texture(PassOutput1, tex - screen_offset);
