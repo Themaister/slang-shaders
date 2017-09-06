@@ -92,7 +92,7 @@ void main()
 	vec2 scaled_video_out = (registers.SourceSize.xy * vec2(video_scale_factor));
     // Remaps position to integer scaled output
     gl_Position = global.MVP * Position / vec4( vec2(registers.OutputSize.xy / scaled_video_out), 1.0, 1.0 );   
-    vTexCoord = TexCoord + half_pixel;
+    vTexCoord = TexCoord;// + half_pixel;
     dot_size = registers.SourceSize.zw;
     one_texel = 1.0 / (registers.SourceSize.xy * video_scale_factor);
 }
