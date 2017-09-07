@@ -2,7 +2,7 @@
 
 /*
    
-  *******  Super 8XBR 3D Shader - pass4  *******
+  *******  Super 8XBR 3D Shader - pass5  *******
    
   Copyright (c) 2017 Hyllian - sergiogdb@gmail.com
 
