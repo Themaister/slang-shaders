@@ -37,17 +37,22 @@ layout(push_constant) uniform Push
 	float XBR_EQ_THRESHOLD;
 	float XBR_LV1_COEFFICIENT;
 	float XBR_LV2_COEFFICIENT;
+	float small_details;
 } params;
 
 #pragma parameter XBR_Y_WEIGHT "Y Weight" 48.0 0.0 100.0 1.0
 #pragma parameter XBR_EQ_THRESHOLD "Eq Threshold" 15.0 0.0 50.0 1.0
 #pragma parameter XBR_LV1_COEFFICIENT "Lv1 Coefficient" 0.5 0.0 30.0 0.5
 #pragma parameter XBR_LV2_COEFFICIENT "Lv2 Coefficient" 2.0 1.0 3.0 0.1
+#pragma parameter small_details "Preserve Small Details" 0.0 0.0 1.0 1.0
 
 #define XBR_Y_WEIGHT params.XBR_Y_WEIGHT
 #define XBR_EQ_THRESHOLD params.XBR_EQ_THRESHOLD
 #define XBR_LV1_COEFFICIENT params.XBR_LV1_COEFFICIENT
 #define XBR_LV2_COEFFICIENT params.XBR_LV2_COEFFICIENT
+#define small_details params.small_details
+
+#define mul(a,b) (b*a)
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -87,6 +92,7 @@ const  vec4 By = vec4( 2.0,  0.5, -2.0,-0.5 );
 const  vec4 Cy = vec4( 2.0,  0.0, -1.0, 0.5 );
 const  vec4 Ci = vec4(0.25, 0.25, 0.25, 0.25);
 
+const vec3 Y = vec3(0.2126, 0.7152, 0.0722);
 
 // Difference between vector components.
 vec4 df(vec4 A, vec4 B)
@@ -116,6 +122,11 @@ vec4 neq(vec4 A, vec4 B)
 vec4 wd(vec4 a, vec4 b, vec4 c, vec4 d, vec4 e, vec4 f, vec4 g, vec4 h)
 {
     return (df(a,b) + df(a,c) + df(d,e) + df(d,f) + 4.0*df(g,h));
+}
+
+vec4 weighted_distance(vec4 a, vec4 b, vec4 c, vec4 d, vec4 e, vec4 f, vec4 g, vec4 h, vec4 i, vec4 j, vec4 k, vec4 l)
+{
+	return (df(a,b) + df(a,c) + df(d,e) + df(d,f) + df(i,j) + df(k,l) + 2.0*df(g,h));
 }
 
 float c_df(vec3 c1, vec3 c2)
@@ -204,11 +215,25 @@ void main()
     vec4 g  = c.zwxy;
     vec4 h  = b.zwxy;
     vec4 i  = c.wxyz;
-    vec4 i4 = vec4(dot(I4,rgbw), dot(C1,rgbw), dot(A0,rgbw), dot(G5,rgbw));
-    vec4 i5 = vec4(dot(I5,rgbw), dot(C4,rgbw), dot(A1,rgbw), dot(G0,rgbw));
-    vec4 h5 = vec4(dot(H5,rgbw), dot(F4,rgbw), dot(B1,rgbw), dot(D0,rgbw));
-    vec4 f4 = h5.yzwx;
-
+	
+	vec4 i4, i5, h5, f4;
+	
+	float y_weight = XBR_Y_WEIGHT;
+	
+	if (small_details < 0.5)
+	{
+		i4 = vec4(dot(I4,rgbw), dot(C1,rgbw), dot(A0,rgbw), dot(G5,rgbw));
+		i5 = vec4(dot(I5,rgbw), dot(C4,rgbw), dot(A1,rgbw), dot(G0,rgbw));
+		h5 = vec4(dot(H5,rgbw), dot(F4,rgbw), dot(B1,rgbw), dot(D0,rgbw));
+	}
+	else
+	{
+		i4 = mul( mat4x3(I4, C1, A0, G5), y_weight * Y );
+		i5 = mul( mat4x3(I5, C4, A1, G0), y_weight * Y );
+		h5 = mul( mat4x3(H5, F4, B1, D0), y_weight * Y );
+	}
+	f4 = h5.yzwx;
+	
     // These inequations define the line below which interpolation occurs.
     fx   = (Ao*fp.y+Bo*fp.x);
     fx_l = (Ax*fp.y+Bx*fp.x);
@@ -236,9 +261,18 @@ void main()
     vec4 fx30  = clamp((fx_l + delta_l -Cx     )/(2.0*delta_l), 0.0, 1.0);
     vec4 fx60  = clamp((fx_u + delta_u -Cy     )/(2.0*delta_u), 0.0, 1.0);
 
-    vec4 wd1 = wd( e, c,  g, i, h5, f4, h, f);
-    vec4 wd2 = wd( h, d, i5, f, i4,  b, e, i);
-
+	vec4 wd1, wd2;
+	if (small_details < 0.5)
+	{
+		wd1 = wd( e, c,  g, i, h5, f4, h, f);
+		wd2 = wd( h, d, i5, f, i4,  b, e, i);
+	}
+	else
+	{
+		wd1 = weighted_distance( e, c, g, i, f4, h5, h, f, b, d, i4, i5);
+		wd2 = weighted_distance( h, d, i5, f, b, i4, e, i, g, h5, c, f4);
+	}
+	
     edri  = step(wd1, wd2) * irlv0;
     edr   = step(wd1 + vec4(0.1, 0.1, 0.1, 0.1), wd2) * step(vec4(0.5, 0.5, 0.5, 0.5), irlv1);
     edr_l = step( lv2_cf*df(f,g), df(h,c) ) * irlv2l * edr;
