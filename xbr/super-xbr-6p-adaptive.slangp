@@ -40,5 +40,5 @@ shader6 = "shaders/super-xbr/custom-jinc2-sharper.slang"
 filter_linear6 = false
 
 parameters = "MODE;XBR_EDGE_STR"
-MODE = "1.0"
+MODE = "2.0"
 XBR_EDGE_STR = "2.0"
