@@ -55,7 +55,7 @@ void main()
     
     if (params.combFilter > 0.0)
     {
-        float prev6 = texture(Source, vTexCoord.xy - vec2(6.0 * (params.OutputSize.x * params.SourceSize.x * params.SourceSize.z), 0.0)).r;
+        float prev6 = texture(Source, vTexCoord.xy - vec2(6.0 / (params.OutputSize.x * params.SourceSize.x * params.SourceSize.z), 0.0)).r;
         signal = (current + prev6) * 0.5;
         float chromaSignal = current - signal;
         I = chromaSignal * cos (colorPhase * (2.0 * pi / 12.0)) * 2.0;
