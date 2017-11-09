@@ -95,7 +95,7 @@ vec3 Mask(vec2 pos){
 
 void main()
 {
-vec3 res = texture(Source, vTexCoord).rgb;
+vec3 res = pow(texture(Source, vTexCoord).rgb, vec3(2.2));
 
 float mask = 1.0 - global.DOTMASK_STRENGTH;
 
@@ -110,5 +110,5 @@ if (global.shadowMask == 0) {
 else {
 	res *= Mask(floor(1.000001 * vTexCoord.xy * global.OutputSize.xy + vec2(0.5)));
 	}
-   FragColor = vec4(res, 1.0);
+   FragColor = vec4(pow(res, vec3(1.0/2.2)), 1.0);
 }
