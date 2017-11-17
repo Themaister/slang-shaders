@@ -97,14 +97,14 @@ float df(float A, float B)
 
 #define GET_PIXEL(PARAM, PIXEL)\
 	info = PARAM;\
-	ay.z = round(  modf( info/2.0, info )  );\
-	ay.y = round(  modf( info/2.0, info )  );\
-	ay.x = round(  modf( info/2.0, info )  );\
-	ax.z = round(  modf( info/2.0, info )  );\
-	ax.y = round(  modf( info/2.0, info )  );\
+	ay.z = round(  modf( info/1.9999, info )  );\
+	ay.y = round(  modf( info/1.9999, info )  );\
+	ay.x = round(  modf( info/1.9999, info )  );\
+	ax.z = round(  modf( info/1.9999, info )  );\
+	ax.y = round(  modf( info/1.9999, info )  );\
 	ax.x = round(  info  );\
-	iq.x = dot( ax, bin ) - 2.0;\
-	iq.y = dot( ay, bin ) - 2.0;\
+	iq.x = dot( ax, bin ) - 1.9999;\
+	iq.y = dot( ay, bin ) - 1.9999;\
 	PIXEL = texture( REF, vTexCoord + iq.x*t1.xy + iq.y*t1.zw ).xyz;\
 
 #pragma stage vertex
@@ -117,7 +117,7 @@ layout(location = 2) out float scale_factor;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord * 1.0004;
+   vTexCoord = TexCoord * vec2(1.0004, 0.9995);
 	float2 ps = float2(1.0/params.REFSize.x, 1.0/params.REFSize.y);
 	float dx = ps.x;
 	float dy = ps.y;
