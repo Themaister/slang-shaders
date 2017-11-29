@@ -30,8 +30,8 @@
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "../include/gamma-management.h"
-#include "../include/blur-functions.h"
+//#include "../include/gamma-management.h"
+//#include "../include/blur-functions.h"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;

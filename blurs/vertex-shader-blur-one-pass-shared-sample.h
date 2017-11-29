@@ -32,20 +32,20 @@
 
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "../include/gamma-management.h"
-#include "../include/blur-functions.h"
+//#include "../include/gamma-management.h"
+//#include "../include/blur-functions.h"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
 layout(location = 1) in vec2 TexCoord;
-layout(location = 0) out vec2 tex_uv;
+layout(location = 0) out vec4 tex_uv;
 layout(location = 1) out vec4 output_pixel_num;
 layout(location = 2) out vec2 blur_dxdy;
 
 void main()
 {
    gl_Position = global.MVP * Position;
-   tex_uv = TexCoord;
+   vec2 tex_uv_ = TexCoord;
 
 	//  Get the uv sample distance between output pixels.  Blurs are not generic
     //  Gaussian resizers, and correct blurs require:
@@ -57,21 +57,21 @@ void main()
     //  (not output pixels), but we avoid this and consistently blur at the
     //  destination size.  Otherwise, combining statically calculated weights
     //  with bilinear sample exploitation would result in terrible artifacts.
-    const vec2 dxdy_scale params.SourceSize.xy * params.OutputSize.zw;
+    const vec2 dxdy_scale = params.SourceSize.xy * params.OutputSize.zw;
     blur_dxdy = dxdy_scale * params.SourceSize.zw;
 
     //  Get the output pixel number in ([0, xres), [0, yres)) with respect to
     //  the uv origin (.xy components) and the screen origin (.zw components).
     //  Both are useful.  Don't round until the fragment shader.
-    const float2 video_uv = tex_uv;
+    const float2 video_uv = tex_uv_;
     output_pixel_num.xy = params.OutputSize.xy * vec2(video_uv.x, video_uv.y);
     output_pixel_num.zw = params.OutputSize.xy *
-        (out_position.xy * 0.5 + vec2(0.5));
+        (gl_Position.xy * 0.5 + vec2(0.5));
 
     //  Set the mip level correctly for shared-sample blurs (where the
     //  derivatives are unreliable):
     const float mip_level = log2(params.SourceSize.xy * params.OutputSize.zw).y;
-    tex_uv = vec4(tex_uv, 0.0, mip_level);
+    tex_uv = vec4(tex_uv_, 0.0, mip_level);
 }
 
 #endif  //  VERTEX_SHADER_BLUR_ONE_PASS_SHARED_SAMPLE_H

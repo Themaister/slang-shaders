@@ -37,14 +37,13 @@
 ///////////////////////////////  BLOOM CONSTANTS  //////////////////////////////
 
 //  Compute constants with manual inlines of the functions below:
-const float bloom_diff_thresh = 1.0/256.0;
+static const float bloom_diff_thresh = 1.0/256.0;
 
-//  Assume an extremely large viewport size for asymptotic results:
-const float max_viewport_size_x = 1080.0*1024.0*(4.0/3.0);
+
 
 ///////////////////////////////////  HELPERS  //////////////////////////////////
 
-float get_min_sigma_to_blur_triad(const float triad_size,
+inline float get_min_sigma_to_blur_triad(const float triad_size,
     const float thresh)
 {
     //  Requires:   1.) triad_size is the final phosphor triad size in pixels
@@ -60,7 +59,7 @@ float get_min_sigma_to_blur_triad(const float triad_size,
     //return 0.5985*triad_size - triad_size*sqrt(thresh)
 }
 
-float get_absolute_scale_blur_sigma(const float thresh)
+inline float get_absolute_scale_blur_sigma(const float thresh)
 {
     //  Requires:   1.) min_expected_triads must be a global float.  The number
     //                  of horizontal phosphor triads in the final image must be
@@ -93,7 +92,7 @@ float get_absolute_scale_blur_sigma(const float thresh)
             max_viewport_size_x/min_allowed_viewport_triads.x, thresh);
 }
 
-float get_center_weight(const float sigma)
+inline float get_center_weight(const float sigma)
 {
     //  Given a Gaussian blur sigma, get the blur weight for the center texel.
     #ifdef RUNTIME_PHOSPHOR_BLOOM_SIGMA
@@ -161,8 +160,8 @@ float get_center_weight(const float sigma)
     #endif
 }
 
-vec3 tex2DblurNfast(const sampler2D tex, const vec2 tex_uv,
-    const vec2 dxdy, const float sigma)
+inline float3 tex2DblurNfast(const sampler2D texture, const float2 tex_uv,
+    const float2 dxdy, const float sigma)
 {
     //  If sigma is static, we can safely branch and use the smallest blur
     //  that's big enough.  Ignore #define hints, because we'll only use a
@@ -186,40 +185,40 @@ vec3 tex2DblurNfast(const sampler2D tex, const vec2 tex_uv,
     #ifdef PHOSPHOR_BLOOM_BRANCH_FOR_BLUR_SIZE
         if(sigma <= blur9_std_dev)
         {
-            return tex2Dblur9fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur9fast(texture, tex_uv, dxdy, sigma);
         }
         else if(sigma <= blur17_std_dev)
         {
-            return tex2Dblur17fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur17fast(texture, tex_uv, dxdy, sigma);
         }
         else if(sigma <= blur25_std_dev)
         {
-            return tex2Dblur25fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur25fast(texture, tex_uv, dxdy, sigma);
         }
         else if(sigma <= blur31_std_dev)
         {
-            return tex2Dblur31fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur31fast(texture, tex_uv, dxdy, sigma);
         }
         else
         {
-            return tex2Dblur43fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur43fast(texture, tex_uv, dxdy, sigma);
         }
     #else
         //  If we can't afford to branch, we can only guess at what blur
         //  size we need.  Therefore, use the largest blur allowed.
         #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_12_PIXELS
-            return tex2Dblur43fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur43fast(texture, tex_uv, dxdy, sigma);
         #else
         #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_9_PIXELS
-            return tex2Dblur31fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur31fast(texture, tex_uv, dxdy, sigma);
         #else
         #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_6_PIXELS
-            return tex2Dblur25fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur25fast(texture, tex_uv, dxdy, sigma);
         #else
         #ifdef PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_3_PIXELS
-            return tex2Dblur17fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur17fast(texture, tex_uv, dxdy, sigma);
         #else
-            return tex2Dblur9fast(tex, tex_uv, dxdy, sigma);
+            return tex2Dblur9fast(texture, tex_uv, dxdy, sigma);
         #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_3_PIXELS
         #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_6_PIXELS
         #endif  //  PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_9_PIXELS
@@ -227,7 +226,7 @@ vec3 tex2DblurNfast(const sampler2D tex, const vec2 tex_uv,
     #endif  //  PHOSPHOR_BLOOM_BRANCH_FOR_BLUR_SIZE
 }
 
-float get_bloom_approx_sigma(const float output_size_x_runtime,
+inline float get_bloom_approx_sigma(const float output_size_x_runtime,
     const float estimated_viewport_size_x)
 {
     //  Requires:   1.) output_size_x_runtime == BLOOM_APPROX.output_size.x.
@@ -243,15 +242,15 @@ float get_bloom_approx_sigma(const float output_size_x_runtime,
     //              bilinear filtering, so use static calculations.
     //  Assume the default static value.  This is a compromise that ensures
     //  typical triads are blurred, even if unusually large ones aren't.
-    const float mask_num_triads_static =
+    static const float mask_num_triads_static =
         max(min_allowed_viewport_triads.x, mask_num_triads_desired_static);
     const float mask_num_triads_from_size =
-        estimated_viewport_size_x/params.mask_triad_size_desired;
+        estimated_viewport_size_x/global.mask_triad_size_desired;
     const float mask_num_triads_runtime = max(min_allowed_viewport_triads.x,
-        mix(mask_num_triads_from_size, params.mask_num_triads_desired,
-            mask_specify_num_triads));
+        lerp(mask_num_triads_from_size, global.mask_num_triads_desired,
+            global.mask_specify_num_triads));
     //  Assume an extremely large viewport size for asymptotic results:
-     const float max_viewport_size_x = 1080.0*1024.0*(4.0/3.0);
+    static const float max_viewport_size_x = 1080.0*1024.0*(4.0/3.0);
     if(bloom_approx_filter > 1.5)   //  4x4 true Gaussian resize
     {
         //  Use the runtime num triads and output size:
@@ -264,7 +263,7 @@ float get_bloom_approx_sigma(const float output_size_x_runtime,
         //  The BLOOM_APPROX input has to be ORIG_LINEARIZED to avoid moire, but
         //  account for the Gaussian scanline sigma from the last pass too.
         //  The bloom will be too wide horizontally but tall enough vertically.
-        return length(vec2(bloom_approx_sigma, beam_max_sigma));
+        return length(float2(bloom_approx_sigma, beam_max_sigma));
     }
     else    //  3x3 blur resize (the bilinear resize doesn't need a sigma)
     {
@@ -272,12 +271,12 @@ float get_bloom_approx_sigma(const float output_size_x_runtime,
         //  reason to choose blur3x3 is to avoid dynamic weights, so use a
         //  static calculation.
         #ifdef PHOSPHOR_BLOOM_FAKE
-            const float output_size_x_static =
+            static const float output_size_x_static =
                 bloom_approx_size_x_for_fake;
         #else
-            const float output_size_x_static = bloom_approx_size_x;
+            static const float output_size_x_static = bloom_approx_size_x;
         #endif
-        const float asymptotic_triad_size =
+        static const float asymptotic_triad_size =
             max_viewport_size_x/mask_num_triads_static;
         const float asymptotic_sigma = get_min_sigma_to_blur_triad(
             asymptotic_triad_size, bloom_diff_thresh);
@@ -286,11 +285,11 @@ float get_bloom_approx_sigma(const float output_size_x_runtime,
         //  The BLOOM_APPROX input has to be ORIG_LINEARIZED to avoid moire, but
         //  try accounting for the Gaussian scanline sigma from the last pass
         //  too; use the static default value:
-        return length(vec2(bloom_approx_sigma, beam_max_sigma_static));
+        return length(float2(bloom_approx_sigma, beam_max_sigma_static));
     }
 }
 
-float get_final_bloom_sigma(const float bloom_sigma_runtime)
+inline float get_final_bloom_sigma(const float bloom_sigma_runtime)
 {
     //  Requires:   1.) bloom_sigma_runtime is a precalculated sigma that's
     //                  optimal for the [known] triad size.
@@ -303,7 +302,7 @@ float get_final_bloom_sigma(const float bloom_sigma_runtime)
     //  Notes:      Call this from the fragment shader, NOT the vertex shader,
     //              so static sigmas can be constant-folded!
     const float bloom_sigma_optimistic = get_min_sigma_to_blur_triad(
-        params.mask_triad_size_desired, bloom_diff_thresh);
+        mask_triad_size_desired_static, bloom_diff_thresh);
     #ifdef RUNTIME_PHOSPHOR_BLOOM_SIGMA
         return bloom_sigma_runtime;
     #else
@@ -313,4 +312,6 @@ float get_final_bloom_sigma(const float bloom_sigma_runtime)
     #endif
 }
 
+
 #endif  //  BLOOM_FUNCTIONS_H
+

@@ -23,17 +23,10 @@
 //  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 //  IN THE SOFTWARE.
 
-
-/////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
-
-//  PASS SETTINGS:
-//  Pass settings should be set by the shader file that #includes this one.
-
-
 //////////////////////////////////  INCLUDES  //////////////////////////////////
 
-#include "../include/gamma-management.h"
-#include "../include/blur-functions.h"
+//#include "../include/gamma-management.h"
+//#include "../include/blur-functions.h"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -55,10 +48,10 @@ void main()
     //  (not output pixels), but we avoid this and consistently blur at the
     //  destination size.  Otherwise, combining statically calculated weights
     //  with bilinear sample exploitation would result in terrible artifacts.   
-    const vec2 dxdy_scale = params.SourceSize.xy * params.OutputSize.zw;
-	const vec2 dxdy = dxdy_scale * params.SourceSize.zw;
+    const float2 dxdy_scale = IN.video_size/IN.output_size;
+	const float2 dxdy = dxdy_scale/IN.texture_size;
     //  This blur is vertical-only, so zero out the horizontal offset:
-	blur_dxdy = vec2(0.0, dxdy.y);
+	blur_dxdy = float2(0.0, dxdy.y);
 }
 
 #endif  //  VERTEX_SHADER_BLUR_FAST_VERTICAL_H

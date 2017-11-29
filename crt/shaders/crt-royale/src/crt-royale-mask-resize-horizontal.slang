@@ -1,15 +1,5 @@
 #version 450
 
-layout(push_constant) uniform Push
-{
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
-} registers;
-
-#include "params.inc"
-
 /////////////////////////////  GPL LICENSE NOTICE  /////////////////////////////
 
 //  crt-royale: A full-featured CRT shader, with cheese.
@@ -28,9 +18,68 @@ layout(push_constant) uniform Push
 //  this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 //  Place, Suite 330, Boston, MA 02111-1307 USA
 
+layout(push_constant) uniform Push
+{
+	vec4 SourceSize;
+	vec4 OriginalSize;
+	vec4 OutputSize;
+	uint FrameCount;
+} params;
+
+layout(std140, set = 0, binding = 0) uniform UBO
+{
+	mat4 MVP;
+	float crt_gamma;
+	float lcd_gamma;
+	float levels_contrast;
+	float halation_weight;
+	float diffusion_weight;
+	float bloom_underestimate_levels;
+	float bloom_excess;
+	float beam_min_sigma;
+	float beam_max_sigma;
+	float beam_spot_power;
+	float beam_min_shape;
+	float beam_max_shape;
+	float beam_shape_power;
+	float beam_horiz_filter;
+	float beam_horiz_sigma;
+	float beam_horiz_linear_rgb_weight;
+	float convergence_offset_x_r;
+	float convergence_offset_x_g;
+	float convergence_offset_x_b;
+	float convergence_offset_y_r;
+	float convergence_offset_y_g;
+	float convergence_offset_y_b;
+	float mask_type;
+	float mask_sample_mode_desired;
+	float mask_num_triads_desired;
+	float mask_triad_size_desired;
+	float mask_specify_num_triads;
+	float aa_subpixel_r_offset_x_runtime;
+	float aa_subpixel_r_offset_y_runtime;
+	float aa_cubic_c;
+	float aa_gauss_sigma;
+	float geom_mode_runtime;
+	float geom_radius;
+	float geom_view_dist;
+	float geom_tilt_angle_x;
+	float geom_tilt_angle_y;
+	float geom_aspect_ratio_x;
+	float geom_aspect_ratio_y;
+	float geom_overscan_x;
+	float geom_overscan_y;
+	float border_size;
+	float border_darkness;
+	float border_compress;
+	float interlace_bff;
+	float interlace_1080i;
+} global;
 
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
+#include "params.inc"
+#include "../../../../include/compat_macros.inc"
 #include "../user-settings.h"
 #include "derived-settings-and-constants.h"
 #include "bind-shader-params.h"
@@ -49,42 +98,45 @@ layout(location = 2) out vec2 resize_magnification_scale;
 layout(location = 3) out vec2 src_dxdy;
 layout(location = 4) out vec2 tile_size_uv;
 layout(location = 5) out vec2 input_tiles_per_texture;
-layout(location = 6) out vec2 tex_uv;
 
 void main()
 {
-   gl_Position = params.MVP * Position;
-   tex_uv = TexCoord;
-   
-    //  First estimate the viewport size (the user will get the wrong number of
+   gl_Position = global.MVP * Position;
+   float2 tex_uv = TexCoord.xy;
+	//  First estimate the viewport size (the user will get the wrong number of
     //  triads if it's wrong and mask_specify_num_triads is 1.0/true).
-	const vec2 estimated_viewport_size =
-        registers.OutputSize.xy / mask_resize_viewport_scale;
-	//  Find the final size of our resized phosphor mask tiles.  We probably
+    const float2 estimated_viewport_size =
+        IN.output_size / mask_resize_viewport_scale;
+    //  Find the final size of our resized phosphor mask tiles.  We probably
     //  estimated the viewport size and MASK_RESIZE output size differently last
     //  pass, so do not swear they were the same. ;)
-	const vec2 mask_resize_tile_size = get_resized_mask_tile_size(
-        estimated_viewport_size, registers.OutputSize.xy, false);
-		
-	//  We'll render resized tiles until filling the output FBO or meeting a
+    const float2 mask_resize_tile_size = get_resized_mask_tile_size(
+        estimated_viewport_size, IN.output_size, false);
+
+    //  We'll render resized tiles until filling the output FBO or meeting a
     //  limit, so compute [wrapped] tile uv coords based on the output uv coords
     //  and the number of tiles that will fit in the FBO.
-    const vec2 output_tiles_this_pass = registers.OutputSize.xy / mask_resize_tile_size;
-    const vec2 output_video_uv = tex_uv;
-    tile_uv_wrap = output_video_uv * output_tiles_this_pass;
-	
-	//  Get the texel size of an input tile and related values:
-    const vec2 input_tile_size = vec2(min(
-        mask_resize_src_lut_size.x, registers.SourceSize.x), mask_resize_tile_size.y);
-    tile_size_uv = input_tile_size * registers.SourceSize.zw;
-    input_tiles_per_texture = registers.SourceSize.xy / input_tile_size;
-	
-	//  Derive [wrapped] texture uv coords from [wrapped] tile uv coords and
+    const float2 output_tiles_this_pass = IN.output_size / mask_resize_tile_size;
+    const float2 output_video_uv = tex_uv * IN.texture_size / IN.video_size;
+    const float2 tile_uv_wrap = output_video_uv * output_tiles_this_pass;
+
+    //  Get the texel size of an input tile and related values:
+    const float2 input_tile_size = float2(min(
+        mask_resize_src_lut_size.x, IN.video_size.x), mask_resize_tile_size.y);
+    tile_size_uv = input_tile_size / IN.texture_size;
+    input_tiles_per_texture = IN.texture_size / input_tile_size;
+
+    //  Derive [wrapped] texture uv coords from [wrapped] tile uv coords and
     //  the tile size in uv coords, and save frac() for the fragment shader.
     src_tex_uv_wrap = tile_uv_wrap * tile_size_uv;
-	
-	resize_magnification_scale = mask_resize_tile_size / input_tile_size;
-    src_dxdy = vec2(registers.SourceSize.z, 0.0);
+
+    //  Output the values we need, including the magnification scale and step:
+    //tile_uv_wrap = tile_uv_wrap;
+    //src_tex_uv_wrap = src_tex_uv_wrap;
+    resize_magnification_scale = mask_resize_tile_size / input_tile_size;
+    src_dxdy = float2(1.0/IN.texture_size.x, 0.0);
+    //tile_size_uv = tile_size_uv;
+    //input_tiles_per_texture = input_tiles_per_texture;
 }
 
 #pragma stage fragment
@@ -94,9 +146,9 @@ layout(location = 2) in vec2 resize_magnification_scale;
 layout(location = 3) in vec2 src_dxdy;
 layout(location = 4) in vec2 tile_size_uv;
 layout(location = 5) in vec2 input_tiles_per_texture;
-layout(location = 6) in vec2 tex_uv;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
+#define input_texture Source
 
 void main()
 {
@@ -108,17 +160,17 @@ void main()
     //  easier tiled sampling later.
     #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
         //  Discard unneeded fragments in case our profile allows real branches.
-//        const vec2 tile_uv_wrap = tile_uv_wrap;
-        if(params.mask_sample_mode_desired < 0.5 &&
+        const float2 tile_uv_wrap = tile_uv_wrap;
+        if(get_mask_sample_mode() < 0.5 &&
             max(tile_uv_wrap.x, tile_uv_wrap.y) <= mask_resize_num_tiles)
         {
             const float src_dx = src_dxdy.x;
-            const vec2 src_tex_uv = fract(src_tex_uv_wrap);
-            const vec3 pixel_color = downsample_horizontal_sinc_tiled(Source,
-                src_tex_uv, registers.SourceSize.xy, src_dxdy.x,
+            const float2 src_tex_uv = frac(src_tex_uv_wrap);
+            const float3 pixel_color = downsample_horizontal_sinc_tiled(input_texture,
+                src_tex_uv, IN.texture_size, src_dxdy.x,
                 resize_magnification_scale.x, tile_size_uv.x);
             //  The input LUT was linear RGB, and so is our output:
-            FragColor = vec4(pixel_color, 1.0);
+            FragColor = float4(pixel_color, 1.0);
         }
         else
         {
@@ -126,6 +178,6 @@ void main()
         }
     #else
         discard;
-        FragColor = vec4(1.0);
+        FragColor = float4(1.0);
     #endif
 }

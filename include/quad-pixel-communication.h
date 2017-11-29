@@ -47,7 +47,7 @@
 
 /////////////////////  QUAD-PIXEL COMMUNICATION PRIMITIVES  ////////////////////
 
-vec4 get_quad_vector_naive(const vec4 output_pixel_num_wrt_uvxy)
+float4 get_quad_vector_naive(const float4 output_pixel_num_wrt_uvxy)
 {
     //  Requires:   Two measures of the current fragment's output pixel number
     //              in the range ([0, IN.output_size.x), [0, IN.output_size.y)):
@@ -62,33 +62,33 @@ vec4 get_quad_vector_naive(const vec4 output_pixel_num_wrt_uvxy)
     //              2.) The .zw components are its 2x2 placement with respect to
     //                  screen xy direction (IN.position); the origin varies.
     //                  quad_gather needs this measure to work correctly.
-    //              Note: quad_vector.zw = quad_vector.xy * vec2(
+    //              Note: quad_vector.zw = quad_vector.xy * float2(
     //                      ddx(output_pixel_num_wrt_uvxy.x),
     //                      ddy(output_pixel_num_wrt_uvxy.y));
     //  Caveats:    This function assumes the GPU driver always starts 2x2 pixel
     //              quads at even pixel numbers.  This assumption can be wrong
     //              for odd output resolutions (nondeterministically so).
-    const vec4 pixel_odd = frac(output_pixel_num_wrt_uvxy * 0.5) * 2.0;
-    const vec4 quad_vector = pixel_odd * 2.0 - vec4(1.0);
+    const float4 pixel_odd = frac(output_pixel_num_wrt_uvxy * 0.5) * 2.0;
+    const float4 quad_vector = pixel_odd * 2.0 - float4(1.0);
     return quad_vector;
 }
 
-vec4 get_quad_vector(const vec4 output_pixel_num_wrt_uvxy)
+float4 get_quad_vector(const float4 output_pixel_num_wrt_uvxy)
 {
     //  Requires:   Same as get_quad_vector_naive() (see that first).
     //  Returns:    Same as get_quad_vector_naive() (see that first), but it's
     //              correct even if the 2x2 pixel quad starts at an odd pixel,
     //              which can occur at odd resolutions.
-    const vec4 quad_vector_guess =
+    const float4 quad_vector_guess =
         get_quad_vector_naive(output_pixel_num_wrt_uvxy);
     //  If quad_vector_guess.zw doesn't increase with screen xy, we know
     //  the 2x2 pixel quad starts at an odd pixel:
-    const vec2 odd_start_mirror = 0.5 * vec2(ddx(quad_vector_guess.z),
+    const float2 odd_start_mirror = 0.5 * float2(ddx(quad_vector_guess.z),
                                                 ddy(quad_vector_guess.w));
     return quad_vector_guess * odd_start_mirror.xyxy;
 }
 
-vec4 get_quad_vector(const vec2 output_pixel_num_wrt_uv)
+float4 get_quad_vector(const float2 output_pixel_num_wrt_uv)
 {
     //  Requires:   1.) ddx() and ddy() are present in the current Cg profile.
     //              2.) output_pixel_num_wrt_uv must increase with uv coords and
@@ -98,25 +98,25 @@ vec4 get_quad_vector(const vec2 output_pixel_num_wrt_uv)
     //              correct even if the 2x2 pixel quad starts at an odd pixel,
     //              which can occur at odd resolutions.
     //  Caveats:    This function requires less information than the version
-    //              taking a vec4, but it's potentially slower.
+    //              taking a float4, but it's potentially slower.
     //  Do screen coords increase with or against uv?  Get the direction
     //  with respect to (uv.x, uv.y) for (screen.x, screen.y) in {-1, 1}.
-    const vec2 screen_uv_mirror = vec2(ddx(output_pixel_num_wrt_uv.x),
+    const float2 screen_uv_mirror = float2(ddx(output_pixel_num_wrt_uv.x),
                                         ddy(output_pixel_num_wrt_uv.y));
-    const vec2 pixel_odd_wrt_uv = frac(output_pixel_num_wrt_uv * 0.5) * 2.0;
-    const vec2 quad_vector_uv_guess = (pixel_odd_wrt_uv - vec2(0.5)) * 2.0;
-    const vec2 quad_vector_screen_guess = quad_vector_uv_guess * screen_uv_mirror;
+    const float2 pixel_odd_wrt_uv = frac(output_pixel_num_wrt_uv * 0.5) * 2.0;
+    const float2 quad_vector_uv_guess = (pixel_odd_wrt_uv - float2(0.5)) * 2.0;
+    const float2 quad_vector_screen_guess = quad_vector_uv_guess * screen_uv_mirror;
     //  If quad_vector_screen_guess doesn't increase with screen xy, we know
     //  the 2x2 pixel quad starts at an odd pixel:
-    const vec2 odd_start_mirror = 0.5 * vec2(ddx(quad_vector_screen_guess.x),
+    const float2 odd_start_mirror = 0.5 * float2(ddx(quad_vector_screen_guess.x),
                                                 ddy(quad_vector_screen_guess.y));
-    const vec4 quad_vector_guess = vec4(
+    const float4 quad_vector_guess = float4(
         quad_vector_uv_guess, quad_vector_screen_guess);
     return quad_vector_guess * odd_start_mirror.xyxy;
 }
 
-void quad_gather(const vec4 quad_vector, const vec4 curr,
-    out vec4 adjx, out vec4 adjy, out vec4 diag)
+void quad_gather(const float4 quad_vector, const float4 curr,
+    out float4 adjx, out float4 adjy, out float4 diag)
 {
     //  Requires:   1.) ddx() and ddy() are present in the current Cg profile.
     //              2.) The GPU driver is using fine/high-quality derivatives.
@@ -130,70 +130,70 @@ void quad_gather(const vec4 quad_vector, const vec4 curr,
     diag = adjx - ddy(adjx) * quad_vector.w;
 }
 
-void quad_gather(const vec4 quad_vector, const vec3 curr,
-    out vec3 adjx, out vec3 adjy, out vec3 diag)
+void quad_gather(const float4 quad_vector, const float3 curr,
+    out float3 adjx, out float3 adjy, out float3 diag)
 {
-    //  vec3 version
+    //  Float3 version
     adjx = curr - ddx(curr) * quad_vector.z;
     adjy = curr - ddy(curr) * quad_vector.w;
     diag = adjx - ddy(adjx) * quad_vector.w;
 }
 
-void quad_gather(const vec4 quad_vector, const vec2 curr,
-    out vec2 adjx, out vec2 adjy, out vec2 diag)
+void quad_gather(const float4 quad_vector, const float2 curr,
+    out float2 adjx, out float2 adjy, out float2 diag)
 {
-    //  vec2 version
+    //  Float2 version
     adjx = curr - ddx(curr) * quad_vector.z;
     adjy = curr - ddy(curr) * quad_vector.w;
     diag = adjx - ddy(adjx) * quad_vector.w;
 }
 
-vec4 quad_gather(const vec4 quad_vector, const float curr)
+float4 quad_gather(const float4 quad_vector, const float curr)
 {
     //  Float version:
     //  Returns:    return.x == current
     //              return.y == adjacent x
     //              return.z == adjacent y
     //              return.w == diagonal
-    vec4 all = vec4(curr);
+    float4 all = float4(curr);
     all.y = all.x - ddx(all.x) * quad_vector.z;
     all.zw = all.xy - ddy(all.xy) * quad_vector.w;
     return all;
 }
 
-vec4 quad_gather_sum(const vec4 quad_vector, const vec4 curr)
+float4 quad_gather_sum(const float4 quad_vector, const float4 curr)
 {
     //  Requires:   Same as quad_gather()
     //  Returns:    Sum of an input vector (curr) at all fragments in a quad.
-    vec4 adjx, adjy, diag;
+    float4 adjx, adjy, diag;
     quad_gather(quad_vector, curr, adjx, adjy, diag);
     return (curr + adjx + adjy + diag);
 }
 
-vec3 quad_gather_sum(const vec4 quad_vector, const vec3 curr)
+float3 quad_gather_sum(const float4 quad_vector, const float3 curr)
 {
-    //  vec3 version:
-    vec3 adjx, adjy, diag;
+    //  Float3 version:
+    float3 adjx, adjy, diag;
     quad_gather(quad_vector, curr, adjx, adjy, diag);
     return (curr + adjx + adjy + diag);
 }
 
-vec2 quad_gather_sum(const vec4 quad_vector, const vec2 curr)
+float2 quad_gather_sum(const float4 quad_vector, const float2 curr)
 {
-    //  vec2 version:
-    vec2 adjx, adjy, diag;
+    //  Float2 version:
+    float2 adjx, adjy, diag;
     quad_gather(quad_vector, curr, adjx, adjy, diag);
     return (curr + adjx + adjy + diag);
 }
 
-float quad_gather_sum(const vec4 quad_vector, const float curr)
+float quad_gather_sum(const float4 quad_vector, const float curr)
 {
     //  Float version:
-    const vec4 all_values = quad_gather(quad_vector, curr);
+    const float4 all_values = quad_gather(quad_vector, curr);
     return (all_values.x + all_values.y + all_values.z + all_values.w);
 }
 
-bool fine_derivatives_working(const vec4 quad_vector, vec4 curr)
+bool fine_derivatives_working(const float4 quad_vector, float4 curr)
 {
     //  Requires:   1.) ddx() and ddy() are present in the current Cg profile.
     //              2.) quad_vector describes the current fragment's location in
@@ -206,19 +206,19 @@ bool fine_derivatives_working(const vec4 quad_vector, vec4 curr)
     //  Method:     We can confirm fine derivatives are used if the following
     //              holds (ever, for any value at any fragment):
     //                  (ddy(curr) != ddy(adjx)) or (ddx(curr) != ddx(adjy))
-    //              The more values we test (e.g. test a vec4 two ways), the
+    //              The more values we test (e.g. test a float4 two ways), the
     //              easier it is to demonstrate fine derivatives are working.
     //  TODO: Check for floating point exact comparison issues!
-    vec4 ddx_curr = ddx(curr);
-    vec4 ddy_curr = ddy(curr);
-    vec4 adjx = curr - ddx_curr * quad_vector.z;
-    vec4 adjy = curr - ddy_curr * quad_vector.w;
-    bool ddy_different = any(ddy_curr != ddy(adjx));
-    bool ddx_different = any(ddx_curr != ddx(adjy));
+    float4 ddx_curr = ddx(curr);
+    float4 ddy_curr = ddy(curr);
+    float4 adjx = curr - ddx_curr * quad_vector.z;
+    float4 adjy = curr - ddy_curr * quad_vector.w;
+    bool ddy_different = any(bool4(ddy_curr.x != ddy(adjx).x, ddy_curr.y != ddy(adjx).y, ddy_curr.z != ddy(adjx).z, ddy_curr.w != ddy(adjx).w));
+    bool ddx_different = any(bool4(ddx_curr.x != ddx(adjy).x, ddx_curr.y != ddx(adjy).y, ddx_curr.z != ddx(adjy).z, ddx_curr.w != ddx(adjy).w));
     return any(bool2(ddy_different, ddx_different));
 }
 
-bool fine_derivatives_working_fast(const vec4 quad_vector, float curr)
+bool fine_derivatives_working_fast(const float4 quad_vector, float curr)
 {
     //  Requires:   Same as fine_derivatives_working()
     //  Returns:    Same as fine_derivatives_working()

@@ -50,15 +50,11 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //#define SIMULATE_LCD_ON_CRT
 //#define SIMULATE_GBA_ON_CRT
 
+///////////////////////////////  VERTEX INCLUDES  ///////////////////////////////
 
-//////////////////////////////////  INCLUDES  //////////////////////////////////
-
-//  #included by vertex shader:
-#include "../include/gamma-management.h"
-#include "../include/blur-functions.h"
-
+#include "../include/compat_macros.inc"
 #pragma stage vertex
-#include "vertex-shader-blur-one-pass-resize.h"
+#include "vertex-shader-blur-one-pass.h"
 
 ///////////////////////////////  FRAGMENT SHADER  //////////////////////////////
 
@@ -67,10 +63,15 @@ layout(location = 0) in vec2 tex_uv;
 layout(location = 1) in vec2 blur_dxdy;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
+#define input_texture Source
+
+/////////////////////////////  FRAGMENT INCLUDES  /////////////////////////////
+#include "../include/gamma-management.h"
+#include "../include/blur-functions.h"
 
 void main()
 {
-	vec3 color = tex2Dblur3x3resize(Source, tex_uv, blur_dxdy);
+	vec3 color = tex2Dblur3x3(Source, tex_uv, blur_dxdy);
     //  Encode and output the blurred image:
    FragColor = encode_output(vec4(color, 1.0));
 }

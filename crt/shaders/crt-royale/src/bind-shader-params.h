@@ -27,7 +27,7 @@
 
 //  Override some parameters for gamma-management.h and tex2Dantialias.h:
 #define OVERRIDE_DEVICE_GAMMA
-const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
+static const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
 #define ANTIALIAS_OVERRIDE_BASICS
 #define ANTIALIAS_OVERRIDE_PARAMETERS
 
@@ -38,8 +38,9 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
 #endif
 
 //  Bind option names to shader parameter uniforms or static constants.
+#ifdef HARDCODE_SETTINGS
 #ifdef PARAMETER_UNIFORM
-/*    uniform float crt_gamma;
+    uniform float crt_gamma;
     uniform float lcd_gamma;
     uniform float levels_contrast;
     uniform float halation_weight;
@@ -57,8 +58,8 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
         uniform float beam_horiz_filter;
         uniform float beam_horiz_linear_rgb_weight;
     #else
-        const float beam_horiz_filter = clamp(beam_horiz_filter_static, 0.0, 2.0);
-        const float beam_horiz_linear_rgb_weight = clamp(beam_horiz_linear_rgb_weight_static, 0.0, 1.0);
+        static const float beam_horiz_filter = clamp(beam_horiz_filter_static, 0.0, 2.0);
+        static const float beam_horiz_linear_rgb_weight = clamp(beam_horiz_linear_rgb_weight_static, 0.0, 1.0);
     #endif
     uniform float convergence_offset_x_r;
     uniform float convergence_offset_x_g;
@@ -69,7 +70,7 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
     #ifdef RUNTIME_PHOSPHOR_MASK_MODE_TYPE_SELECT
         uniform float mask_type;
     #else
-        const float mask_type = clamp(mask_type_static, 0.0, 2.0);
+        static const float mask_type = clamp(mask_type_static, 0.0, 2.0);
     #endif
     uniform float mask_sample_mode_desired;
     uniform float mask_specify_num_triads;
@@ -81,8 +82,8 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
         uniform float aa_cubic_c;
         uniform float aa_gauss_sigma;
     #else
-        const float aa_cubic_c = aa_cubic_c_static;                              //  Clamp to [0, 4]?
-        const float aa_gauss_sigma = max(FIX_ZERO(0.0), aa_gauss_sigma_static);  //  Clamp to [FIXZERO(0), 1]?
+        static const float aa_cubic_c = aa_cubic_c_static;                              //  Clamp to [0, 4]?
+        static const float aa_gauss_sigma = max(FIX_ZERO(0.0), aa_gauss_sigma_static);  //  Clamp to [FIXZERO(0), 1]?
     #endif
     uniform float geom_mode_runtime;
     uniform float geom_radius;
@@ -97,113 +98,114 @@ const float gba_gamma = 3.5; //  Irrelevant but necessary to define.
     uniform float border_darkness;
     uniform float border_compress;
     uniform float interlace_bff;
-    uniform float interlace_1080i; */
+    uniform float interlace_1080i;
 #else
     //  Use constants from user-settings.h, and limit ranges appropriately:
-    const float crt_gamma = max(0.0, crt_gamma_static);
-    const float lcd_gamma = max(0.0, lcd_gamma_static);
-    const float levels_contrast = clamp(levels_contrast_static, 0.0, 4.0);
-    const float halation_weight = clamp(halation_weight_static, 0.0, 1.0);
-    const float diffusion_weight = clamp(diffusion_weight_static, 0.0, 1.0);
-    const float bloom_underestimate_levels = max(FIX_ZERO(0.0), bloom_underestimate_levels_static);
-    const float bloom_excess = clamp(bloom_excess_static, 0.0, 1.0);
-    const float beam_min_sigma = max(FIX_ZERO(0.0), beam_min_sigma_static);
-    const float beam_max_sigma = max(beam_min_sigma, beam_max_sigma_static);
-    const float beam_spot_power = max(beam_spot_power_static, 0.0);
-    const float beam_min_shape = max(2.0, beam_min_shape_static);
-    const float beam_max_shape = max(beam_min_shape, beam_max_shape_static);
-    const float beam_shape_power = max(0.0, beam_shape_power_static);
-//    const float beam_horiz_filter = clamp(beam_horiz_filter_static, 0.0, 2.0);
-    const float beam_horiz_sigma = max(FIX_ZERO(0.0), beam_horiz_sigma_static);
-    const float beam_horiz_linear_rgb_weight = clamp(beam_horiz_linear_rgb_weight_static, 0.0, 1.0);
-    //  Unpack vector elements to match scalar uniforms:
-    const float convergence_offset_x_r = clamp(convergence_offsets_r_static.x, -4.0, 4.0);
-    const float convergence_offset_x_g = clamp(convergence_offsets_g_static.x, -4.0, 4.0);
-    const float convergence_offset_x_b = clamp(convergence_offsets_b_static.x, -4.0, 4.0);
-    const float convergence_offset_y_r = clamp(convergence_offsets_r_static.y, -4.0, 4.0);
-    const float convergence_offset_y_g = clamp(convergence_offsets_g_static.y, -4.0, 4.0);
-    const float convergence_offset_y_b = clamp(convergence_offsets_b_static.y, -4.0, 4.0);
-    const float mask_type = clamp(mask_type_static, 0.0, 2.0);
-    const float mask_sample_mode_desired = clamp(mask_sample_mode_static, 0.0, 2.0);
-    const float mask_specify_num_triads = clamp(mask_specify_num_triads_static, 0.0, 1.0);
- //   const float mask_triad_size_desired = clamp(mask_triad_size_desired_static, 1.0, 18.0);
-    const float mask_num_triads_desired = clamp(mask_num_triads_desired_static, 342.0, 1920.0);
-    const float aa_subpixel_r_offset_x_runtime = clamp(aa_subpixel_r_offset_static.x, -0.5, 0.5);
-    const float aa_subpixel_r_offset_y_runtime = clamp(aa_subpixel_r_offset_static.y, -0.5, 0.5);
-    const float aa_cubic_c = aa_cubic_c_static;                              //  Clamp to [0, 4]?
-    const float aa_gauss_sigma = max(FIX_ZERO(0.0), aa_gauss_sigma_static);  //  Clamp to [FIXZERO(0), 1]?
-    const float geom_mode_runtime = clamp(geom_mode_static, 0.0, 3.0);
-    const float geom_radius = max(1.0/(2.0*pi), geom_radius_static);         //  Clamp to [1/(2*pi), 1024]?
-    const float geom_view_dist = max(0.5, geom_view_dist_static);            //  Clamp to [0.5, 1024]?
-    const float geom_tilt_angle_x = clamp(geom_tilt_angle_static.x, -pi, pi);
-    const float geom_tilt_angle_y = clamp(geom_tilt_angle_static.y, -pi, pi);
-    const float geom_aspect_ratio_x = geom_aspect_ratio_static;              //  Force >= 1?
-    const float geom_aspect_ratio_y = 1.0;
-    const float geom_overscan_x = max(FIX_ZERO(0.0), geom_overscan_static.x);
-    const float geom_overscan_y = max(FIX_ZERO(0.0), geom_overscan_static.y);
-    const float border_size = clamp(border_size_static, 0.0, 0.5);           //  0.5 reaches to image center
-    const float border_darkness = max(0.0, border_darkness_static);
-    const float border_compress = max(1.0, border_compress_static);          //  < 1.0 darkens whole image
-    const float interlace_bff = float(interlace_bff_static);
-    const float interlace_1080i = float(interlace_1080i_static);
+    static const float crt_gamma = max(0.0, crt_gamma_static);
+    static const float lcd_gamma = max(0.0, lcd_gamma_static);
+    static const float levels_contrast = clamp(levels_contrast_static, 0.0, 4.0);
+    static const float halation_weight = clamp(halation_weight_static, 0.0, 1.0);
+    static const float diffusion_weight = clamp(diffusion_weight_static, 0.0, 1.0);
+    static const float bloom_underestimate_levels = max(FIX_ZERO(0.0), bloom_underestimate_levels_static);
+    static const float bloom_excess = clamp(bloom_excess_static, 0.0, 1.0);
+    static const float beam_min_sigma = max(FIX_ZERO(0.0), beam_min_sigma_static);
+    static const float beam_max_sigma = max(beam_min_sigma, beam_max_sigma_static);
+    static const float beam_spot_power = max(beam_spot_power_static, 0.0);
+    static const float beam_min_shape = max(2.0, beam_min_shape_static);
+    static const float beam_max_shape = max(beam_min_shape, beam_max_shape_static);
+    static const float beam_shape_power = max(0.0, beam_shape_power_static);
+    static const float beam_horiz_filter = clamp(beam_horiz_filter_static, 0.0, 2.0);
+    static const float beam_horiz_sigma = max(FIX_ZERO(0.0), beam_horiz_sigma_static);
+    static const float beam_horiz_linear_rgb_weight = clamp(beam_horiz_linear_rgb_weight_static, 0.0, 1.0);
+    //  Unpack static vector elements to match scalar uniforms:
+    static const float convergence_offset_x_r = clamp(convergence_offsets_r_static.x, -4.0, 4.0);
+    static const float convergence_offset_x_g = clamp(convergence_offsets_g_static.x, -4.0, 4.0);
+    static const float convergence_offset_x_b = clamp(convergence_offsets_b_static.x, -4.0, 4.0);
+    static const float convergence_offset_y_r = clamp(convergence_offsets_r_static.y, -4.0, 4.0);
+    static const float convergence_offset_y_g = clamp(convergence_offsets_g_static.y, -4.0, 4.0);
+    static const float convergence_offset_y_b = clamp(convergence_offsets_b_static.y, -4.0, 4.0);
+    static const float mask_type = clamp(mask_type_static, 0.0, 2.0);
+    static const float mask_sample_mode_desired = clamp(mask_sample_mode_static, 0.0, 2.0);
+    static const float mask_specify_num_triads = clamp(mask_specify_num_triads_static, 0.0, 1.0);
+    static const float mask_triad_size_desired = clamp(mask_triad_size_desired_static, 1.0, 18.0);
+    static const float mask_num_triads_desired = clamp(mask_num_triads_desired_static, 342.0, 1920.0);
+    static const float aa_subpixel_r_offset_x_runtime = clamp(aa_subpixel_r_offset_static.x, -0.5, 0.5);
+    static const float aa_subpixel_r_offset_y_runtime = clamp(aa_subpixel_r_offset_static.y, -0.5, 0.5);
+    static const float aa_cubic_c = aa_cubic_c_static;                              //  Clamp to [0, 4]?
+    static const float aa_gauss_sigma = max(FIX_ZERO(0.0), aa_gauss_sigma_static);  //  Clamp to [FIXZERO(0), 1]?
+    static const float geom_mode_runtime = clamp(geom_mode_static, 0.0, 3.0);
+    static const float geom_radius = max(1.0/(2.0*pi), geom_radius_static);         //  Clamp to [1/(2*pi), 1024]?
+    static const float geom_view_dist = max(0.5, geom_view_dist_static);            //  Clamp to [0.5, 1024]?
+    static const float geom_tilt_angle_x = clamp(geom_tilt_angle_static.x, -pi, pi);
+    static const float geom_tilt_angle_y = clamp(geom_tilt_angle_static.y, -pi, pi);
+    static const float geom_aspect_ratio_x = geom_aspect_ratio_static;              //  Force >= 1?
+    static const float geom_aspect_ratio_y = 1.0;
+    static const float geom_overscan_x = max(FIX_ZERO(0.0), geom_overscan_static.x);
+    static const float geom_overscan_y = max(FIX_ZERO(0.0), geom_overscan_static.y);
+    static const float border_size = clamp(border_size_static, 0.0, 0.5);           //  0.5 reaches to image center
+    static const float border_darkness = max(0.0, border_darkness_static);
+    static const float border_compress = max(1.0, border_compress_static);          //  < 1.0 darkens whole image
+    static const float interlace_bff = float(interlace_bff_static);
+    static const float interlace_1080i = float(interlace_1080i_static);
+#endif
 #endif
 
 
 //  Provide accessors for vector constants that pack scalar uniforms:
-vec2 get_aspect_vector(const float geom_aspect_ratio)
+inline float2 get_aspect_vector(const float geom_aspect_ratio)
 {
     //  Get an aspect ratio vector.  Enforce geom_max_aspect_ratio, and prevent
     //  the absolute scale from affecting the uv-mapping for curvature:
     const float geom_clamped_aspect_ratio =
         min(geom_aspect_ratio, geom_max_aspect_ratio);
-    const vec2 geom_aspect =
-        normalize(vec2(geom_clamped_aspect_ratio, 1.0));
+    const float2 geom_aspect =
+        normalize(float2(geom_clamped_aspect_ratio, 1.0));
     return geom_aspect;
 }
 
-vec2 get_geom_overscan_vector()
+inline float2 get_geom_overscan_vector()
 {
-    return vec2(geom_overscan_x, geom_overscan_y);
+    return float2(geom_overscan_x, geom_overscan_y);
 }
 
-vec2 get_geom_tilt_angle_vector()
+inline float2 get_geom_tilt_angle_vector()
 {
-    return vec2(geom_tilt_angle_x, geom_tilt_angle_y);
+    return float2(geom_tilt_angle_x, geom_tilt_angle_y);
 }
 
-vec3 get_convergence_offsets_x_vector()
+inline float3 get_convergence_offsets_x_vector()
 {
-    return vec3(convergence_offset_x_r, convergence_offset_x_g,
+    return float3(convergence_offset_x_r, convergence_offset_x_g,
         convergence_offset_x_b);
 }
 
-vec3 get_convergence_offsets_y_vector()
+inline float3 get_convergence_offsets_y_vector()
 {
-    return vec3(convergence_offset_y_r, convergence_offset_y_g,
+    return float3(convergence_offset_y_r, convergence_offset_y_g,
         convergence_offset_y_b);
 }
 
-vec2 get_convergence_offsets_r_vector()
+inline float2 get_convergence_offsets_r_vector()
 {
-    return vec2(convergence_offset_x_r, convergence_offset_y_r);
+    return float2(convergence_offset_x_r, convergence_offset_y_r);
 }
 
-vec2 get_convergence_offsets_g_vector()
+inline float2 get_convergence_offsets_g_vector()
 {
-    return vec2(convergence_offset_x_g, convergence_offset_y_g);
+    return float2(convergence_offset_x_g, convergence_offset_y_g);
 }
 
-vec2 get_convergence_offsets_b_vector()
+inline float2 get_convergence_offsets_b_vector()
 {
-    return vec2(convergence_offset_x_b, convergence_offset_y_b);
+    return float2(convergence_offset_x_b, convergence_offset_y_b);
 }
 
-vec2 get_aa_subpixel_r_offset()
+inline float2 get_aa_subpixel_r_offset()
 {
     #ifdef RUNTIME_ANTIALIAS_WEIGHTS
         #ifdef RUNTIME_ANTIALIAS_SUBPIXEL_OFFSETS
             //  WARNING: THIS IS EXTREMELY EXPENSIVE.
-            return vec2(aa_subpixel_r_offset_x_runtime,
+            return float2(aa_subpixel_r_offset_x_runtime,
                 aa_subpixel_r_offset_y_runtime);
         #else
             return aa_subpixel_r_offset_static;
@@ -214,17 +216,17 @@ vec2 get_aa_subpixel_r_offset()
 }
 
 //  Provide accessors settings which still need "cooking:"
-float get_mask_amplify()
+inline float get_mask_amplify()
 {
-    const float mask_grille_amplify = 1.0/mask_grille_avg_color;
-    const float mask_slot_amplify = 1.0/mask_slot_avg_color;
-    const float mask_shadow_amplify = 1.0/mask_shadow_avg_color;
+    static const float mask_grille_amplify = 1.0/mask_grille_avg_color;
+    static const float mask_slot_amplify = 1.0/mask_slot_avg_color;
+    static const float mask_shadow_amplify = 1.0/mask_shadow_avg_color;
     return mask_type < 0.5 ? mask_grille_amplify :
         mask_type < 1.5 ? mask_slot_amplify :
         mask_shadow_amplify;
 }
 
-float get_mask_sample_mode()
+inline float get_mask_sample_mode()
 {
     #ifdef RUNTIME_PHOSPHOR_MASK_MODE_TYPE_SELECT
         #ifdef PHOSPHOR_MASK_MANUALLY_RESIZE
