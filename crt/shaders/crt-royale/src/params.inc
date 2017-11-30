@@ -13,7 +13,7 @@
 #pragma parameter bloom_underestimate_levels "Bloom - Underestimate Levels" 0.8 0.0 5.0 0.01
 #define bloom_underestimate_levels global.bloom_underestimate_levels
 #pragma parameter bloom_excess "Bloom - Excess" 0.0 0.0 1.0 0.005
-#pragma parameter beam_min_sigma "Beam - Min Sigma" 0.02 0.005 1.0 0.005
+#pragma parameter beam_min_sigma "Beam - Min Sigma" 0.15 0.005 1.0 0.005
 #define beam_min_sigma global.beam_min_sigma
 #pragma parameter beam_max_sigma "Beam - Max Sigma" 0.3 0.005 1.0 0.005
 #define beam_max_sigma global.beam_max_sigma
