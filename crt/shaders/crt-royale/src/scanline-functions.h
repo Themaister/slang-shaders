@@ -153,9 +153,9 @@ float3 scanline_gaussian_integral_contrib(const float3 dist,
     return color * 0.5*(integral_high - integral_low)/pixel_height;
 }
 
-float3 scanline_generalized_gaussian_integral_contrib(const float3 dist,
-    const float3 color, const float pixel_height, const float sigma_range,
-    const float shape_range)
+float3 scanline_generalized_gaussian_integral_contrib(float3 dist,
+    float3 color, float pixel_height, float sigma_range,
+    float shape_range)
 {
     //  Requires:   1.) Requirements of scanline_gaussian_integral_contrib()
     //                  must be met.
@@ -222,9 +222,9 @@ float3 scanline_gaussian_sampled_contrib(const float3 dist, const float3 color,
     }
 }
 
-float3 scanline_generalized_gaussian_sampled_contrib(const float3 dist,
-    const float3 color, const float pixel_height, const float sigma_range,
-    const float shape_range)
+float3 scanline_generalized_gaussian_sampled_contrib(float3 dist,
+    float3 color, float pixel_height, float sigma_range,
+    float shape_range)
 {
     //  See scanline_generalized_gaussian_integral_contrib() for details!
     //  generalized sample =

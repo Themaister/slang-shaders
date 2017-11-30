@@ -91,8 +91,6 @@ layout(location = 0) out vec2 tex_uv;
 layout(location = 1) out vec2 uv_step;                     //  uv size of a texel (x) and scanline (y)
 layout(location = 2) out vec2 il_step_multiple;            //  (1, 1) = progressive, (1, 2) = interlaced
 layout(location = 3) out float pixel_height_in_scanlines;  //  Height of an output pixel in scanlines
-layout(location = 4) out float sigma_range;
-layout(location = 5) out float shape_range;
 
 void main()
 {
@@ -111,10 +109,11 @@ void main()
     //  values.  Compute {sigma, shape}_range outside of scanline_contrib() so
     //  they aren't computed once per scanline (6 times per fragment and up to
     //  18 times per vertex):
-    const float sigma_range = max(beam_max_sigma, beam_min_sigma) -
-        beam_min_sigma;
-    const float shape_range = max(beam_max_shape, beam_min_shape) -
-        beam_min_shape;
+	//  TODO/FIXME: if these aren't used, why are they calculated? commenting for now
+//    const floatsigma_range = max(beam_max_sigma, beam_min_sigma) -
+//        beam_min_sigma;
+//    const float shape_range = max(beam_max_shape, beam_min_shape) -
+//        beam_min_shape;
 
     //  We need the pixel height in scanlines for antialiased/integral sampling:
     const float ph = (video_size_.y / IN.output_size.y) / 
@@ -128,8 +127,6 @@ layout(location = 0) in vec2 tex_uv;
 layout(location = 1) in vec2 uv_step;                      //  uv size of a texel (x) and scanline (y)
 layout(location = 2) in vec2 il_step_multiple;             //  (1, 1) = progressive, (1, 2) = interlaced
 layout(location = 3) in float pixel_height_in_scanlines;   //  Height of an output pixel in scanlines
-layout(location = 4) in float sigma_range;
-layout(location = 5) in float shape_range;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 #define input_texture Source
@@ -224,29 +221,28 @@ void main()
     //  Calculate {sigma, shape}_range outside of scanline_contrib so it's only
     //  done once per pixel (not 6 times) with runtime params.  Don't reuse the
     //  vertex shader calculations, so static versions can be constant-folded.
-	//  TODO/FIXME: nvm, use the ones from the vertex /shrug
-/*    const float sigma_range = max(beam_max_sigma, beam_min_sigma) -
+	const float sigma_range = max(beam_max_sigma, beam_min_sigma) -
         beam_min_sigma;
-    const float shape_range = max(beam_max_shape, beam_min_shape) -
-        beam_min_shape;*/
+	const float shape_range = max(beam_max_shape, beam_min_shape) -
+        beam_min_shape;
     //  Calculate and sum final scanline contributions, starting with lines 2/3.
     //  There is no normalization step, because we're not interpolating a
     //  continuous signal.  Instead, each scanline is an additive light source.
     const float3 scanline2_contrib = scanline_contrib(dist2,
         scanline2_color, ph, sigma_range, shape_range);
-    const float3 scanline3_contrib = scanline_contrib(abs(float3(1.0) - dist2),
+    const float3 scanline3_contrib = scanline_contrib(abs(float3(1.0,1.0,1.0) - dist2),
         scanline3_color, ph, sigma_range, shape_range);
     float3 scanline_intensity = scanline2_contrib + scanline3_contrib;
     if(beam_num_scanlines > 5.5)
     {
         const float3 scanline0_contrib =
-            scanline_contrib(dist2 + float3(2.0), scanline0_color,
+            scanline_contrib(dist2 + float3(2.0,2.0,2.0), scanline0_color,
                 ph, sigma_range, shape_range);
         const float3 scanline1_contrib =
-            scanline_contrib(dist2 + float3(1.0), scanline1_color,
+            scanline_contrib(dist2 + float3(1.0,1.0,1.0), scanline1_color,
                 ph, sigma_range, shape_range);
         const float3 scanline4_contrib =
-            scanline_contrib(abs(float3(2.0) - dist2), scanline4_color,
+            scanline_contrib(abs(float3(2.0,2.0,2.0) - dist2), scanline4_color,
                 ph, sigma_range, shape_range);
         const float3 scanline5_contrib =
             scanline_contrib(abs(float3(3.0) - dist2), scanline5_color,
@@ -257,13 +253,13 @@ void main()
     else if(beam_num_scanlines > 4.5)
     {
         const float3 scanline1_contrib =
-            scanline_contrib(dist2 + float3(1.0), scanline1_color,
+            scanline_contrib(dist2 + float3(1.0,1.0,1.0), scanline1_color,
                 ph, sigma_range, shape_range);
         const float3 scanline4_contrib =
-            scanline_contrib(abs(float3(2.0) - dist2), scanline4_color,
+            scanline_contrib(abs(float3(2.0,2.0,2.0) - dist2), scanline4_color,
                 ph, sigma_range, shape_range);
         const float3 dist0or5 = lerp(
-            dist2 + float3(2.0), float3(3.0) - dist2, dist_round);
+            dist2 + float3(2.0,2.0,2.0), float3(3.0,3.0,3.0) - dist2, dist_round);
         const float3 scanline0or5_contrib = scanline_contrib(
             dist0or5, scanline_outside_color, ph, sigma_range, shape_range);
         scanline_intensity += scanline1_contrib + scanline4_contrib +
@@ -272,17 +268,17 @@ void main()
     else if(beam_num_scanlines > 3.5)
     {
         const float3 scanline1_contrib =
-            scanline_contrib(dist2 + float3(1.0), scanline1_color,
+            scanline_contrib(dist2 + float3(1.0,1.0,1.0), scanline1_color,
                 ph, sigma_range, shape_range);
         const float3 scanline4_contrib =
-            scanline_contrib(abs(float3(2.0) - dist2), scanline4_color,
+            scanline_contrib(abs(float3(2.0,2.0,2.0) - dist2), scanline4_color,
                 ph, sigma_range, shape_range);
         scanline_intensity += scanline1_contrib + scanline4_contrib;
     }
     else if(beam_num_scanlines > 2.5)
     {
         const float3 dist1or4 = lerp(
-            dist2 + float3(1.0), float3(2.0) - dist2, dist_round);
+            dist2 + float3(1.0,1.0,1.0), float3(2.0,2.0,2.0) - dist2, dist_round);
         const float3 scanline1or4_contrib = scanline_contrib(
             dist1or4, scanline_outside_color, ph, sigma_range, shape_range);
         scanline_intensity += scanline1or4_contrib;

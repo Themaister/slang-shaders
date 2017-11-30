@@ -301,7 +301,8 @@ inline float4 decode_gamma_input(const float4 color, const float3 gamma)
 }
 
 //TODO/FIXME: I have no idea why replacing the lookup wrappers with this macro fixes the blurs being offset ¯\_(ツ)_/¯
-#define tex2D_linearize(C, D) decode_input(vec4(texture(C, D)))
+//#define tex2D_linearize(C, D) decode_input(vec4(texture(C, D)))
+// EDIT: it's the 'const' in front of the coords that's doing it
 
 ///////////////////////////  TEXTURE LOOKUP WRAPPERS  //////////////////////////
 
@@ -376,18 +377,18 @@ inline float4 tex1Dproj_linearize(const sampler1D tex, const float2 tex_coords, 
 
 inline float4 tex1Dproj_linearize(const sampler1D tex, const float3 tex_coords, const int texel_off)
 {   return decode_input(tex1Dproj(tex, tex_coords, texel_off));    }
-/////////*
+*/
 //  tex2D:
-inline float4 tex2D_linearize(const sampler2D tex, const float2 tex_coords)
+inline float4 tex2D_linearize(const sampler2D tex, float2 tex_coords)
 {   return decode_input(texture(tex, tex_coords));   }
 
-inline float4 tex2D_linearize(const sampler2D tex, const float3 tex_coords)
+inline float4 tex2D_linearize(const sampler2D tex, float3 tex_coords)
 {   return decode_input(texture(tex, tex_coords.xy));   }
 
-inline float4 tex2D_linearize(const sampler2D tex, const float2 tex_coords, const int texel_off)
+inline float4 tex2D_linearize(const sampler2D tex, float2 tex_coords, int texel_off)
 {   return decode_input(textureLod(tex, tex_coords, texel_off));    }
 
-inline float4 tex2D_linearize(const sampler2D tex, const float3 tex_coords, const int texel_off)
+inline float4 tex2D_linearize(const sampler2D tex, float3 tex_coords, int texel_off)
 {   return decode_input(textureLod(tex, tex_coords.xy, texel_off));    }
 
 //inline float4 tex2D_linearize(const sampler2D tex, const float2 tex_coords, const float2 dx, const float2 dy)
@@ -415,12 +416,12 @@ inline float4 tex2D_linearize(const sampler2D tex, const float3 tex_coords, cons
 
 //inline float4 tex2Dfetch_linearize(const sampler2D tex, const int4 tex_coords, const int texel_off)
 //{   return decode_input(tex2Dfetch(tex, tex_coords, texel_off));   }
-*/
+
 //  tex2Dlod:
-inline float4 tex2Dlod_linearize(const sampler2D tex, const float4 tex_coords)
+inline float4 tex2Dlod_linearize(const sampler2D tex, float4 tex_coords)
 {   return decode_input(textureLod(tex, tex_coords.xy, 0.0));    }
 
-inline float4 tex2Dlod_linearize(const sampler2D tex, const float4 tex_coords, const int texel_off)
+inline float4 tex2Dlod_linearize(const sampler2D tex, float4 tex_coords, int texel_off)
 {   return decode_input(textureLod(tex, tex_coords.xy, texel_off));     }
 /*
 //  tex2Dproj:
@@ -533,14 +534,14 @@ inline float4 tex2Dfetch_linearize_gamma(const sampler2D tex, const int4 tex_coo
 
 inline float4 tex2Dfetch_linearize_gamma(const sampler2D tex, const int4 tex_coords, const int texel_off, const float3 gamma)
 {   return decode_gamma_input(tex2Dfetch(tex, tex_coords, texel_off), gamma);   }
-/////////*
+*/
 //  tex2Dlod:
-inline float4 tex2Dlod_linearize_gamma(const sampler2D tex, const float4 tex_coords, const float3 gamma)
+inline float4 tex2Dlod_linearize_gamma(const sampler2D tex, float4 tex_coords, float3 gamma)
 {   return decode_gamma_input(textureLod(tex, tex_coords.xy, 0.0), gamma);    }
 
-inline float4 tex2Dlod_linearize_gamma(const sampler2D tex, const float4 tex_coords, const int texel_off, const float3 gamma)
+inline float4 tex2Dlod_linearize_gamma(const sampler2D tex, float4 tex_coords, int texel_off, float3 gamma)
 {   return decode_gamma_input(textureLod(tex, tex_coords.xy, texel_off), gamma);     }
-*/
+
 
 #endif  //  GAMMA_MANAGEMENT_H
 
