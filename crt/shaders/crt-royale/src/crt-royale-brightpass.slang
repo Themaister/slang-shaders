@@ -91,7 +91,6 @@ const float bloom_diff_thresh_ = 1.0/256.0;
 
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
-#include "params.inc"
 #include "../../../../include/compat_macros.inc"
 #include "../user-settings.h"
 #include "derived-settings-and-constants.h"

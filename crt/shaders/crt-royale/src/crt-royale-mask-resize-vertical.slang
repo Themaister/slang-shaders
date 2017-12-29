@@ -78,7 +78,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
-#include "params.inc"
 #include "../../../../include/compat_macros.inc"
 #include "../user-settings.h"
 #include "derived-settings-and-constants.h"

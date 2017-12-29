@@ -100,7 +100,6 @@ const float max_viewport_size_x = 1080.0*1024.0*(4.0/3.0);
 
 /////////////////////////////  SETTINGS MANAGEMENT  ////////////////////////////
 
-#include "params.inc"
 #include "../../../../include/compat_macros.inc"
 #include "../user-settings.h"
 #include "derived-settings-and-constants.h"
