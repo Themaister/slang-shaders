@@ -18,6 +18,8 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 SourceSize;
 } global;
 
+#define target_gamma 2.2
+#define display_gamma 2.2
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
@@ -30,6 +32,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define gb 0.12157
 #define br 0.05882
 #define bg 0.24314
+
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -49,14 +52,14 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = texture(Source, vTexCoord);
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma)).rgba;
    
-   //                r   g    b   black
-   mat4 color = mat4(r,  rg,  rb, 0.0,       //red channel
-                     gr,  g,   gb, 0.0,      //green channel
-                     br,  bg,  b,  0.0,      //blue channel
-                     blr, blg, blb,    0.0); //alpha channel; these numbers do nothing for our purposes.
+   //                red   green  blue  alpha ; alpha does nothing for our purposes
+   mat4 color = mat4(r,    rg,    rb,   0.0,    //red
+                     gr,   g,     gb,   0.0,    //green
+                     br,   bg,    b,    0.0,    //blue
+                     blr,  blg,   blb,  0.0);   //black
                  
    screen = color * screen;
-   FragColor = screen;
+   FragColor = pow(screen, vec4(1.0 / display_gamma));
 }
