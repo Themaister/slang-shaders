@@ -3,12 +3,17 @@
 /*
    GBC Color Correction Shader
    A shader that replicates the LCD dynamics from a Game Boy Color
-   Color values are derived from Gambatte's color correction implementation.
+   Color values are derived from Gambatte's color correction implementation, with some tweaks.
 
    Based on Color Mangler
    Author: hunterk
    License: Public domain
 */
+
+layout(push_constant) uniform Push
+{
+   float darken_screen;
+} params;
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -18,18 +23,22 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 SourceSize;
 } global;
 
+#pragma parameter darken_screen "Darken Screen" 0.0 -0.25 2.0 0.05
+
+#define target_gamma 2.2
+#define display_gamma 2.2
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
 #define r 0.78824
 #define g 0.72941
-#define b 0.66667
-#define rg 0.00
-#define rb 0.18039
+#define b 0.82
+#define rg 0.025
+#define rb 0.12039
 #define gr 0.12157
 #define gb 0.12157
-#define br 0.05882
-#define bg 0.24314
+#define br 0.0
+#define bg 0.275000
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -49,14 +58,14 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = texture(Source, vTexCoord);
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma + params.darken_screen)).rgba;
    
-   //                r   g    b   black
-   mat4 color = mat4(r,  rg,  rb, 0.0,       //red channel
-                     gr,  g,   gb, 0.0,      //green channel
-                     br,  bg,  b,  0.0,      //blue channel
-                     blr, blg, blb,    0.0); //alpha channel; these numbers do nothing for our purposes.
+   //                red   green  blue  alpha ; alpha does nothing for our purposes
+   mat4 color = mat4(r,    rg,    rb,   0.0,    //red
+                     gr,   g,     gb,   0.0,    //green
+                     br,   bg,    b,    0.0,    //blue
+                     blr,  blg,   blb,  0.0);   //black
                  
    screen = color * screen;
-   FragColor = screen;
+   FragColor = pow(screen, vec4(1.0 / display_gamma));
 }
