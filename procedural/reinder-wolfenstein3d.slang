@@ -464,7 +464,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 void main(void)
 {
   //just some shit to wrap shadertoy's stuff
-  vec2 FragCoord = vTexCoord.xy*global.OutputSize.xy;
-  FragCoord.y = -FragCoord.y;
-  mainImage(FragColor,FragCoord);
+  vec2 FragmentCoord = vTexCoord.xy*global.OutputSize.xy;
+  FragmentCoord.y = -FragmentCoord.y;
+  mainImage(FragColor,FragmentCoord);
 }
