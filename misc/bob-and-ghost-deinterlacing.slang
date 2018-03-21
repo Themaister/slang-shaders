@@ -53,7 +53,7 @@ void main()
 	}
 	else
 	{
-		y = 2.0 * params.SourceSize.y * vTexCoord.y;
+		y = 2.000001 * params.SourceSize.y * vTexCoord.y;
 		prev = current;
 	}
 

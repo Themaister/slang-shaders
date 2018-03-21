@@ -43,7 +43,7 @@ void main()
 	float y = 0.0;
 	// assume anything with a vertical resolution greater than 400 lines is interlaced
 	if (params.SourceSize.y > 400.0) y = params.SourceSize.y * vTexCoord.y + float(params.FrameCount);
-	else	y = 2.0 * params.SourceSize.y * vTexCoord.y;
+	else	y = 2.000001 * params.SourceSize.y * vTexCoord.y;
 
 	if (mod(y, 2.0) > 0.99999) FragColor = vec4(texture(Source, vTexCoord + vec2(0.0, params.SourceSize.w)));
 	else
