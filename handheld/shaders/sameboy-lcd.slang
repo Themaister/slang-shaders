@@ -28,11 +28,26 @@
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	mat4 MVP;
+    vec4 SourceSize;
+    vec4 OriginalSize;
+    vec4 OutputSize;
+    mat4 MVP;
 } global;
+
+layout(push_constant) uniform Push
+{
+    float COLOR_LOW;
+    float COLOR_HIGH;
+    float SCANLINE_DEPTH;
+} params;
+
+#pragma parameter COLOR_LOW "Color Low" 0.8 0.0 1.5 0.05
+#pragma parameter COLOR_HIGH "Color High" 1.0 0.0 1.5 0.05
+#pragma parameter SCANLINE_DEPTH "Scanline Depth" 0.1 0.0 2.0 0.05
+
+#define COLOR_LOW params.COLOR_LOW
+#define COLOR_HIGH params.COLOR_HIGH
+#define SCANLINE_DEPTH params.SCANLINE_DEPTH
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -41,18 +56,14 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+    gl_Position = global.MVP * Position;
+    vTexCoord = TexCoord;
 }
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-
-#define COLOR_LOW 0.8
-#define COLOR_HIGH 1.0
-#define SCANLINE_DEPTH 0.1
 
 void main()
 {   

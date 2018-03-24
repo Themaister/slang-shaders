@@ -13,19 +13,19 @@
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-   mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
+	mat4 MVP;
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
 } global;
 
 layout(push_constant) uniform Push
 {
-   float reflectionBrightness;
-   float reflectionDistanceX;
-   float reflectionDistanceY;
-   float lightBrightness;
-} params;
+	float reflectionBrightness;
+	float reflectionDistanceX;
+	float reflectionDistanceY;
+	float lightBrightness;
+}params;
 
 #pragma parameter reflectionBrightness "Reflection brightness" 0.07 0.0 1.0 0.01
 #pragma parameter reflectionDistanceX "Reflection Distance X" 0.0 -1.0 1.0 0.005
@@ -39,8 +39,8 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+	gl_Position = global.MVP * Position;
+	vTexCoord = TexCoord;
 }
 
 #pragma stage fragment
@@ -54,7 +54,7 @@ const float coeff = 2.5;
 
 void main()
 {
-     vec2 reflectionDistance = vec2(params.reflectionDistanceX,params.reflectionDistanceY);
+	vec2 reflectionDistance = vec2(params.reflectionDistanceX,params.reflectionDistanceY);
 	float sp = pow(speed, params.lightBrightness);
 	float dc = pow(decay, -params.lightBrightness);
 	float s = (sp - dc) / (sp + dc);
@@ -69,6 +69,6 @@ void main()
 	vec4 reflection = texture(Source, vTexCoord - reflectionDistance);
 	color.rgb += reflection.rgb * params.reflectionBrightness;
 	color.a = 1.0;
-     FragColor = color;
+	FragColor = color;
 
 }
