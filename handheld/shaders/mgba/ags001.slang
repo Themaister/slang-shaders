@@ -13,10 +13,10 @@
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-   mat4 MVP;
-   vec4 OutputSize;
-   vec4 OriginalSize;
-   vec4 SourceSize;
+	mat4 MVP;
+	vec4 OutputSize;
+	vec4 OriginalSize;
+	vec4 SourceSize;
 } global;
 
 #pragma stage vertex
@@ -26,8 +26,8 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+	gl_Position = global.MVP * Position;
+	vTexCoord = TexCoord;
 }
 
 #pragma stage fragment
