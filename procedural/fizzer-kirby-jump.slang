@@ -10,7 +10,16 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 OriginalSize;
    vec4 SourceSize;
    uint FrameCount;
+   float ZOOM;
+   float X_AXIS;
+   float Y_AXIS;
+   float SPEED;
 } global;
+
+#pragma parameter ZOOM "Zoom" 2.0 0.001 10.0 0.1
+#pragma parameter X_AXIS "Pan Horizontal" 0.0 -1.0 1.0 0.01
+#pragma parameter Y_AXIS "Pan Vertical" 0.0 -1.01 1.0 0.01
+#pragma parameter SPEED "Animation Speed" 1.0 0.0 5.0 0.1
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -21,12 +30,13 @@ void main()
 {
    gl_Position = global.MVP * Position;
    vTexCoord = gl_Position.xy;
+   vTexCoord = vTexCoord;
 }
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
-float iGlobalTime = float(global.FrameCount)*0.025;
+float iGlobalTime = float(global.FrameCount)*0.025 * global.SPEED;
 vec2 iResolution = global.OutputSize.xy;
 
 // polynomial smooth min (from IQ)
@@ -236,7 +246,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     rp.x=abs(rp.x);
 
     // blushes
-    diff*=mix(vec3(1,.5,.5),vec3(1),smoothstep(.1,.15,length((rp.xy-vec2(.4,.2))*vec2(1,1.65))));
+    diff*=mix(vec3(1,.5,.5),vec3(1),smoothstep(.1,.15,length((rp.xy-vec2(.4,.2))*vec2(1.,1.65))));
 
     rp.xy-=vec2(.16,.45);
     rp.xy*=.9;
@@ -270,9 +280,9 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     backg=mix(backg,vec3(1.,1.,.5),.1*starShape((ot-vec2(0.,.6))*8.)*smoothstep(9.,10.,t));
     diff=mix(diff,backg,smoothstep(.9,10.,t));
 
-    fragColor.rgb=mix(vec3(.15,0,0),vec3(1),ao)*shad*diff*1.1;
+    fragColor.rgb=mix(vec3(.15,0,0),vec3(1.,1.,1.),ao)*shad*diff*1.1;
     fragColor.rgb+=emit;
-    fragColor.a = 1.0f;
+    fragColor.a = 1.0;
 
     fragColor.rgb=pow(fragColor.rgb,vec3(1./2.4));
 }
@@ -280,7 +290,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 void main(void)
 {
   //just some shit to wrap shadertoy's stuff
-  vec2 FragCoord = vTexCoord.xy*global.OutputSize.xy;
-  FragCoord.y = -FragCoord.y;
+  vec2 FragCoord = ((vTexCoord / global.ZOOM) + 0.5 + vec2(global.X_AXIS, global.Y_AXIS)) * global.OutputSize.xy;
   mainImage(FragColor,FragCoord);
 }
