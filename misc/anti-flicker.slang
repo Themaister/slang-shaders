@@ -5,7 +5,9 @@
 	by hunterk
 	License: public domain
 	
-	This shader detects 
+	This shader detects large variations in luminance from frame to frame
+	and then blends frames to smooth the transition. In flicker-based
+	shadow effects, this should result in true transparency.
 */
 
 layout(push_constant) uniform Push
