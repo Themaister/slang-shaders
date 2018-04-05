@@ -39,20 +39,14 @@
  *
  */
 
-
-#pragma parameter REVERSEAA_SHARPNESS "ReverseAA Sharpness" 2.0 0.0 10.0 0.01
-
-#ifdef PARAMETER_UNIFORM
-uniform float REVERSEAA_SHARPNESS;
-#else
-#define REVERSEAA_SHARPNESS 2.0
-#endif
-
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
 	vec4 OutputSize;
+	float REVERSEAA_SHARPNESS;
 } params;
+
+#pragma parameter REVERSEAA_SHARPNESS "ReverseAA Sharpness" 2.0 0.0 10.0 0.01
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -85,14 +79,12 @@ vec3 res2x(vec3 pre2, vec3 pre1, vec3 px, vec3 pos1, vec3 pos2)
     mat4x3  df = pos - pre;
 
     m = 0.5 - abs(px - 0.5);
-    m = REVERSEAA_SHARPNESS * min(m, min(abs(df[1]), abs(df[2])));
+    m = params.REVERSEAA_SHARPNESS * min(m, min(abs(df[1]), abs(df[2])));
     t = (7 * (df[1] + df[2]) - 3 * (df[0] + df[3])) / 16;
     t = clamp(t, -m, m);
 
     return t;
 }
-
-#define P(x,y) texture(Source, coord + params.SourceSize.zw * vec2(x, y)).rgb
 
 void main()
 {
