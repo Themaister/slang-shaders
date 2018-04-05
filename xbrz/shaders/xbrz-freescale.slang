@@ -103,8 +103,6 @@ void main()
 {
    gl_Position = global.MVP * Position;
    vTexCoord = TexCoord;
-   
-vec2 ps = vec2(params.SourceSize.z, params.SourceSize.w);
 }
 
 #pragma stage fragment
