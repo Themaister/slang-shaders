@@ -117,7 +117,7 @@ layout(location = 2) out float scale_factor;
 void main()
 {
    gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord * vec2(1.0004, 0.9995);
+   vTexCoord = TexCoord * 1.0001;
 	float2 ps = float2(1.0/params.REFSize.x, 1.0/params.REFSize.y);
 	float dx = ps.x;
 	float dy = ps.y;
