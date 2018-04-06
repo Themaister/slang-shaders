@@ -247,9 +247,9 @@ void main()
 	bool4 jag2;	
 //	bool4 jag2 = ((f2   > 2.0) || (h2   > 2.0)) ? bool4(true) : bool4(false);
 	jag2.x =     ((f2.x > 2.0) || (h2.x > 2.0));
-	jag2.x =     ((f2.y > 2.0) || (h2.y > 2.0));
-	jag2.x =     ((f2.z > 2.0) || (h2.z > 2.0));
-	jag2.x =     ((f2.w > 2.0) || (h2.w > 2.0));
+	jag2.y =     ((f2.y > 2.0) || (h2.y > 2.0));
+	jag2.z =     ((f2.z > 2.0) || (h2.z > 2.0));
+	jag2.w =     ((f2.w > 2.0) || (h2.w > 2.0));
 
 	bool4 jag3;	
 //	bool4 jag3 = ((f2   > 4.0) || (h2   > 4.0)) ? bool4(true) : bool4(false);
