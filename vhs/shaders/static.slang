@@ -22,8 +22,6 @@ layout(push_constant) uniform Push
 #pragma parameter magnitude "Distortion Magnitude" 0.9 0.0 25.0 0.1
 #pragma parameter always_on "OSD Always On" 0.0 0.0 1.0 1.0
 
-#define framecount vec2(params.FrameCount, params.FrameCount).x
-
 layout(std140, set = 0, binding = 0) uniform UBO
 {
 	mat4 MVP;
@@ -65,7 +63,7 @@ float n( in vec3 x ){
 }
 
 //tape noise
-float nn(vec2 p){
+float nn(vec2 p, float framecount){
 
 
     float y = p.y;
@@ -83,7 +81,7 @@ float nn(vec2 p){
     return v;
 }
 
-vec3 distort(sampler2D tex, vec2 uv, float magnitude){
+vec3 distort(sampler2D tex, vec2 uv, float magnitude, float framecount){
 	float mag = params.magnitude * 0.0001;
 
 	vec2 offset_x = vec2(uv.x);
@@ -95,17 +93,17 @@ vec3 distort(sampler2D tex, vec2 uv, float magnitude){
 				texture(tex, uv).b);
 }
 
-float onOff(float a, float b, float c)
+float onOff(float a, float b, float c, float framecount)
 {
 	return step(c, sin((framecount * 0.001) + a*cos((framecount * 0.001)*b)));
 }
 
-vec2 jumpy(vec2 uv)
+vec2 jumpy(vec2 uv, float framecount)
 {
 	vec2 look = uv;
 	float window = 1./(1.+80.*(look.y-mod(framecount/4.,1.))*(look.y-mod(framecount/4.,1.)));
-	look.x += 0.05 * sin(look.y*10. + framecount)/20.*onOff(4.,4.,.3)*(0.5+cos(framecount*20.))*window;
-	float vShift = 0.4*onOff(2.,3.,.9)*(sin(framecount)*sin(framecount*20.) + 
+	look.x += 0.05 * sin(look.y*10. + framecount)/20.*onOff(4.,4.,.3, framecount)*(0.5+cos(framecount*20.))*window;
+	float vShift = 0.4*onOff(2.,3.,.9, framecount)*(sin(framecount)*sin(framecount*20.) + 
 										 (0.5 + 0.1*sin(framecount*200.)*cos(framecount)));
 	look.y = mod(look.y - 0.01 * vShift, 1.);
 	return look;
@@ -118,26 +116,26 @@ layout(location = 0) out vec2 vTexCoord;
 
 void main()
 {
-   gl_Position = global.MVP * Position;
-   vTexCoord = TexCoord;
+	gl_Position = global.MVP * Position;
+	vTexCoord = TexCoord;
 }
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D overlay;
+layout(set = 0, binding = 3) uniform sampler2D play;
 
 void main()
 {
-float timer = vec2(params.FrameCount, params.FrameCount).x;
-vec3 res = distort(Source, jumpy(vTexCoord), params.magnitude);
-float col = nn(-vTexCoord * params.SourceSize.y * 4.0);
-vec3 play = distort(overlay, jumpy(vTexCoord), params.magnitude);
-float overlay_alpha = texture(overlay, jumpy(vTexCoord)).a;
-float show_overlay = (mod(timer, 100.0) < 50.0) && (timer < 500.0) ? texture(overlay, jumpy(vTexCoord)).a : 0.0;
-show_overlay = clamp(show_overlay + params.always_on * overlay_alpha, 0.0, 1.0);
-res = mix(res, play, show_overlay);
+	float timer = float(params.FrameCount);
+	vec3 res = distort(Source, jumpy(vTexCoord, timer), params.magnitude, timer);
+	float col = nn(-vTexCoord * params.SourceSize.y * 4.0, timer);
+	vec3 play_osd = distort(play, jumpy(vTexCoord, timer), params.magnitude, timer);
+	float overlay_alpha = texture(play, jumpy(vTexCoord, timer)).a;
+	float show_overlay = (mod(timer, 100.0) < 50.0) && (timer < 500.0) ? texture(play, jumpy(vTexCoord, timer)).a : 0.0;
+	show_overlay = clamp(show_overlay + params.always_on * overlay_alpha, 0.0, 1.0);
+	res = mix(res, play_osd, show_overlay);
 
-   FragColor = vec4(res + clamp(vec3(col), 0.0, 0.5), 1.0);
+	FragColor = vec4(res + clamp(vec3(col), 0.0, 0.5), 1.0);
 }
