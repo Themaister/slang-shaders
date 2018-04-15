@@ -1,3 +1,5 @@
+# Super Game Boy Advance border shader
+
 These shader presets will allow you to apply a 320x240 Super Game Boy Advance border around a 240x160 input image from a Game Boy Advance core.
 
 Please note that RetroArch's integer scaling function will not automatically set a correct integer scale for the output image, as it will only take the Game Boy Advance core's reported resolution of 240x160 into account, and not the output image's 320x240 resolution.

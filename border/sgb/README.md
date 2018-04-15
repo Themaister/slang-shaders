@@ -1,3 +1,5 @@
+# Super Game Boy border shader
+
 These shader presets will allow you to apply a 256x224 Super Game Boy border around a 160x144 input image from a Game Boy core.
 
 Please note that RetroArch's integer scaling function will not automatically set a correct integer scale for the output image, as it will only take the Game Boy core's reported resolution of 160x144 into account, and not the output image's 256x224 resolution.
