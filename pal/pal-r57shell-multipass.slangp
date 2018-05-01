@@ -1,0 +1,11 @@
+shaders = 2
+
+shader0 = shaders/pal-r57shell-multipass0.slang
+alias0 = Pass0
+scale_type0 = source
+scale0 = 2.0
+
+shader1 = shaders/pal-r57shell-multipass1.slang
+
+textures = "nes_lut"
+nes_lut = resources/nes_lut.png

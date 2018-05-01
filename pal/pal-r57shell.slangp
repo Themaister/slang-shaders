@@ -1,0 +1,6 @@
+shaders = 1
+
+shader0 = shaders/pal-r57shell.slang
+
+textures = "nes_lut"
+nes_lut = resources/nes_lut.png
