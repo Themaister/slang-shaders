@@ -146,6 +146,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 //#define USE_SAMPLED
 
 /*#ifndef PARAMETER_UNIFORM
+// commented because parameters are always available in slang
 
 // NTSC standard gamma = 2.2
 // PAL standard gamma = 2.8
@@ -271,11 +272,11 @@ const float comb_line = 1.;
 const float comb_line = 2.;
 #endif
 
-const double RGB_y = Contrast_static/Ywidth_static/DeltaV;
-const double RGB_u = comb_line*Contrast_static*Saturation_static/YUV_u/Uwidth_static/DeltaV;
-const double RGB_v = comb_line*Contrast_static*Saturation_static/YUV_v/Vwidth_static/DeltaV;
+float RGB_y = Contrast_static/Ywidth_static/DeltaV;
+float RGB_u = comb_line*Contrast_static*Saturation_static/YUV_u/Uwidth_static/DeltaV;
+float RGB_v = comb_line*Contrast_static*Saturation_static/YUV_v/Vwidth_static/DeltaV;
 
-const mat3 YUV_to_RGB =
+mat3 YUV_to_RGB =
 mat3(
 	float3(1., 1., 1.)*RGB_y,
 	float3(0., -0.114/0.587, 1.)*RGB_u,
@@ -312,7 +313,7 @@ bool InColorPhase(int color, float phase)
 float NTSCsignal(float3 pixel, float phase)
 {
 	// Voltage levels, relative to synch voltage
-	static const float black=.518, white=1.962, attenuation=.746,
+	const float black=.518, white=1.962, attenuation=.746,
 		levels[8] = {.350, .518, .962,1.550,  // Signal low
 				1.094,1.506,1.962,1.962}; // Signal high
 
@@ -482,7 +483,7 @@ float3 monitor(sampler2D tex, float2 p)
 #endif
 
 #ifdef USE_SCANLINES
-	float scanlines = size.y/params.OutputSize.x;
+	float scanlines = size.y * params.OutputSize.z;
 	float top = fmod(q.y-0.5*scanlines*2.,2.);
 	float bottom = top+frac(scanlines)*2.;
 	float2 sw = saturate(min(float2(1.,2.),float2(bottom, bottom))
@@ -520,10 +521,10 @@ float3 monitor(sampler2D tex, float2 p)
 	//	rgb = float3(0.,0.,0.);
 
 #ifdef USE_SUBPIXELS
-	float pixels = params.TV_Pixels/params.OutputSize.x;
-	float left = fmod(q.x-0.5*pixels*3,3);
+	float pixels = params.TV_Pixels * params.OutputSize.z;
+	float left = fmod(q.x-0.5*pixels*3.,3.);
 	float right = left+frac(pixels)*3.;
-	float3 w = saturate(min(float3(1.,2.,3.),float3(rightright,right))
+	float3 w = saturate(min(float3(1.,2.,3.),float3(right,right,right))
 		-max(float3(0.,1.,2.),float3(left,left,left)))
 		+saturate(min(float3(4.,5.,6.),float3(right,right,right))
 		-max(float3(3.,4.,5.),float3(left,left,left)))
@@ -587,6 +588,10 @@ float4 monitor_sample(sampler2D tex, float2 p, float2 sample_)
 
 void main()
 {
+#ifdef USE_SAMPLED
+	FragColor = vec4(monitor_sample(Source, vTexCoord, params.OutputSize.zw).rgb, 1.0);
+#else
+	FragColor = float4(monitor(Source, vTexCoord), 1.);
+#endif
    
-   FragColor = vec4(monitor_sample(Source, vTexCoord, params.OutputSize.xy).rgb, 1.0);
 }
