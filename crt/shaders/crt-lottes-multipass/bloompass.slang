@@ -15,7 +15,7 @@ layout(push_constant) uniform Push
     float hardBloomPix;
     float bloomAmount;
     float shape;
-} param;
+} params;
 
 #pragma parameter hardScan "hardScan" -8.0 -20.0 0.0 1.0
 #pragma parameter hardPix "hardPix" -3.0 -20.0 0.0 1.0
@@ -95,7 +95,7 @@ vec3 ToSrgb(vec3 c)
 #else
 float ToLinear1(float c)
 {
-    if (param.scaleInLinearGamma == 0) 
+    if (params.scaleInLinearGamma == 0) 
         return c;
     
     return(c<=0.04045) ? c/12.92 : pow((c + 0.055)/1.055, 2.4);
@@ -103,7 +103,7 @@ float ToLinear1(float c)
 
 vec3 ToLinear(vec3 c)
 {
-    if (param.scaleInLinearGamma==0) 
+    if (params.scaleInLinearGamma==0) 
         return c;
     
     return vec3(ToLinear1(c.r), ToLinear1(c.g), ToLinear1(c.b));
@@ -113,7 +113,7 @@ vec3 ToLinear(vec3 c)
 // Assuming using sRGB typed textures this should not be needed.
 float ToSrgb1(float c)
 {
-    if (param.scaleInLinearGamma == 0) 
+    if (params.scaleInLinearGamma == 0) 
         return c;
     
     return(c<0.0031308 ? c*12.92 : 1.055*pow(c, 0.41666) - 0.055);
@@ -121,7 +121,7 @@ float ToSrgb1(float c)
 
 vec3 ToSrgb(vec3 c)
 {
-    if (param.scaleInLinearGamma == 0) 
+    if (params.scaleInLinearGamma == 0) 
         return c;
     
     return vec3(ToSrgb1(c.r), ToSrgb1(c.g), ToSrgb1(c.b));
@@ -135,9 +135,9 @@ vec3 ToSrgb(vec3 c)
 vec3 Fetch(vec2 pos,vec2 off){
   pos=(floor(pos*global.SourceSize.xy+off)+vec2(0.5,0.5))/global.SourceSize.xy;
 #ifdef SIMPLE_LINEAR_GAMMA
-  return ToLinear(param.brightBoost * pow(texture(Original,pos.xy).rgb, vec3(2.2)));
+  return ToLinear(params.brightBoost * pow(texture(Original,pos.xy).rgb, vec3(2.2)));
 #else
-  return ToLinear(param.brightBoost * texture(Original,pos.xy).rgb);
+  return ToLinear(params.brightBoost * texture(Original,pos.xy).rgb);
 #endif
 }
   
@@ -152,7 +152,7 @@ vec2 Dist(vec2 pos)
 // 1D Gaussian.
 float Gaus(float pos, float scale)
 {
-    return exp2(scale*pow(abs(pos), param.shape));
+    return exp2(scale*pow(abs(pos), params.shape));
 }
 
 // 3-tap Gaussian filter along horz line.
@@ -164,7 +164,7 @@ vec3 Horz3(vec2 pos, float off)
     float dst = Dist(pos).x;
 
     // Convert distance to weight.
-    float scale = param.hardPix;
+    float scale = params.hardPix;
     float wb = Gaus(dst-1.0,scale);
     float wc = Gaus(dst+0.0,scale);
     float wd = Gaus(dst+1.0,scale);
@@ -183,7 +183,7 @@ vec3 Horz5(vec2 pos,float off){
     
     float dst = Dist(pos).x;
     // Convert distance to weight.
-    float scale = param.hardPix;
+    float scale = params.hardPix;
     float wa = Gaus(dst - 2.0, scale);
     float wb = Gaus(dst - 1.0, scale);
     float wc = Gaus(dst + 0.0, scale);
@@ -207,7 +207,7 @@ vec3 Horz7(vec2 pos,float off)
 
     float dst = Dist(pos).x;
     // Convert distance to weight.
-    float scale = param.hardBloomPix;
+    float scale = params.hardBloomPix;
     float wa = Gaus(dst - 3.0, scale);
     float wb = Gaus(dst - 2.0, scale);
     float wc = Gaus(dst - 1.0, scale);
@@ -225,7 +225,7 @@ float Scan(vec2 pos, float off)
 {
     float dst = Dist(pos).y;
 
-    return Gaus(dst + off, param.hardScan);
+    return Gaus(dst + off, params.hardScan);
 }
   
 // Return scanline weight for bloom.
@@ -233,7 +233,7 @@ float BloomScan(vec2 pos, float off)
 {
     float dst = Dist(pos).y;
     
-    return Gaus(dst + off, param.hardBloomScan);
+    return Gaus(dst + off, params.hardBloomScan);
 }
 
 // Allow nearest three lines to effect pixel.
@@ -272,7 +272,7 @@ vec3 Bloom(vec2 pos)
 vec2 Warp(vec2 pos)
 {
     pos  = pos*2.0-1.0;    
-    pos *= vec2(1.0 + (pos.y*pos.y)*param.warpX, 1.0 + (pos.x*pos.x)*param.warpY);
+    pos *= vec2(1.0 + (pos.y*pos.y)*params.warpX, 1.0 + (pos.x*pos.x)*params.warpY);
     
     return pos*0.5 + 0.5;
 }
@@ -280,56 +280,56 @@ vec2 Warp(vec2 pos)
 // Shadow mask.
 vec3 Mask(vec2 pos)
 {
-    vec3 mask = vec3(param.maskDark, param.maskDark, param.maskDark);
+    vec3 mask = vec3(params.maskDark, params.maskDark, params.maskDark);
   
     // Very compressed TV style shadow mask.
-    if (param.shadowMask == 1.0) 
+    if (params.shadowMask == 1.0) 
     {
-        float line = param.maskLight;
+        float line = params.maskLight;
         float odd = 0.0;
         
         if (fract(pos.x*0.166666666) < 0.5) odd = 1.0;
-        if (fract((pos.y + odd) * 0.5) < 0.5) line = param.maskDark;  
+        if (fract((pos.y + odd) * 0.5) < 0.5) line = params.maskDark;  
         
         pos.x = fract(pos.x*0.333333333);
 
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
         mask*=line;  
     } 
 
     // Aperture-grille.
-    else if (param.shadowMask == 2.0) 
+    else if (params.shadowMask == 2.0) 
     {
         pos.x = fract(pos.x*0.333333333);
 
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
     } 
 
     // Stretched VGA style shadow mask (same as prior shaders).
-    else if (param.shadowMask == 3.0) 
+    else if (params.shadowMask == 3.0) 
     {
         pos.x += pos.y*3.0;
         pos.x  = fract(pos.x*0.166666666);
 
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
     }
 
     // VGA style shadow mask.
-    else if (param.shadowMask == 4.0) 
+    else if (params.shadowMask == 4.0) 
     {
         pos.xy  = floor(pos.xy*vec2(1.0, 0.5));
         pos.x  += pos.y*3.0;
         pos.x   = fract(pos.x*0.166666666);
 
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
     }
 
     return mask;
@@ -339,5 +339,5 @@ void main()
 {
     vec2 pos = vTexCoord;
 
-    FragColor = vec4(Bloom(pos)*param.bloomAmount, 1.0);
+    FragColor = vec4(Bloom(pos)*params.bloomAmount, 1.0);
 }
