@@ -3,7 +3,7 @@
 layout(push_constant) uniform Push
 {
     float BOOST;
-} param;
+} params;
 
 #pragma parameter BOOST "Color Boost" 1.0 0.5 1.5 0.02
 
@@ -73,6 +73,6 @@ void main()
     scanline += beam(top,    dist0);
     scanline += beam(bottom, dist1);
 
-    FragColor = vec4(param.BOOST * scanline * 0.869565217391304, 1.0);
+    FragColor = vec4(params.BOOST * scanline * 0.869565217391304, 1.0);
 }
 

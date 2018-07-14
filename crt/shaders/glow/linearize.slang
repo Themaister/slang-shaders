@@ -3,7 +3,7 @@
 layout(push_constant) uniform Push
 {
     float INPUT_GAMMA;
-} param;
+} params;
 
 #pragma parameter INPUT_GAMMA "Input Gamma" 2.4 2.0 2.6 0.02
 
@@ -36,5 +36,5 @@ void main()
 {
     vec3 color = texture(Source, vTexCoord).rgb;
 
-    FragColor  = vec4(pow(color, vec3(param.INPUT_GAMMA)), 1.0);
+    FragColor  = vec4(pow(color, vec3(params.INPUT_GAMMA)), 1.0);
 }

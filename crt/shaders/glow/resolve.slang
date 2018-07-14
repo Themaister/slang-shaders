@@ -14,7 +14,7 @@ layout(push_constant) uniform Push
    float shadowMask;
    float maskDark;
    float maskLight;
-} param;
+} params;
  
 #pragma parameter BLOOM_STRENGTH "Glow Strength" 0.45 0.0 0.8 0.05
 #pragma parameter OUTPUT_GAMMA "Monitor Gamma" 2.2 1.8 2.6 0.02
@@ -78,7 +78,7 @@ float Linear(float c){return pow(c, 2.2);}
 float Noise(vec2 p,float x){p+=x;
  vec3 p3=fract(vec3(p.xyx)*10.1031);
  p3+=dot(p3,p3.yzx+19.19);
- return (fract((p3.x+p3.y)*p3.z)*2.0-1.0) / pow(2.0, 11.0 - param.moire_mitigation);}
+ return (fract((p3.x+p3.y)*p3.z)*2.0-1.0) / pow(2.0, 11.0 - params.moire_mitigation);}
  
 // Step 1 in generation of the dither source texture.
 float Noise1(vec2 uv,float n){
@@ -217,7 +217,7 @@ vec2 moire_resolve(vec2 coord){
    
    cc = ResolveJitGaus4(pp);
    cc = Noise4(pp, cc, 1.0 / 32.0);
-   cc = (param.CURVATURE < 0.5) ? pp : cc + vec2(0.0105, 0.015);
+   cc = (params.CURVATURE < 0.5) ? pp : cc + vec2(0.0105, 0.015);
    
    return cc;
 }
@@ -226,7 +226,7 @@ vec2 moire_resolve(vec2 coord){
 vec2 Warp(vec2 pos)
 {
     pos  = pos*2.0-1.0;    
-    pos *= vec2(1.0 + (pos.y*pos.y)*param.warpX, 1.0 + (pos.x*pos.x)*param.warpY);
+    pos *= vec2(1.0 + (pos.y*pos.y)*params.warpX, 1.0 + (pos.x*pos.x)*params.warpY);
    
     return pos*0.5 + 0.5;
 }
@@ -234,56 +234,56 @@ vec2 Warp(vec2 pos)
 // Shadow mask.
 vec3 Mask(vec2 pos)
 {
-    vec3 mask = vec3(param.maskDark, param.maskDark, param.maskDark);
+    vec3 mask = vec3(params.maskDark, params.maskDark, params.maskDark);
  
     // Very compressed TV style shadow mask.
-    if (param.shadowMask == 1.0)
+    if (params.shadowMask == 1.0)
     {
-        float line = param.maskLight;
+        float line = params.maskLight;
         float odd = 0.0;
        
         if (fract(pos.x*0.166666666) < 0.5) odd = 1.0;
-        if (fract((pos.y + odd) * 0.5) < 0.5) line = param.maskDark;  
+        if (fract((pos.y + odd) * 0.5) < 0.5) line = params.maskDark;  
        
         pos.x = fract(pos.x*0.333333333);
  
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
         mask*=line;  
     }
  
     // Aperture-grille.
-    else if (param.shadowMask == 2.0)
+    else if (params.shadowMask == 2.0)
     {
         pos.x = fract(pos.x*0.333333333);
  
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
     }
  
     // Stretched VGA style shadow mask (same as prior shaders).
-    else if (param.shadowMask == 3.0)
+    else if (params.shadowMask == 3.0)
     {
         pos.x += pos.y*3.0;
         pos.x  = fract(pos.x*0.166666666);
  
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
     }
  
     // VGA style shadow mask.
-    else if (param.shadowMask == 4.0)
+    else if (params.shadowMask == 4.0)
     {
         pos.xy  = floor(pos.xy*vec2(1.0, 0.5));
         pos.x  += pos.y*3.0;
         pos.x   = fract(pos.x*0.166666666);
  
-        if      (pos.x < 0.333) mask.r = param.maskLight;
-        else if (pos.x < 0.666) mask.g = param.maskLight;
-        else                    mask.b = param.maskLight;
+        if      (pos.x < 0.333) mask.r = params.maskLight;
+        else if (pos.x < 0.666) mask.g = params.maskLight;
+        else                    mask.b = params.maskLight;
     }
  
     return mask;
@@ -292,7 +292,7 @@ vec3 Mask(vec2 pos)
 void main()
 {
    vec2 pp = moire_resolve(vTexCoord.xy);
-   pp = (param.CURVATURE > 0.5) ? Warp(pp) : pp;
+   pp = (params.CURVATURE > 0.5) ? Warp(pp) : pp;
    
 #if BLOOM_ONLY
     vec3 source = BLOOM_STRENGTH * texture(Source, pp).rgb;
@@ -300,14 +300,14 @@ void main()
  
     vec3 source = 1.15 * texture(CRT_PASS, pp).rgb;
     vec3 bloom  = texture(Source, pp).rgb;
-    source     += param.BLOOM_STRENGTH * bloom;
+    source     += params.BLOOM_STRENGTH * bloom;
 #endif
-    FragColor = vec4(pow(clamp(source, 0.0, 1.0), vec3(1.0 / param.OUTPUT_GAMMA)), 1.0);
+    FragColor = vec4(pow(clamp(source, 0.0, 1.0), vec3(1.0 / params.OUTPUT_GAMMA)), 1.0);
      /* TODO/FIXME - hacky clamp fix */
     if ( pp.x > 0.0106 && pp.x < 0.9999 && pp.y > 0.016 && pp.y < 0.9999)
         FragColor.rgb = FragColor.rgb;
     else
 FragColor.rgb = vec3(0.0);
-if (param.shadowMask > 0.0)
+if (params.shadowMask > 0.0)
         FragColor.rgb = pow(pow(FragColor.rgb, vec3(2.2)) * Mask(vTexCoord.xy * global.OutputSize.xy * 1.000001), vec3(1.0 / 2.2));
 }
