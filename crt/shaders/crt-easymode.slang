@@ -19,7 +19,7 @@ layout(push_constant) uniform Push
     float SCANLINE_STRENGTH;
     float SHARPNESS_H;
     float SHARPNESS_V;
-} param;
+} params;
 
 #pragma parameter SHARPNESS_H "Sharpness Horizontal" 0.5 0.0 1.0 0.05
 #pragma parameter SHARPNESS_V "Sharpness Vertical" 1.0 0.0 1.0 0.05
@@ -102,7 +102,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 vec4 dilate(vec4 col)
 {
-    vec4 x = mix(vec4(1.0), col, param.DILATION);
+    vec4 x = mix(vec4(1.0), col, params.DILATION);
 
     return col * x;
 }
@@ -150,7 +150,7 @@ void main()
     vec3 col, col2;
 
 #if ENABLE_LANCZOS
-    curve_x = curve_distance(dist.x, param.SHARPNESS_H * param.SHARPNESS_H);
+    curve_x = curve_distance(dist.x, params.SHARPNESS_H * params.SHARPNESS_H);
 
     vec4 coeffs = PI * vec4(1.0 + curve_x, curve_x, 1.0 - curve_x, 2.0 - curve_x);
 
@@ -161,38 +161,38 @@ void main()
     col  = filter_lanczos(coeffs, get_color_matrix(tex_co, dx));
     col2 = filter_lanczos(coeffs, get_color_matrix(tex_co + dy, dx));
 #else
-    curve_x = curve_distance(dist.x, param.SHARPNESS_H);
+    curve_x = curve_distance(dist.x, params.SHARPNESS_H);
 
     col  = mix(TEX2D(tex_co).rgb,      TEX2D(tex_co + dx).rgb,      curve_x);
     col2 = mix(TEX2D(tex_co + dy).rgb, TEX2D(tex_co + dx + dy).rgb, curve_x);
 #endif
 
-    col = mix(col, col2, curve_distance(dist.y, param.SHARPNESS_V));
-    col = pow(col, vec3(param.GAMMA_INPUT / (param.DILATION + 1.0)));
+    col = mix(col, col2, curve_distance(dist.y, params.SHARPNESS_V));
+    col = pow(col, vec3(params.GAMMA_INPUT / (params.DILATION + 1.0)));
 
     float luma        = dot(vec3(0.2126, 0.7152, 0.0722), col);
     float bright      = (max(col.r, max(col.g, col.b)) + luma) * 0.5;
-    float scan_bright = clamp(bright, param.SCANLINE_BRIGHT_MIN, param.SCANLINE_BRIGHT_MAX);
-    float scan_beam   = clamp(bright * param.SCANLINE_BEAM_WIDTH_MAX, param.SCANLINE_BEAM_WIDTH_MIN, param.SCANLINE_BEAM_WIDTH_MAX);
-    float scan_weight = 1.0 - pow(cos(vTexCoord.y * 2.0 * PI * global.SourceSize.y) * 0.5 + 0.5, scan_beam) * param.SCANLINE_STRENGTH;
+    float scan_bright = clamp(bright, params.SCANLINE_BRIGHT_MIN, params.SCANLINE_BRIGHT_MAX);
+    float scan_beam   = clamp(bright * params.SCANLINE_BEAM_WIDTH_MAX, params.SCANLINE_BEAM_WIDTH_MIN, params.SCANLINE_BEAM_WIDTH_MAX);
+    float scan_weight = 1.0 - pow(cos(vTexCoord.y * 2.0 * PI * global.SourceSize.y) * 0.5 + 0.5, scan_beam) * params.SCANLINE_STRENGTH;
 
-    float mask   = 1.0 - param.MASK_STRENGTH;    
-    vec2 mod_fac = floor(vTexCoord * global.OutputSize.xy * global.SourceSize.xy / (global.SourceSize.xy * vec2(param.MASK_SIZE, param.MASK_DOT_HEIGHT * param.MASK_SIZE)));
-    int dot_no   = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * param.MASK_STAGGER) / param.MASK_DOT_WIDTH, 3.0));
+    float mask   = 1.0 - params.MASK_STRENGTH;    
+    vec2 mod_fac = floor(vTexCoord * global.OutputSize.xy * global.SourceSize.xy / (global.SourceSize.xy * vec2(params.MASK_SIZE, params.MASK_DOT_HEIGHT * params.MASK_SIZE)));
+    int dot_no   = int(mod((mod_fac.x + mod(mod_fac.y, 2.0) * params.MASK_STAGGER) / params.MASK_DOT_WIDTH, 3.0));
     vec3 mask_weight;
 
     if      (dot_no == 0) mask_weight = vec3(1.0,  mask, mask);
     else if (dot_no == 1) mask_weight = vec3(mask, 1.0,  mask);
     else                  mask_weight = vec3(mask, mask, 1.0);
 
-    if (global.SourceSize.y >= param.SCANLINE_CUTOFF) 
+    if (global.SourceSize.y >= params.SCANLINE_CUTOFF) 
         scan_weight = 1.0;
 
     col2 = col.rgb;
     col *= vec3(scan_weight);
     col  = mix(col, col2, scan_bright);
     col *= mask_weight;
-    col  = pow(col, vec3(1.0 / param.GAMMA_OUTPUT));
+    col  = pow(col, vec3(1.0 / params.GAMMA_OUTPUT));
 
-    FragColor = vec4(col * param.BRIGHT_BOOST, 1.0);
+    FragColor = vec4(col * params.BRIGHT_BOOST, 1.0);
 }
