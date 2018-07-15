@@ -48,7 +48,7 @@ layout(push_constant) uniform Push
     float FIR_GAIN;
     float FIR_INVGAIN;
     float PHASE_NOISE;
-} param;
+} params;
 
 #pragma parameter FIR_GAIN    "FIR lowpass gain"               1.5 0.0 5.0 0.1
 #pragma parameter FIR_INVGAIN "Inverse gain for luma recovery" 1.1 0.0 5.0 0.1
@@ -171,11 +171,11 @@ vec2 modem_uv(vec2 xy, float ofs) {
     vec3 yuv = RGB_to_YUV * rgb;
     float signal = clamp(yuv.x + yuv.y * sinwt + yuv.z * coswt, 0.0, 1.0);
     
-    if (param.PHASE_NOISE != 0)
+    if (params.PHASE_NOISE != 0)
     {
         /* .yy is horizontal noise, .xx looks bad, .xy is classic noise */
         vec2 seed = xy.yy * global.FrameCount;
-        wt        = wt + param.PHASE_NOISE * (rand(seed) - 0.5);
+        wt        = wt + params.PHASE_NOISE * (rand(seed) - 0.5);
         sinwt     = sin(wt);
         coswt     = cos(wt + altv);
     }
@@ -195,7 +195,7 @@ void main()
     vec2 filtered = vec2(0.0, 0.0);
     for (int i = 0; i < FIRTAPS; i++) {
         vec2 uv   = modem_uv(xy, i - FIRTAPS*0.5);
-        filtered += param.FIR_GAIN * uv * FIR[i];
+        filtered += params.FIR_GAIN * uv * FIR[i];
     }
 
     float t  = xy.x * global.SourceSize.x;
@@ -204,7 +204,7 @@ void main()
     float sinwt = sin(wt);
     float coswt = cos(wt + altv);
 
-    float luma = modulated(xy, sinwt, coswt) - param.FIR_INVGAIN * (filtered.x * sinwt + filtered.y * coswt);
+    float luma = modulated(xy, sinwt, coswt) - params.FIR_INVGAIN * (filtered.x * sinwt + filtered.y * coswt);
     vec3 yuv_result = vec3(luma, filtered.x, filtered.y);
 
     FragColor = vec4(YUV_to_RGB * yuv_result, 1.0);
