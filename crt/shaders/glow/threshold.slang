@@ -4,7 +4,7 @@ layout(push_constant) uniform Push
 {
     float GLOW_WHITEPOINT;
     float GLOW_ROLLOFF;
-} param;
+} params;
 
 #pragma parameter GLOW_WHITEPOINT "Glow Whitepoint" 1.0 0.5 1.1 0.02
 #pragma parameter GLOW_ROLLOFF "Glow Rolloff" 3.0 1.2 6.0 0.1
@@ -37,7 +37,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 void main()
 {
     vec3 color  = 1.15 * texture(Source, vTexCoord).rgb;
-    vec3 factor = clamp(color / param.GLOW_WHITEPOINT, 0.0, 1.0);
+    vec3 factor = clamp(color / params.GLOW_WHITEPOINT, 0.0, 1.0);
 
-    FragColor = vec4(pow(factor, vec3(param.GLOW_ROLLOFF)), 1.0);
+    FragColor = vec4(pow(factor, vec3(params.GLOW_ROLLOFF)), 1.0);
 }

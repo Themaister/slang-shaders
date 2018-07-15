@@ -193,7 +193,7 @@ void main()
 	
 	vec4 hori = vec4(low.x < max(D.w, A.w), low.x < max(E.w, B.w), low.z < max(E.w, H.w), low.z < max(D.w, G.w)) * clr;	// horizontal edges
 	vec4 vert = vec4(low.w < max(E.y, D.y), low.y < max(E.y, F.y), low.y < max(H.y, I.y), low.w < max(H.y, G.y)) * clr;	// vertical edges
-	vec4 or   = vec4(A.w < D.y, B.w <= F.y, H.w < I.y, G.w <= G.y);								// orientation
+	vec4 orie  = vec4(A.w < D.y, B.w <= F.y, H.w < I.y, G.w <= G.y);								// orientation
 
-	FragColor = (res + 2.0 * hori + 4.0 * vert + 8.0 * or) / 15.0;
+	FragColor = (res + 2.0 * hori + 4.0 * vert + 8.0 * orie) / 15.0;
 }

@@ -40,7 +40,7 @@ float eq(vec3 A, vec3 B)
 	return pow( smoothstep(3.0, 0.0, sqrt(diff.x + diff.y + diff.z)), params.PWR );
 }
 
-float and(float a, float b, float c, float d, float e, float f){
+float and_(float a, float b, float c, float d, float e, float f){
 	return min(a, min(b, min(c, min(d, min(e,f)))));
 }
 
@@ -87,7 +87,7 @@ void main()
 
 		res.x = dot(dCL, dCR) * eq(L,R);
 		res.y = dot(dCU, dCD) * eq(U,D);
-		res.z = and(res.x, res.y, dot(dCL, dCU) * eq(L,U), dot(dCL, dCD) * eq(L,D), dot(dCR, dCU) * eq(R,U), dot(dCR, dCD) * eq(R,D));
+		res.z = and_(res.x, res.y, dot(dCL, dCU) * eq(L,U), dot(dCL, dCD) * eq(L,D), dot(dCR, dCU) * eq(R,U), dot(dCR, dCD) * eq(R,D));
 	}
 
    FragColor = vec4(res, 1.0);

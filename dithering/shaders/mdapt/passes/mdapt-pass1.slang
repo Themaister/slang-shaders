@@ -19,19 +19,19 @@ layout(push_constant) uniform Push
 #define TEX(dx,dy) texture(Source, vTexCoord+vec2((dx),(dy))*params.SourceSize.zw)
 
 
-float and(float a, float b){
+float and_(float a, float b){
 	return min(a,b);
 }
 
-float and(float a, float b, float c){
+float and_(float a, float b, float c){
 	return min(a, min(b,c));
 }
 
-float or(float a, float b){
+float or_(float a, float b){
 	return max(a,b);
 }
 
-float or(float a, float b, float c, float d, float e){
+float or_(float a, float b, float c, float d, float e){
 	return max(a, max(b, max(c, max(d,e))));
 }
 
@@ -76,10 +76,10 @@ void main()
 	float DR = TEX( 1., 1.).z;
 
 	// Checkerboard Pattern Completion
-	float prCB = or(C.z,
-		and(L.z, R.z, or(U.x, D.x)),
-		and(U.z, D.z, or(L.y, R.y)),
-		and(C.x, or(and(UL, UR), and(DL, DR))),
-		and(C.y, or(and(UL, DL), and(UR, DR))));
+	float prCB = or_(C.z,
+		and_(L.z, R.z, or_(U.x, D.x)),
+		and_(U.z, D.z, or_(L.y, R.y)),
+		and_(C.x, or_(and_(UL, UR), and_(DL, DR))),
+		and_(C.y, or_(and_(UL, DL), and_(UR, DR))));
    FragColor = vec4(C.x, prCB, 0.0, 0.0);
 }

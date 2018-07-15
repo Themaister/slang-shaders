@@ -25,7 +25,7 @@ float sinc(float x)
    return sin(x) / x;
 }
 
-float kernel(float x)
+float kernel_(float x)
 {
    x = max(abs(x) * PI, 0.0001);
    return sinc(x) * sinc(0.5 * x);
@@ -40,10 +40,10 @@ void main()
 #define TEX(x, y) textureLodOffset(Source, tex, 0.0, ivec2(x, y)).rgb
 
    vec3 color =
-      kernel(a + 1.0) * TEX(-1, 0) +
-      kernel(a      ) * TEX( 0, 0) +
-      kernel(a - 1.0) * TEX( 1, 0) +
-      kernel(a - 2.0) * TEX( 2, 0);
+      kernel_(a + 1.0) * TEX(-1, 0) +
+      kernel_(a      ) * TEX( 0, 0) +
+      kernel_(a - 1.0) * TEX( 1, 0) +
+      kernel_(a - 2.0) * TEX( 2, 0);
 
    FragColor = vec4(color, 1.0);
 }

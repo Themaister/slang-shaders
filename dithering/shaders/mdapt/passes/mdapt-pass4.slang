@@ -64,27 +64,27 @@ bool eq(vec3 A, vec3 B){
 	return (A == B);
 }
 
-float and(float a, float b){
+float and_(float a, float b){
 	return min(a,b);
 }
 
-float or(float a, float b){
+float or_(float a, float b){
 	return max(a,b);
 }
 
-float or(float a, float b, float c, float d, float e, float f, float g, float h, float i){
+float or_(float a, float b, float c, float d, float e, float f, float g, float h, float i){
 	return max(a, max(b, max(c, max(d, max(e, max(f, max(g, max(h,i))))))));
 }
 
-vec2 and(vec2 a, vec2 b){
+vec2 and_(vec2 a, vec2 b){
 	return min(a,b);
 }
 
-vec2 or(vec2 a, vec2 b){
+vec2 or_(vec2 a, vec2 b){
 	return max(a,b);
 }
 
-vec2 or(vec2 a, vec2 b, vec2 c, vec2 d){
+vec2 or_(vec2 a, vec2 b, vec2 c, vec2 d){
 	return max(a, max(b, max(c,d)));
 }
 
@@ -107,7 +107,7 @@ void main()
 
 
 	// Backpropagation
-	C.xy = or(C.xy, and(C.zw, or(L.xy, R.xy, U.xy, D.xy)));
+	C.xy = or_(C.xy, and_(C.zw, or_(L.xy, R.xy, U.xy, D.xy)));
 
 
 	if(params.VL > 0.5){
@@ -130,10 +130,10 @@ void main()
 		float eqCU = float(eq(c,u));
 		float eqCD = float(eq(c,d));
 
-		float prU = or(U.y, eqCU);
-		float prD = or(D.y, eqCD);
-		float prL = or(L.y, eqCL);
-		float prR = or(R.y, eqCR);
+		float prU = or_(U.y, eqCU);
+		float prD = or_(D.y, eqCD);
+		float prL = or_(L.y, eqCL);
+		float prR = or_(R.y, eqCR);
 
 
 		float prSum = prU  + prD  + prL  + prR;
@@ -151,7 +151,7 @@ void main()
 		float DR = TEX( 1., 1.).y;	vec3 dr = TEXt0( 1., 1.).xyz;
 
 		// Checkerboard Smoothing
-		prCB = or(C.y, and(L.y, eqCL), and(R.y, eqCR), and(U.y, eqCU), and(D.y, eqCD), and(UL, float(eq(c,ul))), and(UR, float(eq(c,ur))), and(DL, float(eq(c,dl))), and(DR, float(eq(c,dr))));
+		prCB = or_(C.y, and_(L.y, eqCL), and_(R.y, eqCR), and_(U.y, eqCU), and_(D.y, eqCD), and_(UL, float(eq(c,ul))), and_(UR, float(eq(c,ur))), and_(DL, float(eq(c,dl))), and_(DR, float(eq(c,dr))));
 	}
 
 	if(params.DEBUG > 0.5)
