@@ -9,7 +9,7 @@ layout(push_constant) uniform Push
   float NOGAMMA;
   float MASKING;
   float BILINEAR;
-} param;
+} params;
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -76,7 +76,7 @@ vec3 linear2srgb(vec3 linear) {
 #define BS 0.0722
 
 vec3 rgb2vry(vec3 rgb) {
-    if (param.NOGAMMA == 1.0)
+    if (params.NOGAMMA == 1.0)
         return rgb;
 
     // https://en.wikipedia.org/wiki/Opponent_process
@@ -94,7 +94,7 @@ vec3 rgb2vry(vec3 rgb) {
     return vry;
 }
 vec3 vry2rgb(vec3 vry) {
-    if (param.NOGAMMA == 1.0)
+    if (params.NOGAMMA == 1.0)
         return vry;
 
     // Magic.
@@ -110,7 +110,7 @@ vec3 vry2rgb(vec3 vry) {
 }
 
 vec3 vry_interp(vec3 first, vec3 second, float frac) {
-    if (param.NOGAMMA == 1.0)
+    if (params.NOGAMMA == 1.0)
         return first*NOT(frac) + second*YES(frac);
     
     // Because the chroma values were generated on linear light, but the luma must be interpolated in perceptual gamma (3)
@@ -131,7 +131,7 @@ vec3 vry_interp(vec3 first, vec3 second, float frac) {
 }
 
 vec3 percent(float ssize, float tsize, float coord) {
-    if (param.BILINEAR == 1.0)
+    if (params.BILINEAR == 1.0)
         tsize = ssize;
     
     float minfull = (coord*tsize - 0.5)/tsize*ssize;
@@ -153,7 +153,7 @@ vec3 percent(float ssize, float tsize, float coord) {
 void main() {
     vec2 viewportSize = global.OutputSize.xy;
     vec2 gameCoord = vTexCoord;
-    if (param.MASKING == 1.0) {
+    if (params.MASKING == 1.0) {
         float hscale = viewportSize.x/global.SourceSize.x;
         float vscale = viewportSize.y/global.SourceSize.y;
 
