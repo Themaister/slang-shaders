@@ -18,7 +18,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 const vec3 dt = vec3(1.0,1.0,1.0);
 
-vec3 texture2d (sampler2D tex, vec2 coord, vec4 yx) {
+vec3 texture2d_(sampler2D tex, vec2 coord, vec4 yx) {
 
 	vec3 s00 = texture(tex, coord + yx.zw).xyz; 
 	vec3 s20 = texture(tex, coord + yx.xw).xyz; 
@@ -67,15 +67,15 @@ void main()
 	vec2 pC4 = floor(OGL2Pos) * inv_size;	
 	
 	// Reading the texels
-	vec3 C0 = texture2d(Source, pC4 - g1, yx); 
-	vec3 C1 = texture2d(Source, pC4 - dy, yx);
-	vec3 C2 = texture2d(Source, pC4 - g2, yx);
-	vec3 C3 = texture2d(Source, pC4 - dx, yx);
-	vec3 C4 = texture2d(Source, pC4     , yx);
-	vec3 C5 = texture2d(Source, pC4 + dx, yx);
-	vec3 C6 = texture2d(Source, pC4 + g2, yx);
-	vec3 C7 = texture2d(Source, pC4 + dy, yx);
-	vec3 C8 = texture2d(Source, pC4 + g1, yx);
+	vec3 C1 = texture2d_(Source, pC4 - dy, yx);
+	vec3 C0 = texture2d_(Source, pC4 - g1, yx); 
+	vec3 C2 = texture2d_(Source, pC4 - g2, yx);
+	vec3 C3 = texture2d_(Source, pC4 - dx, yx);
+	vec3 C4 = texture2d_(Source, pC4     , yx);
+	vec3 C5 = texture2d_(Source, pC4 + dx, yx);
+	vec3 C6 = texture2d_(Source, pC4 + g2, yx);
+	vec3 C7 = texture2d_(Source, pC4 + dy, yx);
+	vec3 C8 = texture2d_(Source, pC4 + g1, yx);
 	
 	vec3 ul, ur, dl, dr;
 	float m1, m2;
