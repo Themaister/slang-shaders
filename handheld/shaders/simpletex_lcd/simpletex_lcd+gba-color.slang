@@ -121,14 +121,14 @@ const float LINE_WEIGHT_B = 8.0 / 3.0;
 const float INV_BG_TEXTURE_SIZE = 1.0 / BG_TEXTURE_SIZE;
 
 // Colour correction
-#define CC_R 0.845
-#define CC_G 0.68
-#define CC_B 0.755
-#define CC_RG 0.09
-#define CC_RB 0.16
-#define CC_GR 0.17
-#define CC_GB 0.085
-#define CC_BR -0.015
+#define CC_R 0.84
+#define CC_G 0.66
+#define CC_B 0.81
+#define CC_RG 0.11
+#define CC_RB 0.13
+#define CC_GR 0.19
+#define CC_GB 0.06
+#define CC_BR -0.03
 #define CC_BG 0.23
 
 /*
