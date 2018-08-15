@@ -63,7 +63,7 @@ void main()
 	vec2 middle = vec2(0.49999, 0.49999);
 	vec2 diff = TexCoord.xy - middle;
 	vTexCoord = middle + diff * scale;
-	vec2 zoom_coord = (((vTexCoord.xy - middle) / params.border_zoom) * vec2(params.OutputSize.x / params.OutputSize.y, 1.0)
+	vec2 zoom_coord = (((TexCoord.xy - middle) / params.border_zoom) * vec2(params.OutputSize.x / params.OutputSize.y, 1.0)
 		/ vec2(params.aspect_x / params.aspect_y, 1.0)) + middle;
 	tex_border = zoom_coord;
 }
