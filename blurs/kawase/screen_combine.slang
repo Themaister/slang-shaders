@@ -28,10 +28,10 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D Original;
+layout(set = 0, binding = 3) uniform sampler2D Reference;
 
 void main()
 {
-   FragColor = 1.0 - (1.0 - texture(Source, vTexCoord)) * (1.0 - texture(Original, vTexCoord));
+   FragColor = 1.0 - (1.0 - texture(Source, vTexCoord)) * (1.0 - texture(Reference, vTexCoord));
    FragColor = pow(FragColor, vec4(2.2));
 }
