@@ -28,6 +28,7 @@ layout(push_constant) uniform Push
     float hardBloomPix;
     float bloomAmount;
     float shape;
+    float DIFFUSION;
 } param;
 
 #pragma parameter hardScan "hardScan" -8.0 -20.0 0.0 1.0
@@ -43,6 +44,7 @@ layout(push_constant) uniform Push
 #pragma parameter hardBloomScan "bloom-y soft" -2.0 -4.0 -1.0 0.1
 #pragma parameter bloomAmount "bloom amount" 0.40 0.0 1.0 0.05
 #pragma parameter shape "filter kernel shape" 2.0 0.0 10.0 0.05
+#pragma parameter DIFFUSION "Diffusion" 0.0 0.0 1.0 0.01
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -68,12 +70,13 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 1) in vec2 FragCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D BloomPass;
-layout(set = 0, binding = 4) uniform sampler2D Reference;
+layout(set = 0, binding = 3) uniform sampler2D ORIG_LINEARIZED;
+layout(set = 0, binding = 4) uniform sampler2D BloomPass;
+layout(set = 0, binding = 5) uniform sampler2D GlowPass;
 
 //Uncomment to reduce instructions with simpler linearization
 //(fixes HD3000 Sandy Bridge IGP)
-//#define SIMPLE_LINEAR_GAMMA
+#define SIMPLE_LINEAR_GAMMA
 #define DO_BLOOM 1
 
 // ------------- //
@@ -136,9 +139,9 @@ vec3 ToSrgb(vec3 c)
 vec3 Fetch(vec2 pos,vec2 off){
   pos=(floor(pos*global.SourceSize.xy+off)+vec2(0.5,0.5))/global.SourceSize.xy;
 #ifdef SIMPLE_LINEAR_GAMMA
-  return ToLinear(param.brightBoost * pow(texture(Reference,pos.xy).rgb, vec3(2.2)));
+  return ToLinear(param.brightBoost * (texture(ORIG_LINEARIZED,pos.xy).rgb));
 #else
-  return ToLinear(param.brightBoost * texture(Reference,pos.xy).rgb);
+  return ToLinear(param.brightBoost * texture(ORIG_LINEARIZED,pos.xy).rgb);
 #endif
 }
   
@@ -340,6 +343,7 @@ void main()
 {
     vec2 pos = Warp(vTexCoord);
     vec3 outColor = Tri(pos).rgb;
+    vec3 diff = texture(GlowPass, pos).rgb;
 
     if (param.shadowMask > 0.0)
         outColor.rgb *= Mask(vTexCoord.xy / global.OutputSize.zw * 1.000001);
@@ -354,6 +358,6 @@ void main()
     else
         outColor.rgb = vec3(0.0);
 #endif
-
+    outColor += diff * param.DIFFUSION;
     FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
 }

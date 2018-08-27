@@ -1,18 +1,5 @@
 #version 450
 
-// PUBLIC DOMAIN CRT STYLED SCAN-LINE SHADER
-//
-//   by Timothy Lottes
-//
-// This is more along the style of a really good CGA arcade monitor.
-// With RGB inputs instead of NTSC.
-// The shadow mask example has the mask rotated 90 degrees for less chromatic aberration.
-//
-// Left it unoptimized to show the theory behind the algorithm.
-//
-// It is an example what I personally would want as a display option for pixel art games.
-// Please take and use, change, or whatever.
-
 layout(push_constant) uniform Push
 {
     float hardScan;
@@ -41,7 +28,7 @@ layout(push_constant) uniform Push
 #pragma parameter brightBoost "brightness boost" 1.0 0.0 2.0 0.05
 #pragma parameter hardBloomPix "bloom-x soft" -1.5 -2.0 -0.5 0.1
 #pragma parameter hardBloomScan "bloom-y soft" -2.0 -4.0 -1.0 0.1
-#pragma parameter bloomAmount "bloom amount" 0.40 0.0 1.0 0.05
+#pragma parameter bloomAmount "bloom amount" 0.4 0.0 1.0 0.05
 #pragma parameter shape "filter kernel shape" 2.0 0.0 10.0 0.05
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -60,20 +47,32 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord * 1.00001;
+    vTexCoord = TexCoord;
 }
+
+// PUBLIC DOMAIN CRT STYLED SCAN-LINE SHADER
+//
+//   by Timothy Lottes
+//
+// This is more along the style of a really good CGA arcade monitor.
+// With RGB inputs instead of NTSC.
+// The shadow mask example has the mask rotated 90 degrees for less chromatic aberration.
+//
+// Left it unoptimized to show the theory behind the algorithm.
+//
+// It is an example what I personally would want as a display option for pixel art games.
+// Please take and use, change, or whatever.
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 1) in vec2 FragCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D BloomPass;
-layout(set = 0, binding = 4) uniform sampler2D Reference;
+layout(set = 0, binding = 3) uniform sampler2D ORIG_LINEARIZED;
 
 //Uncomment to reduce instructions with simpler linearization
 //(fixes HD3000 Sandy Bridge IGP)
-//#define SIMPLE_LINEAR_GAMMA
+#define SIMPLE_LINEAR_GAMMA
 #define DO_BLOOM 1
 
 // ------------- //
@@ -136,9 +135,9 @@ vec3 ToSrgb(vec3 c)
 vec3 Fetch(vec2 pos,vec2 off){
   pos=(floor(pos*global.SourceSize.xy+off)+vec2(0.5,0.5))/global.SourceSize.xy;
 #ifdef SIMPLE_LINEAR_GAMMA
-  return ToLinear(param.brightBoost * pow(texture(Reference,pos.xy).rgb, vec3(2.2)));
+  return ToLinear(param.brightBoost * (texture(ORIG_LINEARIZED,pos.xy).rgb));
 #else
-  return ToLinear(param.brightBoost * texture(Reference,pos.xy).rgb);
+  return ToLinear(param.brightBoost * texture(ORIG_LINEARIZED,pos.xy).rgb);
 #endif
 }
   
@@ -338,22 +337,7 @@ vec3 Mask(vec2 pos)
 
 void main()
 {
-    vec2 pos = Warp(vTexCoord);
-    vec3 outColor = Tri(pos).rgb;
+    vec2 pos = vTexCoord;
 
-    if (param.shadowMask > 0.0)
-        outColor.rgb *= Mask(vTexCoord.xy / global.OutputSize.zw * 1.000001);
-#ifdef DO_BLOOM
-    //Add Bloom
-    outColor.rgb += mix( vec3(0.0), texture(BloomPass, pos).rgb, param.bloomAmount);
-#endif
-#ifdef GL_ES    /* TODO/FIXME - hacky clamp fix */
-    vec2 bordertest = (pos);
-    if ( bordertest.x > 0.0001 && bordertest.x < 0.9999 && bordertest.y > 0.0001 && bordertest.y < 0.9999)
-        outColor.rgb = outColor.rgb;
-    else
-        outColor.rgb = vec3(0.0);
-#endif
-
-    FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
+    FragColor = vec4(Bloom(pos)*param.bloomAmount, 1.0);
 }
