@@ -29,25 +29,26 @@ layout(std140, set = 0, binding = 0) uniform UBO
 layout(location = 0) in vec4 Position;
 layout(location = 1) in vec2 TexCoord;
 layout(location = 0) out vec2 vTexCoord;
-layout(location = 1) out float video_scale;
 
 void main()
 {
-	video_scale = floor(params.SourceSize.w * params.OutputSize.y);
+	vec2 video_scale = floor(params.SourceSize.zw * params.OutputSize.xy);
 	vec2 integer_scale = video_scale * params.SourceSize.xy;
-   gl_Position = (global.MVP * Position);
-   vTexCoord = TexCoord * (params.OutputSize.xy / vec2(integer_scale)) * vec2(params.aspect_correction, 1.0);
+	gl_Position = (global.MVP * Position);
+	vTexCoord = TexCoord * 1.00001;
+	vTexCoord *= vec2(1.333,0.5);
 }
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 1) in float video_scale;
 layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 2) uniform sampler2D Original;
+layout(set = 0, binding = 3) uniform sampler2D Source;
 
 void main()
 {
-vec2 bigCoord = vTexCoord * vec2(0.3570) + vec2(0.0, 0.0 + params.screen_toggle);
-vec2 smallCoord = vTexCoord * vec2(1.05,1.00) + vec2(-2.94, -0.2);
-FragColor = texture(Source, bigCoord) + texture(Source, smallCoord);
+	vec2 bigCoord = vTexCoord + vec2(0., 0. + params.screen_toggle);
+	vec2 smallCoord = vTexCoord * vec2(3.) + vec2(-3., 0.);
+	FragColor = texture(Source, bigCoord) + texture(Original, smallCoord);
 }
