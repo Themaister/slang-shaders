@@ -15,10 +15,12 @@ layout(push_constant) uniform Push
 	uint FrameCount;
 	float screen_toggle;
 	float aspect_correction;
+	float filter_small;
 } params;
 
 #pragma parameter screen_toggle "Screen Toggle" 0.0 0.0 0.5 0.5
 #pragma parameter aspect_correction "Aspect Correction" 1.0 0.5 5.0 0.01
+#pragma parameter filter_small "Filter Small Screen" 1.0 0.0 1.0 1.0
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -50,5 +52,6 @@ void main()
 {
 	vec2 bigCoord = vTexCoord + vec2(0., 0. + params.screen_toggle);
 	vec2 smallCoord = vTexCoord * vec2(3.) + vec2(-3., 0.);
-	FragColor = texture(Source, bigCoord) + texture(Original, smallCoord);
+	FragColor = texture(Source, bigCoord);
+	FragColor += (params.filter_small > 0.5) ? texture(Source, smallCoord) : texture(Original, smallCoord);
 }
