@@ -121,6 +121,8 @@ const float LINE_WEIGHT_B = 8.0 / 3.0;
 const float INV_BG_TEXTURE_SIZE = 1.0 / BG_TEXTURE_SIZE;
 
 // Colour correction
+#define TARGET_GAMMA 2.2
+const float INV_DISPLAY_GAMMA = 1.0 / 2.2;
 #define CC_R 0.84
 #define CC_G 0.66
 #define CC_B 0.81
@@ -143,8 +145,12 @@ void main()
 	// Get colour of current pixel
 	vec3 colour = texture(Source, registers.SourceSize.zw * imgCenterCoord.xy).rgb;
 	
-	// Darken colours (if required...)
-	colour.rgb = pow(colour.rgb, vec3(1.0 + registers.DARKEN_COLOUR));
+	// Darken colours (if required...) and apply colour correction
+	colour.rgb = pow(colour.rgb, vec3(TARGET_GAMMA + registers.DARKEN_COLOUR));
+	colour.rgb = mat3(CC_R,  CC_RG, CC_RB,
+							CC_GR, CC_G,  CC_GB,
+							CC_BR, CC_BG, CC_B) * colour.rgb;
+	colour.rgb = clamp(pow(colour.rgb, vec3(INV_DISPLAY_GAMMA)), 0.0, 1.0);
 	
 	// Generate grid pattern...
 	vec2 distFromCenter = abs(imgCenterCoord.xy - imgPixelCoord.xy);
@@ -181,12 +187,6 @@ void main()
 	// Apply grid pattern
 	// (lineWeight == 1 -> set colour to value specified by DARKEN_GRID)
 	colour.rgb = mix(colour.rgb, vec3(1.0 - registers.DARKEN_GRID), lineWeight);
-	
-	// Apply colour correction
-	colour.rgb = mat3(CC_R,  CC_RG, CC_RB,
-							CC_GR, CC_G,  CC_GB,
-							CC_BR, CC_BG, CC_B) * colour.rgb;
-	colour.rgb = clamp(colour.rgb, 0.0, 1.0);
 	
 	// Get background sample point
 	// > NB: external texture coordinates are referenced in a completely different fashion
