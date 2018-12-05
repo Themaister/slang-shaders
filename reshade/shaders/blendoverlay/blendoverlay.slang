@@ -16,8 +16,8 @@ layout(push_constant) uniform Push
 } params;
 
 #pragma parameter OverlayMix "Overlay Mix" 1.0 0.0 1.0 0.05
-#pragma parameter LUTWidth "LUT Width" 6.0 1.0 30.0 1.0
-#pragma parameter LUTHeight "LUT Height" 4.0 1.0 30.0 1.0
+#pragma parameter LUTWidth "LUT Width" 6.0 1.0 1920.0 1.0
+#pragma parameter LUTHeight "LUT Height" 4.0 1.0 1920.0 1.0
 
 #define OverlayMix params.OverlayMix
 #define LUTWidth params.LUTWidth

@@ -154,7 +154,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 // Don't do this in your code
 	float FromSrgb1(float c){
 		return (c<=0.04045)?c*(1.0/12.92):
-			pow(c*(1.0/1.055)+(0.055/1.055),params.CRT_GAMMA);}
+			pow(abs(c)*(1.0/1.055)+(0.055/1.055),params.CRT_GAMMA);}
 //--------------------------------------------------------------
 vec3 FromSrgb(vec3 c){return vec3(
  FromSrgb1(c.r),FromSrgb1(c.g),FromSrgb1(c.b));}
@@ -363,7 +363,7 @@ vec3 CrtsFetch(vec2 uv){
    return m;
   }
 //--------------------------------------------------------------
-  if(params.MASK == 1.0){
+  else if(params.MASK == 1.0){
    CrtsF3 m=CrtsF3(1.0,1.0,1.0);
    CrtsF1 x=CrtsFractF1(pos.x*(1.0/3.0));
    if(x<(1.0/3.0))m.r=dark;
@@ -372,11 +372,7 @@ vec3 CrtsFetch(vec2 uv){
    return m;
   }
 //--------------------------------------------------------------
-  if(params.MASK == 0.0){
-   return CrtsF3(1.0,1.0,1.0);
-  }
-//--------------------------------------------------------------
-  if(params.MASK == 3.0){
+  else if(params.MASK == 3.0){
    pos.x+=pos.y*2.9999;
    CrtsF3 m=CrtsF3(dark,dark,dark);
    CrtsF1 x=CrtsFractF1(pos.x*(1.0/6.0));
@@ -384,6 +380,10 @@ vec3 CrtsFetch(vec2 uv){
    else if(x<(2.0/3.0))m.g=1.0;
    else m.b=1.0;
    return m;
+  }
+//--------------------------------------------------------------
+  else{
+   return CrtsF3(1.0,1.0,1.0);
   }
  }
 //_____________________________/\_______________________________
