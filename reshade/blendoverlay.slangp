@@ -1,0 +1,5 @@
+shaders = 1
+shader0 = shaders/blendoverlay/blendoverlay.slang
+
+textures = "overlay"
+overlay = shaders/blendoverlay/grayscale_slotmask.png
