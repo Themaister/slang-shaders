@@ -140,7 +140,7 @@ void main()
 	vec2 uv = jumpy(vTexCoord.xy, iTime);
 	vec2 uv2 = uv;
 
-	float s = 0.0001 * -d + 0.0001 * wiggle * sin(iTime);
+	float s = 0.0001 * wiggle * -d + 0.0001 * wiggle * sin(iTime);
    
 	float e = min(.30,pow(max(0.0,cos(uv.y*4.0+.3)-.75)*(s+0.5)*1.0,3.0))*25.0;
 	float r = (iTime*(2.0*s));
