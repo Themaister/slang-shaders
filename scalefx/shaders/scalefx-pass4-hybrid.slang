@@ -73,7 +73,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(binding = 1) uniform sampler2D Source;
-layout(binding = 2) uniform sampler2D Original;
+layout(binding = 2) uniform sampler2D refpass;
 
 
 // extract corners
@@ -131,7 +131,7 @@ void main()
 	vec3 res = fp.y == 0 ? (fp.x == 0 ? vec3(crn.x, hc.y, vc.w) : fp.x == 1 ? vec3(mid.x, 0, vm.z) : vec3(crn.y, hc.x, vc.z)) : (fp.y == 1 ? (fp.x == 0 ? vec3(mid.w, hm.y, 0) : fp.x == 1 ? vec3(0) : vec3(mid.y, hm.w, 0)) : (fp.x == 0 ? vec3(crn.w, hc.z, vc.x) : fp.x == 1 ? vec3(mid.z, 0, vm.x) : vec3(crn.z, hc.w, vc.y)));	
 	
 
-#define TEX(x, y) textureOffset(Original, vTexCoord, ivec2(x, y)).rgb
+#define TEX(x, y) textureOffset(refpass, vTexCoord, ivec2(x, y)).rgb
 
 	// reverseAA
 	vec3 E0 = TEX( 0, 0);

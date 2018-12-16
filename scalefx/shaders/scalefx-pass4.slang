@@ -70,7 +70,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(binding = 1) uniform sampler2D Source;
-layout(binding = 2) uniform sampler2D Original;
+layout(binding = 2) uniform sampler2D refpass;
 
 
 // extract corners
@@ -110,5 +110,5 @@ void main()
 	vec2 res = sp == 0 ? vec2(0,0) : sp == 1 ? vec2(-1,0) : sp == 2 ? vec2(-2,0) : sp == 3 ? vec2(1,0) : sp == 4 ? vec2(2,0) : sp == 5 ? vec2(0,-1) : sp == 6 ? vec2(0,-2) : sp == 7 ? vec2(0,1) : vec2(0,2);
 
 	// ouput
-	FragColor = texture(Original, vTexCoord + res / params.SourceSize.xy);
+	FragColor = texture(refpass, vTexCoord + res / params.SourceSize.xy);
 }

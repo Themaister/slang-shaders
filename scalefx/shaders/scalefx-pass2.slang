@@ -60,7 +60,7 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
 	gl_Position = global.MVP * Position;
-	vTexCoord = TexCoord;
+	vTexCoord = TexCoord*1.0001;;
 }
 
 
@@ -68,7 +68,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(binding = 1) uniform sampler2D Source;
-layout(binding = 2) uniform sampler2D PassOutput0;
+layout(binding = 2) uniform sampler2D scalefx_pass0;
 
 
 #define LE(x, y) (1 - step(y, x))
@@ -99,7 +99,7 @@ void main()
 	*/
 
 
-#define TEXm(x, y) textureOffset(PassOutput0, vTexCoord, ivec2(x, y))
+#define TEXm(x, y) textureOffset(scalefx_pass0, vTexCoord, ivec2(x, y))
 #define TEXs(x, y) textureOffset(Source, vTexCoord, ivec2(x, y))
 
 
