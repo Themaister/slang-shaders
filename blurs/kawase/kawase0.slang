@@ -10,7 +10,10 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
+   float bloom_threshold;
 } params;
+
+#pragma parameter bloom_threshold "Glow Threshold" 0.0 0.0 1.0 0.05
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -47,7 +50,9 @@ vec4 reSample(float d, vec2 uv, sampler2D decal)
     return color;
 }
 
+#include "../../misc/colorspace-tools.h"
+
 void main()
 {
-   FragColor = reSample(0., vTexCoord, Source);
+   FragColor = vec4(YIQtoRGB(RGBtoYIQ(reSample(0., vTexCoord, Source).rgb) - vec3(params.bloom_threshold, 0.,0.)), 1.0);
 }
