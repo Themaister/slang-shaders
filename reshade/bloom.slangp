@@ -1,0 +1,50 @@
+shaders = 7
+
+shader0 = shaders/bloom/BloomPass0.slang
+alias0 = Bloom1
+float_framebuffer0 = true
+
+shader1 = shaders/bloom/BloomPass1.slang
+alias1 = Bloom2
+float_framebuffer1 = true
+
+shader2 = shaders/bloom/BloomPass2.slang
+alias2 = Bloom3
+float_framebuffer2 = true
+scale2 = 0.5
+scale_type2 = source
+
+shader3 = shaders/bloom/BloomPass3.slang
+alias3 = Bloom4
+float_framebuffer3 = true
+scale3 = 0.5
+scale_type3 = source
+
+shader4 = shaders/bloom/BloomPass4.slang
+alias4 = Bloom5
+float_framebuffer4 = true
+scale4 = 0.5
+scale_type4 = source
+
+shader5 = shaders/bloom/LensFlarePass0.slang
+alias5 = LensFlare1
+float_framebuffer5 = true
+scale5 = 4.0
+scale_type5 = source
+
+//shader6 = shaders/bloom/LensFlarePass1.slang
+//alias6 = LensFlare2
+//float_framebuffer6 = true
+
+//shader7 = shaders/bloom/LensFlarePass2.slang
+//alias7 = LensFlare3
+//float_framebuffer7 = true
+
+shader6 = shaders/bloom/LightingCombine.slang
+scale6 = 2.0
+scale_type6 = source
+filter_linear6 = true
+
+textures = "Dirt;Sprite"
+Dirt = shaders/bloom/LensDB.png
+Sprite = shaders/bloom/LensSprite.png
