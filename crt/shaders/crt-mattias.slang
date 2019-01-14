@@ -10,7 +10,12 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
+   float CURVATURE;
+   float SCANSPEED;
 } params;
+
+#pragma parameter CURVATURE "Curvature" 0.5 0.0 1.0 0.05
+#pragma parameter SCANSPEED "Scanline Crawl Speed" 1.0 0.0 10.0 0.5
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -113,22 +118,22 @@ void main()
 {
     vec2 q = fragCoord.xy / iResolution.xy;
     vec2 uv = q;
-    uv = mix( curve( uv ), uv, 0.5 );
+    uv = mix( uv, curve( uv ), params.CURVATURE );
     vec3 oricol = texture( iChannel0, vec2(q.x,q.y) ).xyz;
     vec3 col;
 	float x =  sin(0.1*iTime+uv.y*21.0)*sin(0.23*iTime+uv.y*29.0)*sin(0.3+0.11*iTime+uv.y*31.0)*0.0017;
 	float o =2.0*mod(fragCoord.y,2.0)/iResolution.x;
 	x+=o;
-    col.r = 1.0*blur(iChannel0,vec2(x+uv.x+0.0009,uv.y+0.0009),1.2).x+0.005;
-    col.g = 1.0*blur(iChannel0,vec2(x+uv.x+0.000,uv.y-0.0015),1.2).y+0.005;
-    col.b = 1.0*blur(iChannel0,vec2(x+uv.x-0.0015,uv.y+0.000),1.2).z+0.005;
-    col.r += 0.2*blur(iChannel0,vec2(x+uv.x+0.0009,uv.y+0.0009),2.25).x-0.005;
-    col.g += 0.2*blur(iChannel0,vec2(x+uv.x+0.000,uv.y-0.0015),1.75).y-0.005;
-    col.b += 0.2*blur(iChannel0,vec2(x+uv.x-0.0015,uv.y+0.000),1.25).z-0.005;
+    col.r = 1.0*blur(iChannel0,vec2(uv.x+0.0009,uv.y+0.0009),1.2).x+0.005;
+    col.g = 1.0*blur(iChannel0,vec2(uv.x+0.000,uv.y-0.0015),1.2).y+0.005;
+    col.b = 1.0*blur(iChannel0,vec2(uv.x-0.0015,uv.y+0.000),1.2).z+0.005;
+    col.r += 0.2*blur(iChannel0,vec2(uv.x+0.0009,uv.y+0.0009),2.25).x-0.005;
+    col.g += 0.2*blur(iChannel0,vec2(uv.x+0.000,uv.y-0.0015),1.75).y-0.005;
+    col.b += 0.2*blur(iChannel0,vec2(uv.x-0.0015,uv.y+0.000),1.25).z-0.005;
     float ghs = 0.05;
-	col.r += ghs*(1.0-0.299)*blur(iChannel0,0.75*vec2(x-0.01, -0.027)+vec2(uv.x+0.001,uv.y+0.001),7.0).x;
-    col.g += ghs*(1.0-0.587)*blur(iChannel0,0.75*vec2(x+-0.022, -0.02)+vec2(uv.x+0.000,uv.y-0.002),5.0).y;
-    col.b += ghs*(1.0-0.114)*blur(iChannel0,0.75*vec2(x+-0.02, -0.0)+vec2(uv.x-0.002,uv.y+0.000),3.0).z;
+	col.r += ghs*(1.0-0.299)*blur(iChannel0,0.75*vec2(0.01, -0.027)+vec2(uv.x+0.001,uv.y+0.001),7.0).x;
+    col.g += ghs*(1.0-0.587)*blur(iChannel0,0.75*vec2(-0.022, -0.02)+vec2(uv.x+0.000,uv.y-0.002),5.0).y;
+    col.b += ghs*(1.0-0.114)*blur(iChannel0,0.75*vec2(-0.02, -0.0)+vec2(uv.x-0.002,uv.y+0.000),3.0).z;
 
     col = clamp(col*0.4+0.6*col*col*1.0,0.0,1.0);
 
@@ -139,7 +144,7 @@ void main()
     col *= vec3(0.95,1.05,0.95);
 	col = mix( col, col * col, 0.3) * 3.8;
 
-	float scans = clamp( 0.35+0.15*sin(3.5*iTime+uv.y*iResolution.y*1.5), 0.0, 1.0);
+	float scans = clamp( 0.35+0.15*sin(3.5*(iTime * params.SCANSPEED)+uv.y*iResolution.y*1.5), 0.0, 1.0);
 	
 	float s = pow(scans,0.9);
 	col = col*vec3( s) ;
