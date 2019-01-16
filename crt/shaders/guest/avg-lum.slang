@@ -29,7 +29,10 @@ layout(push_constant) uniform Push
 	vec4 OutputSize;
 	uint FrameCount;
 	float grade;
+   float mixfactor;
 } params;
+
+#pragma parameter mixfactor "Motionblur Fadeout" 0.75 0.0 1.0 0.01
 
 #pragma parameter grade "Blooming grade" 0.70 0.10 1.0 0.05 
 
@@ -53,12 +56,17 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 3) uniform sampler2D PassFeedback3;
 
 void main()
 {
 	float mip_level = max(log2(params.SourceSize.x), log2(params.SourceSize.y));
+   vec4 current = pow(textureLod(Source,        vTexCoord, 8), vec4(2.2));
+   vec4 fdback  = pow(textureLod(PassFeedback3, vTexCoord, 8), vec4(2.2));
+   vec4 mixed = (1.0 - params.mixfactor) * current + params.mixfactor * fdback;
+   mixed = pow(mixed, vec4(1.0 / 2.2));
 	float black_compensation = (params.SourceSize.x*params.SourceSize.y)/(params.SourceSize.x*params.SourceSize.y);
-	float lum = length(textureLod(Source, vTexCoord.xy, mip_level).rgb * black_compensation);
+	float lum = length(mixed.rgb * black_compensation);
 	lum = lum * inversesqrt(3.0);
 	FragColor = vec4(pow(lum, params.grade));
 }
