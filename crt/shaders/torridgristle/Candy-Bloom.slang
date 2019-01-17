@@ -1,5 +1,8 @@
 #version 450
 
+// CRT-torridgristle - Candy Bloom
+// license: public domain
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;

@@ -1,5 +1,8 @@
 #version 450
 
+// CRT-torridgristle - ScanlineSimple pass
+// license: public domain
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;

@@ -1,5 +1,9 @@
 #version 450
 
+// torridgristle CRT - Brighten pass
+// by torridgristle
+// license: public domain
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
