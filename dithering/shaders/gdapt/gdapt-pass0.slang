@@ -26,7 +26,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 	mat4 MVP;
 } global;
 
-#define dot(x,y) clamp(dot(x,y), 0.0, 1.0)	// NVIDIA Fix
+#define dotfix(x,y) clamp(dot(x,y), 0.0, 1.0)	// NVIDIA Fix
 #define TEX(dx,dy) texture(Source, vTexCoord+vec2((dx),(dy))*t1).xyz
 
 // Reference: http://www.compuphase.com/cmetric.htm
@@ -71,7 +71,7 @@ void main()
 		tag = ((L == R) && (C != L)) ? 1.0 : 0.0;
 	}
 	else{
-		tag = dot(normalize(C-L), normalize(C-R)) * eq(L,R);
+		tag = dotfix(normalize(C-L), normalize(C-R)) * eq(L,R);
 	}
 
    FragColor = vec4(C, tag);
