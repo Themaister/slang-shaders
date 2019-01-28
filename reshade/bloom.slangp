@@ -32,13 +32,13 @@ float_framebuffer5 = true
 scale5 = 4.0
 scale_type5 = source
 
-//shader6 = shaders/bloom/LensFlarePass1.slang
-//alias6 = LensFlare2
-//float_framebuffer6 = true
+#shader6 = shaders/bloom/LensFlarePass1.slang
+#alias6 = LensFlare2
+#float_framebuffer6 = true
 
-//shader7 = shaders/bloom/LensFlarePass2.slang
-//alias7 = LensFlare3
-//float_framebuffer7 = true
+#shader7 = shaders/bloom/LensFlarePass2.slang
+#alias7 = LensFlare3
+#float_framebuffer7 = true
 
 shader6 = shaders/bloom/LightingCombine.slang
 scale6 = 2.0

@@ -1,5 +1,5 @@
 shaders = 1
-shader0 = shaders/gb-palette/gb-palette.slang	//colorize image
+shader0 = shaders/gb-palette/gb-palette.slang
 
 scale_type0 = source
 filter_linear0 = false
