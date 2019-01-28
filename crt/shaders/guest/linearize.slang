@@ -9,7 +9,7 @@ layout(push_constant) uniform Push
 	float GAMMA_INPUT;
 } params;
 
-#pragma parameter GAMMA_INPUT "Gamma Input" 2.4 0.1 5.0 0.01
+#pragma parameter GAMMA_INPUT "Gamma Input" 2.4 0.1 5.0 0.05
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {

@@ -9,7 +9,7 @@ layout(push_constant) uniform Push
 	float WP;
 } params;
 
-#pragma parameter WP "D65 to D50 strength %" 0.0 -100.0 100.0 10.0 
+#pragma parameter WP "D65 to D50 strength %" 0.0 -100.0 100.0 5.0 
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {

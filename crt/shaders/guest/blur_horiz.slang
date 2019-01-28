@@ -13,8 +13,8 @@ layout(push_constant) uniform Push
 	float GLOW_FALLOFF_H;
 } params;
 
-#pragma parameter TAPSH "H. Glow Radius" 4.0 1.0 6.0 1.0 
-#pragma parameter GLOW_FALLOFF_H "GLOW_FALLOFF H" 0.30 0.10 1.0 0.01 
+#pragma parameter TAPSH "H. Glow Radius" 4.0 1.0 10.0 1.0 
+#pragma parameter GLOW_FALLOFF_H "Horizontal Glow Grade" 0.30 0.0 1.0 0.01 
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
