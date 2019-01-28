@@ -44,7 +44,7 @@ layout(location = 3) out vec2 upper_bound;
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
+    vTexCoord = TexCoord * 1.0001;
 
     texel = registers.SourceSize.zw;
     lower_bound = vec2(0.0);

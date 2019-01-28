@@ -66,7 +66,7 @@ layout(location = 7) out vec2 blur_coords_upper_bound;
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
+    vTexCoord = TexCoord * 1.0001;
 
     texel = registers.SourceSize.zw;
     blur_coords_down  = vTexCoord + vec2(0.0, texel.y);

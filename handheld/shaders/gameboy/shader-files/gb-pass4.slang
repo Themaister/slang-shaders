@@ -90,7 +90,7 @@ layout(location = 1) out vec2 texel;
 void main()
 {
     gl_Position = global.MVP * Position;
-    vTexCoord = TexCoord;
+    vTexCoord = TexCoord * 1.0001;
 
     texel = registers.SourceSize.zw;
 }
