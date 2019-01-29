@@ -60,7 +60,7 @@ layout(location = 0) out vec2 vTexCoord;
 void main()
 {
 	gl_Position = global.MVP * Position;
-	vTexCoord = TexCoord*1.0001;;
+	vTexCoord = TexCoord*1.0001;
 }
 
 
@@ -84,7 +84,7 @@ vec4 dom(vec3 x, vec3 y, vec3 z, vec3 w){
 
 // necessary but not sufficient junction condition for orthogonal edges
 float clear(vec2 crn, vec2 a, vec2 b){
-	return (crn.x >= max(min(a.x, a.y), min(b.x, b.y))) && (crn.y >= max(min(a.x, b.y), min(b.x, a.y))) ? 1 : 0;
+	return (crn.x >= max(min(a.x, a.y), min(b.x, b.y))) && (crn.y >= max(min(a.x, b.y), min(b.x, a.y))) ? 1. : 0.;
 }
 
 

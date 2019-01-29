@@ -133,14 +133,18 @@ float2 tex = vTexCoord + float2(0.0, 0.25*params.SourceSize.w);
 */
 
 	//Define window and directions - original
-	float2 dir[4] = {{-1,-1},{1,1},{-1,1},{1,-1}};
-	float4x2 wind[4] = {{{-1,-1},{1,1},{-1,1},{1,-1}},{{-3,-1},{3,1},{-1,3},{1,-3}},{{-3,1},{3,-1},{1,3},{-1,-3}},{{-3,-3},{ 3,3},{-3, 3},{3,-3}}};
+   vec2 dir[4] = vec2[4](vec2(-1,-1),vec2(1,1),vec2(-1,1),vec2(1,-1));
+   mat4x2 wind1 = mat4x2(vec2(-1,-1),vec2(1,1),vec2(-1,1),vec2(1,-1));
+   mat4x2 wind2 = mat4x2(vec2(-3,-1),vec2(3,1),vec2(-1,3),vec2(1,-3));
+   mat4x2 wind3 = mat4x2(vec2(-3,1),vec2(3,-1),vec2(1,3),vec2(-1,-3));
+   mat4x2 wind4 = mat4x2(vec2(-3,-3),vec2( 3,3),vec2(-3, 3),vec2(3,-3));
+	mat4x2 wind[4] = mat4x2[4](wind1, wind2, wind3, wind4);
 
 	//Initialization
-	float2x2 R = float2x2(0.0);
-	float2 r = float2(0.0);
+	float2x2 R = float2x2(0.,0.,0.,0.);
+	float2 r = float2(0.,0.);
 
-        float m[4] = {NEDI_WEIGHT, 1.0, 1.0, 1.0};
+        float m[4] = float[4](NEDI_WEIGHT, 1.0, 1.0, 1.0);
 
 	//Calculate (local) autocorrelation coefficients
 	for (int k = 0; k<ITERATIONS; k+= 1){

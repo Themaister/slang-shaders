@@ -35,7 +35,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 precision lowp float;
  
-const mat3 GBCMatrix = mat3( 0.924, 0.021, 0.013, 0.048, 0.787, 0.249, 0.104, 0.09, 0.733 )
+const mat3 GBCMatrix = mat3( 0.924, 0.021, 0.013, 0.048, 0.787, 0.249, 0.104, 0.09, 0.733 );
 
 void main()
 {

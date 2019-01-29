@@ -81,8 +81,8 @@ layout(binding = 1) uniform sampler2D Source;
 float str(float d, vec2 a, vec2 b){
 	float diff = a.x - a.y;
 	float wght1 = max(params.SFX_CLR - d, 0) / params.SFX_CLR;
-	float wght2 = clamp((1-d) + (min(a.x, b.x) + a.x > min(a.y, b.y) + a.y ? diff : -diff), 0, 1);
-	return (params.SFX_SAA == 1 || 2*d < a.x + a.y) ? (wght1 * wght2) * (a.x * a.y) : 0;
+	float wght2 = clamp((1-d) + (min(a.x, b.x) + a.x > min(a.y, b.y) + a.y ? diff : -diff), 0., 1.);
+	return (params.SFX_SAA == 1. || 2.*d < a.x + a.y) ? (wght1 * wght2) * (a.x * a.y) : 0.;
 }
 
 

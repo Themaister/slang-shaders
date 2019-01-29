@@ -104,10 +104,10 @@ void main()
 
 	// determine subpixel
 	vec2 fp = floor(3.0 * fract(vTexCoord * params.SourceSize.xy));
-	float sp = fp.y == 0 ? (fp.x == 0 ? crn.x : fp.x == 1 ? mid.x : crn.y) : (fp.y == 1 ? (fp.x == 0 ? mid.w : fp.x == 1 ? 0 : mid.y) : (fp.x == 0 ? crn.w : fp.x == 1 ? mid.z : crn.z));
+	float sp = fp.y == 0. ? (fp.x == 0. ? crn.x : fp.x == 1. ? mid.x : crn.y) : (fp.y == 1. ? (fp.x == 0. ? mid.w : fp.x == 1. ? 0. : mid.y) : (fp.x == 0. ? crn.w : fp.x == 1. ? mid.z : crn.z));
 
 	// output coordinate - 0 = E, 1 = D, 2 = D0, 3 = F, 4 = F0, 5 = B, 6 = B0, 7 = H, 8 = H0
-	vec2 res = sp == 0 ? vec2(0,0) : sp == 1 ? vec2(-1,0) : sp == 2 ? vec2(-2,0) : sp == 3 ? vec2(1,0) : sp == 4 ? vec2(2,0) : sp == 5 ? vec2(0,-1) : sp == 6 ? vec2(0,-2) : sp == 7 ? vec2(0,1) : vec2(0,2);
+	vec2 res = sp == 0. ? vec2(0,0) : sp == 1. ? vec2(-1,0) : sp == 2. ? vec2(-2,0) : sp == 3. ? vec2(1,0) : sp == 4. ? vec2(2,0) : sp == 5. ? vec2(0,-1) : sp == 6. ? vec2(0,-2) : sp == 7. ? vec2(0,1) : vec2(0,2);
 
 	// ouput
 	FragColor = texture(refpass, vTexCoord + res / params.SourceSize.xy);

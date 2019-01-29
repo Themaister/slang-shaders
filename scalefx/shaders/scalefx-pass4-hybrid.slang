@@ -139,12 +139,12 @@ void main()
 	vec3 D0 = TEX(-1, 0), D1 = TEX(-2, 0), F0 = TEX( 1, 0), F1 = TEX( 2, 0);
 
 	// output coordinate - 0 = E0, 1 = D0, 2 = D1, 3 = F0, 4 = F1, 5 = B0, 6 = B1, 7 = H0, 8 = H1
-	vec3 sfx = res.x == 1 ? D0 : res.x == 2 ? D1 : res.x == 3 ? F0 : res.x == 4 ? F1 : res.x == 5 ? B0 : res.x == 6 ? B1 : res.x == 7 ? H0 : H1;
+	vec3 sfx = res.x == 1. ? D0 : res.x == 2. ? D1 : res.x == 3. ? F0 : res.x == 4. ? F1 : res.x == 5. ? B0 : res.x == 6. ? B1 : res.x == 7. ? H0 : H1;
 
 	// rAA weight
-	vec2 w = 2 * fc - 1;
-	w.x = res.y == 0 ? w.x : 0;
-	w.y = res.z == 0 ? w.y : 0;
+	vec2 w = 2. * fc - 1.;
+	w.x = res.y == 0. ? w.x : 0.;
+	w.y = res.z == 0. ? w.y : 0.;
 
 	// rAA filter
 	vec3 t1 = res2x(D1, D0, E0, F0, F1);
@@ -155,5 +155,5 @@ void main()
 	vec3 raa = clamp(E0 + w.x*t1 + w.y*t2, a, b);
 
 	// hybrid output
-	FragColor = vec4((res.x != 0) ? sfx : raa, 0);	
+	FragColor = vec4((res.x != 0.) ? sfx : raa, 0.);	
 }

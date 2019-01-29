@@ -77,7 +77,7 @@ float sinc(float x){
  
 float lanczosFilter(float r2){
     if (r2==0)
-        return 1;
+        return 1.;
     float r= sqrt(r2);
     return sinc(r)*sinc(r/1.3);
 }
