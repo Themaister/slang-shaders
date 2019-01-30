@@ -21,6 +21,7 @@
 #define frame_count FrameCount
 #define static  
 #define inline  
+#define const  
 #define fmod(x,y) mod(x,y)
 #define ddx(c) dFdx(c)
 #define ddy(c) dFdy(c)
