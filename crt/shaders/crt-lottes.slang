@@ -347,12 +347,12 @@ void main()
     if (params.shadowMask > 0.0)
         outColor.rgb *= Mask(vTexCoord.xy / global.OutputSize.zw * 1.000001);
     
-    /* TODO/FIXME - hacky clamp fix */
+#ifdef GL_ES    /* TODO/FIXME - hacky clamp fix */
     vec2 bordertest = (pos);
     if ( bordertest.x > 0.0001 && bordertest.x < 0.9999 && bordertest.y > 0.0001 && bordertest.y < 0.9999)
         outColor.rgb = outColor.rgb;
     else
         outColor.rgb = vec3(0.0);
-
+#endif
     FragColor = vec4(ToSrgb(outColor.rgb), 1.0);
 }
