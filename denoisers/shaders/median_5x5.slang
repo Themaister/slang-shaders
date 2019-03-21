@@ -57,15 +57,58 @@ layout(std140, set = 0, binding = 0) uniform UBO
 layout(location = 0) in vec4 Position;
 layout(location = 1) in vec2 TexCoord;
 layout(location = 0) out vec2 vTexCoord;
+layout(location = 1) out vec4 t01;
+layout(location = 2) out vec4 t02;
+layout(location = 3) out vec4 t03;
+layout(location = 4) out vec4 t04;
+layout(location = 5) out vec4 t05;
+layout(location = 6) out vec4 t06;
+layout(location = 7) out vec4 t07;
+layout(location = 8) out vec4 t08;
+layout(location = 9) out vec4 t09;
+layout(location = 10) out vec4 t10;
+layout(location = 11) out vec4 t11;
+layout(location = 12) out vec4 t12;
 
 void main()
 {
    gl_Position = global.MVP * Position;
    vTexCoord = TexCoord;
+   
+   float dx1 = params.SourceSize.z;
+	float dx2 = params.SourceSize.z + params.SourceSize.z;
+	float dy1 = params.SourceSize.w;
+	float dy2 = params.SourceSize.w + params.SourceSize.w;
+
+	t01 = vTexCoord.xyxy + vec4(-dx2, -dy2, -dx1, -dy2);
+	t02 = vTexCoord.xyxy + vec4(   0, -dy2,  dx1, -dy2);
+	t03 = vTexCoord.xyxy + vec4( dx2, -dy2, -dx2, -dy1);
+	t04 = vTexCoord.xyxy + vec4(-dx1, -dy1,    0, -dy1);
+	t05 = vTexCoord.xyxy + vec4( dx1, -dy1,  dx2, -dy1);
+	t06 = vTexCoord.xyxy + vec4(-dx2,    0, -dx1,    0);
+
+	t07 = vTexCoord.xyxy + vec4( dx1,    0,  dx2,    0);
+	t08 = vTexCoord.xyxy + vec4(-dx2,  dy1, -dx1,  dy1);
+	t09 = vTexCoord.xyxy + vec4(   0,  dy1,  dx1,  dy1);
+	t10 = vTexCoord.xyxy + vec4( dx2,  dy1, -dx2,  dy2);
+	t11 = vTexCoord.xyxy + vec4(-dx1,  dy2,    0,  dy2);
+	t12 = vTexCoord.xyxy + vec4( dx1,  dy2,  dx2,  dy2);
 }
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
+layout(location = 1) in vec4 t01;
+layout(location = 2) in vec4 t02;
+layout(location = 3) in vec4 t03;
+layout(location = 4) in vec4 t04;
+layout(location = 5) in vec4 t05;
+layout(location = 6) in vec4 t06;
+layout(location = 7) in vec4 t07;
+layout(location = 8) in vec4 t08;
+layout(location = 9) in vec4 t09;
+layout(location = 10) in vec4 t10;
+layout(location = 11) in vec4 t11;
+layout(location = 12) in vec4 t12;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
@@ -73,17 +116,45 @@ void main()
 {
   vec3 v[25];
 
+  /*
   // Add the pixels which make up our window to the pixel array.
   for(int dX = -2; dX <= 2; ++dX) {
-    for(int dY = -2; dY <= 2; ++dY) {		
+    for(int dY = -2; dY <= 2; ++dY) {
       vec2 offset = vec2(float(dX), float(dY));
-		    
+
       // If a pixel in the window is located at (x+dX, y+dY), put it at index (dX + R)(2R + 1) + (dY + R) of the
       // pixel array. This will fill the pixel array, with the top left pixel of the window at pixel[0] and the
       // bottom right pixel of the window at pixel[N-1].
       v[(dX + 2) * 5 + (dY + 2)] = texture(Source, vTexCoord.xy + offset * params.SourceSize.zw).rgb;
     }
   }
+  */
+  
+  v[0]  = texture(Source, t01.xy).rgb;
+  v[5]  = texture(Source, t01.zw).rgb;
+  v[10] = texture(Source, t02.xy).rgb;
+  v[15] = texture(Source, t02.zw).rgb;
+  v[20] = texture(Source, t03.xy).rgb;
+  v[1]  = texture(Source, t03.zw).rgb;
+  v[6]  = texture(Source, t04.xy).rgb;
+  v[11] = texture(Source, t04.zw).rgb;
+  v[16] = texture(Source, t05.xy).rgb;
+  v[21] = texture(Source, t05.zw).rgb;
+  v[2]  = texture(Source, t06.xy).rgb;
+  v[7]  = texture(Source, t06.zw).rgb;
+  v[12] = texture(Source, vTexCoord.xy).rgb;
+  v[17] = texture(Source, t07.xy).rgb;
+  v[22] = texture(Source, t07.zw).rgb;
+  v[3]  = texture(Source, t08.xy).rgb;
+  v[8]  = texture(Source, t08.zw).rgb;
+  v[13] = texture(Source, t09.xy).rgb;
+  v[18] = texture(Source, t09.zw).rgb;
+  v[23] = texture(Source, t10.xy).rgb;
+  v[4]  = texture(Source, t10.zw).rgb;
+  v[9]  = texture(Source, t11.xy).rgb;
+  v[14] = texture(Source, t11.zw).rgb;
+  v[19] = texture(Source, t12.xy).rgb;
+  v[24] = texture(Source, t12.zw).rgb;
 
   vec3 temp;
 

@@ -65,15 +65,27 @@ layout(std140, set = 0, binding = 0) uniform UBO
 layout(location = 0) in vec4 Position;
 layout(location = 1) in vec2 TexCoord;
 layout(location = 0) out vec2 vTexCoord;
+layout(location = 1) out vec4 t1;
+layout(location = 2) out vec4 t2;
+layout(location = 3) out vec4 t3;
 
 void main()
 {
    gl_Position = global.MVP * Position;
    vTexCoord = TexCoord;
+   float dx = params.SourceSize.z;
+   float dy = params.SourceSize.w;
+   
+   t1 = vTexCoord.xxxy + vec4(-dx, 0, dx, -dy);
+	t2 = vTexCoord.xxxy + vec4(-dx, 0, dx,   0);
+	t3 = vTexCoord.xxxy + vec4(-dx, 0, dx,  dy);
 }
 
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
+layout(location = 1) in vec4 t1;
+layout(location = 2) in vec4 t2;
+layout(location = 3) in vec4 t3;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
@@ -81,26 +93,26 @@ void main()
 {
   vec3 v[6];
 
-  v[0] = texture(Source, vTexCoord.xy + vec2(-1.0, -1.0) * params.SourceSize.zw).rgb;
-  v[1] = texture(Source, vTexCoord.xy + vec2( 0.0, -1.0) * params.SourceSize.zw).rgb;
-  v[2] = texture(Source, vTexCoord.xy + vec2(+1.0, -1.0) * params.SourceSize.zw).rgb;
-  v[3] = texture(Source, vTexCoord.xy + vec2(-1.0,  0.0) * params.SourceSize.zw).rgb;
-  v[4] = texture(Source, vTexCoord.xy + vec2( 0.0,  0.0) * params.SourceSize.zw).rgb;
-  v[5] = texture(Source, vTexCoord.xy + vec2(+1.0,  0.0) * params.SourceSize.zw).rgb;
+  v[0] = texture(Source, t1.xw).rgb;
+  v[1] = texture(Source, t1.yw).rgb;
+  v[2] = texture(Source, t1.zw).rgb;
+  v[3] = texture(Source, t2.xw).rgb;
+  v[4] = texture(Source, t2.yw).rgb;
+  v[5] = texture(Source, t2.zw).rgb;
 
   // Starting with a subset of size 6, remove the min and max each time
   vec3 temp;
   mnmx6(v[0], v[1], v[2], v[3], v[4], v[5]);
 
-  v[5] = texture(Source, vTexCoord.xy + vec2(-1.0, +1.0) * params.SourceSize.zw).rgb;
+  v[5] = texture(Source, t3.xw).rgb;
 
   mnmx5(v[1], v[2], v[3], v[4], v[5]);
 
-  v[5] = texture(Source, vTexCoord.xy + vec2( 0.0, +1.0) * params.SourceSize.zw).rgb;
+  v[5] = texture(Source, t3.yw).rgb;
 
   mnmx4(v[2], v[3], v[4], v[5]);
 
-  v[5] = texture(Source, vTexCoord.xy + vec2(+1.0, +1.0) * params.SourceSize.zw).rgb;
+  v[5] = texture(Source, t3.zw).rgb;
 
   mnmx3(v[3], v[4], v[5]);
   FragColor = vec4(v[4], 1.0);
