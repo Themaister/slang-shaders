@@ -10,44 +10,23 @@ layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
 	vec4 OutputSize;
-	float BloomBlendMode;
-	float VectorScreen;
-	float BloomScale;
-	float BloomOverdrive_r;
-	float BloomOverdrive_g;
-	float BloomOverdrive_b;
-	float Level0Weight;
-	float Level1Weight;
-	float Level2Weight;
-	float Level3Weight;
-	float Level4Weight;
-	float Level5Weight;
-	float Level6Weight;
-	float Level7Weight;
-	float Level8Weight;
 } params;
 
-#pragma parameter BloomBlendMode "Bloom Blend Mode" 0.0 0.0 1.0 1.0
-#pragma parameter VectorScreen "Vector Screen Mode" 0.0 0.0 1.0 1.0
-#pragma parameter BloomScale "Bloom Scale" 1.0 0.0 4.0 0.1
-#pragma parameter BloomOverdrive_r "Bloom Overdrive R" 1.0 0.0 1.0 0.01
-#pragma parameter BloomOverdrive_g "Bloom Overdrive G" 1.0 0.0 1.0 0.01
-#pragma parameter BloomOverdrive_b "Bloom Overdrive B" 1.0 0.0 1.0 0.01
+#include "mame_parameters.inc"
 
-#pragma parameter Level0Weight "Bloom Level 0 Weight" 1.0 0.0 1.0 0.01
-#pragma parameter Level1Weight "Bloom Level 1 Weight" 0.64 0.0 1.0 0.01
-#pragma parameter Level2Weight "Bloom Level 2 Weight" 0.32 0.0 1.0 0.01
-#pragma parameter Level3Weight "Bloom Level 3 Weight" 0.16 0.0 1.0 0.01
-#pragma parameter Level4Weight "Bloom Level 4 Weight" 0.08 0.0 1.0 0.01
-#pragma parameter Level5Weight "Bloom Level 5 Weight" 0.06 0.0 1.0 0.01
-#pragma parameter Level6Weight "Bloom Level 6 Weight" 0.04 0.0 1.0 0.01
-#pragma parameter Level7Weight "Bloom Level 7 Weight" 0.02 0.0 1.0 0.01
-#pragma parameter Level8Weight "Bloom Level 8 Weight" 0.01 0.0 1.0 0.01
+float Level0Weight = global.level0weight;
+float Level1Weight = global.level1weight;
+float Level2Weight = global.level2weight;
+float Level3Weight = global.level3weight;
+float Level4Weight = global.level4weight;
+float Level5Weight = global.level5weight;
+float Level6Weight = global.level6weight;
+float Level7Weight = global.level7weight;
+float Level8Weight = global.level8weight;
 
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
+int BloomBlendMode = int(global.bloomblendmode); // 0 brighten, 1 darken
+float BloomScale = global.bloomscale;
+vec3 BloomOverdrive = vec3(global.bloomoverdrive_r, global.bloomoverdrive_g, global.bloomoverdrive_b);
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -58,7 +37,7 @@ const float Gelfond = 23.140692f; // e^pi (Gelfond constant)
 const float GelfondSchneider = 2.6651442f; // 2^sqrt(2) (Gelfond-Schneider constant)
 
 //-----------------------------------------------------------------------------
-// Funcions
+// Functions
 //-----------------------------------------------------------------------------
 
 // www.stackoverflow.com/questions/5149544/can-i-generate-a-random-number-inside-a-pixel-shader/
@@ -82,16 +61,9 @@ layout(location = 1) out vec2 BloomCoord;
 
 void main()
 {
-   vec4 bloomPos = vec4(Position.xyz, 1.0);
-//   bloomPos.xy *= params.OutputSize.zw;
-//   bloomPos.y = 1.0 - bloomPos.y; // flip y
-//   bloomPos.xy -= 0.5f; // center
-//   bloomPos.xy *= 2.0f; // zoom
-   gl_Position = global.MVP * bloomPos; // using bloomPos just makes a black screen /shrug
+   gl_Position = global.MVP * Position;
    vTexCoord = TexCoord;
-//   vTexCoord += 0.5f * params.OutputSize.zw; // half texel offset correction (DX9)
    BloomCoord = vTexCoord;
-   BloomCoord += 0.5f * params.SourceSize.zw;
 }
 
 #pragma stage fragment
@@ -132,120 +104,128 @@ vec3 GetNoiseFactor(vec3 n, float random)
 
 void main()
 {
-	vec3 texel = texture(DiffuseSampler, vTexCoord).rgb;
+   if(!BloomToggle)
+   {
+      FragColor = texture(Source, vTexCoord);
+      return;
+   }
+   else
+   {
+      vec3 texel = textureLod(DiffuseSampler, vTexCoord, 0.0).rgb;
 
-	vec3 texelA = texture(BloomSamplerA, BloomCoord.xy).rgb;
-	vec3 texelB = texture(BloomSamplerB, BloomCoord.xy).rgb;
-	vec3 texelC = texture(BloomSamplerC, BloomCoord.xy).rgb;
-	vec3 texelD = texture(BloomSamplerD, BloomCoord.xy).rgb;
-	vec3 texelE = texture(BloomSamplerE, BloomCoord.xy).rgb;
-	vec3 texelF = texture(BloomSamplerF, BloomCoord.xy).rgb;
-	vec3 texelG = texture(BloomSamplerG, BloomCoord.xy).rgb;
-	vec3 texelH = texture(BloomSamplerH, BloomCoord.xy).rgb;
+      vec3 texelA = textureLod(BloomSamplerA, BloomCoord.xy, 1.0).rgb;
+      vec3 texelB = textureLod(BloomSamplerB, BloomCoord.xy, 2.0).rgb;
+      vec3 texelC = textureLod(BloomSamplerC, BloomCoord.xy, 3.0).rgb;
+      vec3 texelD = textureLod(BloomSamplerD, BloomCoord.xy, 4.0).rgb;
+      vec3 texelE = textureLod(BloomSamplerE, BloomCoord.xy, 5.0).rgb;
+      vec3 texelF = textureLod(BloomSamplerF, BloomCoord.xy, 6.0).rgb;
+      vec3 texelG = textureLod(BloomSamplerG, BloomCoord.xy, 7.0).rgb;
+      vec3 texelH = textureLod(BloomSamplerH, BloomCoord.xy, 8.0).rgb;
 
-	vec3 texelI = vec3(0.0f, 0.0f, 0.0f);
-	vec3 texelJ = vec3(0.0f, 0.0f, 0.0f);
-	vec3 texelK = vec3(0.0f, 0.0f, 0.0f);
-	vec3 texelL = vec3(0.0f, 0.0f, 0.0f);
-	vec3 texelM = vec3(0.0f, 0.0f, 0.0f);
-	vec3 texelN = vec3(0.0f, 0.0f, 0.0f);
-	vec3 texelO = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelI = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelJ = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelK = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelL = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelM = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelN = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelO = vec3(0.0f, 0.0f, 0.0f);
 
 
-	// vector screen uses twice -1 as many bloom levels
-	if (params.VectorScreen > 0.5)
-	{
-		texelI = texture(BloomSamplerI, BloomCoord.xy).rgb;
-		texelJ = texture(BloomSamplerJ, BloomCoord.xy).rgb;
-		texelK = texture(BloomSamplerK, BloomCoord.xy).rgb;
-		texelL = texture(BloomSamplerL, BloomCoord.xy).rgb;
-		texelM = texture(BloomSamplerM, BloomCoord.xy).rgb;
-		texelN = texture(BloomSamplerN, BloomCoord.xy).rgb;
-		texelO = texture(BloomSamplerO, BloomCoord.xy).rgb;
-	}
+      // vector screen uses twice -1 as many bloom levels
+      if (VectorScreen)
+      {
+         texelI = textureLod(BloomSamplerI, BloomCoord.xy, 1.0).rgb;
+         texelJ = textureLod(BloomSamplerJ, BloomCoord.xy, 1.0).rgb;
+         texelK = textureLod(BloomSamplerK, BloomCoord.xy, 1.0).rgb;
+         texelL = textureLod(BloomSamplerL, BloomCoord.xy, 1.0).rgb;
+         texelM = textureLod(BloomSamplerM, BloomCoord.xy, 1.0).rgb;
+         texelN = textureLod(BloomSamplerN, BloomCoord.xy, 1.0).rgb;
+         texelO = textureLod(BloomSamplerO, BloomCoord.xy, 1.0).rgb;
+      }
 
-	vec3 blend;
+      vec3 blend;
 
-	// brighten
-	if (params.BloomBlendMode < 0.5)
-	{
-		vec3 bloom = vec3(0.0f, 0.0f, 0.0f);
+      // brighten
+      if (BloomBlendMode < 0.5)
+      {
+         vec3 bloom = vec3(0.0f, 0.0f, 0.0f);
 
-		texel *= params.Level0Weight;
+         texel *= Level0Weight;
 
-		if (params.VectorScreen < 0.5)
-		{
-			bloom += texelA * params.Level1Weight;
-			bloom += texelB * params.Level2Weight;
-			bloom += texelC * params.Level3Weight;
-			bloom += texelD * params.Level4Weight;
-			bloom += texelE * params.Level5Weight;
-			bloom += texelF * params.Level6Weight;
-			bloom += texelG * params.Level7Weight;
-			bloom += texelH * params.Level8Weight;
-		}
-		// vector screen uses twice -1 as many bloom levels
-		else
-		{
-			bloom += texelA * (params.Level1Weight);
-			bloom += texelB * (params.Level1Weight + params.Level2Weight) * 0.5f;
-			bloom += texelC * (params.Level2Weight);
-			bloom += texelD * (params.Level2Weight + params.Level3Weight) * 0.5f;
-			bloom += texelE * (params.Level3Weight);
-			bloom += texelF * (params.Level3Weight + params.Level4Weight) * 0.5f;
-			bloom += texelG * (params.Level4Weight);
-			bloom += texelH * (params.Level4Weight + params.Level5Weight) * 0.5f;
-			bloom += texelI * (params.Level5Weight);
-			bloom += texelJ * (params.Level5Weight + params.Level6Weight) * 0.5f;
-			bloom += texelK * (params.Level6Weight);
-			bloom += texelL * (params.Level6Weight + params.Level7Weight) * 0.5f;
-			bloom += texelM * (params.Level7Weight);
-			bloom += texelN * (params.Level7Weight + params.Level8Weight) * 0.5f;
-			bloom += texelO * (params.Level8Weight);
-		}
+         if (VectorScreen)
+         {
+            bloom += texelA * Level1Weight;
+            bloom += texelB * Level2Weight;
+            bloom += texelC * Level3Weight;
+            bloom += texelD * Level4Weight;
+            bloom += texelE * Level5Weight;
+            bloom += texelF * Level6Weight;
+            bloom += texelG * Level7Weight;
+            bloom += texelH * Level8Weight;
+         }
+         // vector screen uses twice -1 as many bloom levels
+         else
+         {
+            bloom += texelA * (Level1Weight);
+            bloom += texelB * (Level1Weight + Level2Weight) * 0.5f;
+            bloom += texelC * (Level2Weight);
+            bloom += texelD * (Level2Weight + Level3Weight) * 0.5f;
+            bloom += texelE * (Level3Weight);
+            bloom += texelF * (Level3Weight + Level4Weight) * 0.5f;
+            bloom += texelG * (Level4Weight);
+            bloom += texelH * (Level4Weight + Level5Weight) * 0.5f;
+            bloom += texelI * (Level5Weight);
+            bloom += texelJ * (Level5Weight + Level6Weight) * 0.5f;
+            bloom += texelK * (Level6Weight);
+            bloom += texelL * (Level6Weight + Level7Weight) * 0.5f;
+            bloom += texelM * (Level7Weight);
+            bloom += texelN * (Level7Weight + Level8Weight) * 0.5f;
+            bloom += texelO * (Level8Weight);
+         }
 
-		bloom *= params.BloomScale;
+         bloom *= BloomScale;
 
-		vec3 bloomOverdrive;
-		bloomOverdrive.r = max(0.0f, texel.r + bloom.r - 1.0f) * params.BloomOverdrive_r;
-		bloomOverdrive.g = max(0.0f, texel.g + bloom.g - 1.0f) * params.BloomOverdrive_g;
-		bloomOverdrive.b = max(0.0f, texel.b + bloom.b - 1.0f) * params.BloomOverdrive_b;
+         vec3 bloomOverdrive;
+         bloomOverdrive.r = max(0.0f, texel.r + bloom.r - 1.0f) * BloomOverdrive.r;
+         bloomOverdrive.g = max(0.0f, texel.g + bloom.g - 1.0f) * BloomOverdrive.g;
+         bloomOverdrive.b = max(0.0f, texel.b + bloom.b - 1.0f) * BloomOverdrive.b;
 
-		bloom.r += bloomOverdrive.g * 0.5f;
-		bloom.r += bloomOverdrive.b * 0.5f;
-		bloom.g += bloomOverdrive.r * 0.5f;
-		bloom.g += bloomOverdrive.b * 0.5f;
-		bloom.b += bloomOverdrive.r * 0.5f;
-		bloom.b += bloomOverdrive.g * 0.5f;
+         bloom.r += bloomOverdrive.g * 0.5f;
+         bloom.r += bloomOverdrive.b * 0.5f;
+         bloom.g += bloomOverdrive.r * 0.5f;
+         bloom.g += bloomOverdrive.b * 0.5f;
+         bloom.b += bloomOverdrive.r * 0.5f;
+         bloom.b += bloomOverdrive.g * 0.5f;
 
-		vec2 NoiseCoord = vTexCoord;
-		vec3 NoiseFactor = GetNoiseFactor(bloom, random(NoiseCoord));
+         vec2 NoiseCoord = vTexCoord;
+         vec3 NoiseFactor = GetNoiseFactor(bloom, random(NoiseCoord));
 
-		blend = texel + bloom * NoiseFactor;
-	}
+         blend = texel + bloom * NoiseFactor;
+      }
 
-	// darken
-	else
-	{
-		texelA = min(texel, texelA);
-		texelB = min(texel, texelB);
-		texelC = min(texel, texelC);
-		texelD = min(texel, texelD);
-		texelE = min(texel, texelE);
-		texelF = min(texel, texelF);
-		texelG = min(texel, texelG);
-		texelH = min(texel, texelH);
+      // darken
+      else
+      {
+         texelA = min(texel, texelA);
+         texelB = min(texel, texelB);
+         texelC = min(texel, texelC);
+         texelD = min(texel, texelD);
+         texelE = min(texel, texelE);
+         texelF = min(texel, texelF);
+         texelG = min(texel, texelG);
+         texelH = min(texel, texelH);
 
-		blend = texel * params.Level0Weight;
-		blend = mix(blend, texelA, params.Level1Weight * params.BloomScale);
-		blend = mix(blend, texelB, params.Level2Weight * params.BloomScale);
-		blend = mix(blend, texelC, params.Level3Weight * params.BloomScale);
-		blend = mix(blend, texelD, params.Level4Weight * params.BloomScale);
-		blend = mix(blend, texelE, params.Level5Weight * params.BloomScale);
-		blend = mix(blend, texelF, params.Level6Weight * params.BloomScale);
-		blend = mix(blend, texelG, params.Level7Weight * params.BloomScale);
-		blend = mix(blend, texelH, params.Level8Weight * params.BloomScale);
-	}
+         blend = texel * Level0Weight;
+         blend = mix(blend, texelA, Level1Weight * BloomScale);
+         blend = mix(blend, texelB, Level2Weight * BloomScale);
+         blend = mix(blend, texelC, Level3Weight * BloomScale);
+         blend = mix(blend, texelD, Level4Weight * BloomScale);
+         blend = mix(blend, texelE, Level5Weight * BloomScale);
+         blend = mix(blend, texelF, Level6Weight * BloomScale);
+         blend = mix(blend, texelG, Level7Weight * BloomScale);
+         blend = mix(blend, texelH, Level8Weight * BloomScale);
+      }
 
-    FragColor = vec4(blend, 1.0);
+       FragColor = vec4(blend, 1.0);
+   }
 }

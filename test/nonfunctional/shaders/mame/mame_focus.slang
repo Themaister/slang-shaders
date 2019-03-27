@@ -12,17 +12,9 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float defocus_x;
-	float defocus_y;
 } params;
 
-#pragma parameter defocus_x "Defocus X Axis" 0.0 0.0 10.0 0.1
-#pragma parameter defocus_y "Defocus Y Axis" 0.0 0.0 10.0 0.1
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
+#include "mame_parameters.inc"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -42,7 +34,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 #define DiffuseSampler Source
 
-vec2 Defocus = vec2(params.defocus_x, params.defocus_y);
+vec2 Defocus = vec2(global.defocus_x, global.defocus_y);
 
 // previously this pass was applied two times with offsets of 0.25, 0.5, 0.75, 1.0
 // now this pass is applied only once with offsets of 0.25, 0.55, 1.0, 1.6 to achieve the same appearance as before till a maximum defocus of 2.0

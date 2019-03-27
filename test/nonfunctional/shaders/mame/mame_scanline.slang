@@ -1,0 +1,124 @@
+#version 450
+
+// license:BSD-3-Clause
+// copyright-holders:Ryan Holtz,ImJezze
+//-----------------------------------------------------------------------------
+// Scanline Effect
+//-----------------------------------------------------------------------------
+
+layout(push_constant) uniform Push
+{
+	vec4 SourceSize;
+	vec4 OriginalSize;
+	vec4 OutputSize;
+	uint FrameCount;
+} params;
+
+#include "mame_parameters.inc"
+
+//-----------------------------------------------------------------------------
+// Constants
+//-----------------------------------------------------------------------------
+
+const float PI = 3.1415927f;
+const float HalfPI = PI * 0.5f;
+
+//-----------------------------------------------------------------------------
+// Scanline Pixel Shader
+//-----------------------------------------------------------------------------
+
+float ScanlineAlpha = global.scanlinealpha;
+float ScanlineScale = global.scanlinescale;
+float ScanlineHeight = global.scanlineheight;
+float ScanlineVariation = global.scanlinevariation;
+float ScanlineOffset = global.scanlineoffset;
+float ScanlineBrightScale = global.scanlinebrightscale;
+float ScanlineBrightOffset = global.scanlinebrightoffset;
+
+vec2 QuadDims = params.SourceSize.xy;
+vec2 SourceDims = params.SourceSize.xy;
+
+vec2 GetAdjustedCoords(vec2 coord)
+{
+	// center coordinates
+	coord -= 0.5f;
+
+	// apply screen scale
+	coord *= ScreenScale;
+
+	// un-center coordinates
+	coord += 0.5f;
+
+	// apply screen offset
+	coord += ScreenOffset;
+
+	return coord;
+}
+
+#pragma stage vertex
+layout(location = 0) in vec4 Position;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 0) out vec2 vTexCoord;
+
+void main()
+{
+   gl_Position = global.MVP * Position;
+   vTexCoord = TexCoord;
+}
+
+#pragma stage fragment
+layout(location = 0) in vec2 vTexCoord;
+layout(location = 0) out vec4 FragColor;
+layout(set = 0, binding = 2) uniform sampler2D Source;
+
+#define DiffuseSampler Source
+
+void main()
+{
+   if(!ScanlineToggle)
+   {
+      FragColor = texture(Source, vTexCoord);
+      return;
+   }
+   else
+   {
+      vec2 BaseCoord = GetAdjustedCoords(vTexCoord);
+
+      // Color
+      vec4 BaseColor = texture(DiffuseSampler, BaseCoord);
+      BaseColor.a = 1.0f;
+/*
+      // clip border
+      if (BaseCoord.x < 0.0f || BaseCoord.y < 0.0f ||
+      BaseCoord.x > 1.0f || BaseCoord.y > 1.0f)
+      {
+         // we don't use the clip function, because we don't clear the render target before
+         return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+      }
+*/
+      float BrightnessOffset = (ScanlineBrightOffset * ScanlineAlpha);
+      float BrightnessScale = (ScanlineBrightScale * ScanlineAlpha) + (1.0f - ScanlineAlpha);
+
+      float ColorBrightness = 0.299f * BaseColor.r + 0.587f * BaseColor.g + 0.114 * BaseColor.b;
+
+      float ScanlineCoord = BaseCoord.y;
+      ScanlineCoord += SwapXY
+         ? QuadDims.x <= SourceDims.x * 2.0f
+            ? 0.5f / QuadDims.x // uncenter scanlines if the quad is less than twice the size of the source
+               : 0.0f
+               : QuadDims.y <= SourceDims.y * 2.0f
+            ? 0.5f / QuadDims.y // uncenter scanlines if the quad is less than twice the size of the source
+               : 0.0f;
+      ScanlineCoord *= SourceDims.y * ScanlineScale * PI;
+
+      float ScanlineCoordJitter = ScanlineOffset * HalfPI;
+      float ScanlineSine = sin(ScanlineCoord + ScanlineCoordJitter);
+      float ScanlineWide = ScanlineHeight + ScanlineVariation * max(1.0f, ScanlineHeight) * (1.0f - ColorBrightness);
+      float ScanlineAmount = pow(ScanlineSine * ScanlineSine, ScanlineWide);
+      float ScanlineBrightness = ScanlineAmount * BrightnessScale + BrightnessOffset * BrightnessScale;
+
+      BaseColor.rgb *= mix(1.0f, ScanlineBrightness, ScanlineAlpha);
+
+      FragColor = BaseColor;
+   }
+}

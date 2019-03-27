@@ -1,0 +1,66 @@
+# info on how the passes come together can be found in mame/src/osd/modules/render/d3d/d3dhlsl.cpp
+shaders = 12
+
+shader0 = mame_ntsc.slang
+filter_linear0 = true
+alias0 = NTSCPass
+scale_type0 = source
+scale0 = 1.0
+
+shader1 = mame_color.slang
+alias1 = ColorPass
+scale_type1 = source
+scale1 = 1.0
+filter_linear1 = true
+
+shader2 = ../../../../retro/shaders/sharp-bilinear.slang
+alias2 = PrescalePass
+scale_type2 = source
+filter_linear2 = true
+
+shader3 = mame_deconverge.slang
+alias3 = DeconvergePass
+filter_linear3 = true
+
+shader4 = mame_scanline.slang
+alias4 = ScanlinePass
+filter_linear4 = true
+scale_type4 = source
+scale4 = 4.0
+
+shader5 = mame_focus.slang
+alias5 = FocusPass
+filter_linear5 = true
+
+shader6 = mame_phosphor.slang
+alias6 = PhosphorPass
+filter_linear6 = true
+
+shader7 = mame_post.slang
+alias7 = PostPass
+filter_linear7 = true
+
+shader8 = mame_chroma.slang
+alias8 = ChromaPass
+filter_linear8 = true
+
+shader9 = mame_downsample.slang
+alias9 = DownsamplePass
+filter_linear9 = true
+mipmap_input9 = true
+
+shader10 = mame_bloom.slang
+alias10 = BloomPass
+filter_linear10 = true
+
+shader11 = mame_distortion.slang
+alias11 = DistortionPass
+filter_linear11 = true
+
+shader12 = mame_vector.slang
+alias12 = VectorPass
+filter_linear12 = true
+
+# mame's textures are available here: https://github.com/mamedev/mame/tree/master/artwork
+textures = "MaskTexture"
+MaskTexture = slot-mask.png

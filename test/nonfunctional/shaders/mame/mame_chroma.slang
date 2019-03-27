@@ -14,10 +14,7 @@ layout(push_constant) uniform Push
 	uint FrameCount;
 } params;
 
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
+#include "mame_parameters.inc"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -38,10 +35,10 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 #define DiffuseSampler Source
 #define mul(a,b) (b*a)
 
-const vec3 YGain = vec3(0.2126, 0.7152, 0.0722);
-const vec2 ChromaA = vec2(0.630, 0.340);
-const vec2 ChromaB = vec2(0.310, 0.595);
-const vec2 ChromaC = vec2(0.155, 0.070);
+vec3 YGain = vec3(global.ygain_r, global.ygain_g, global.ygain_b);
+vec2 ChromaA = vec2(global.chromaa_x, global.chromaa_y);
+vec2 ChromaB = vec2(global.chromab_x, global.chromab_y);
+vec2 ChromaC = vec2(global.chromac_x, global.chromac_y);
 
 const mat3 XYZ_TO_sRGB = mat3(
 	 3.2406, -1.5372, -0.4986,
@@ -50,15 +47,23 @@ const mat3 XYZ_TO_sRGB = mat3(
 
 void main()
 {
-	vec4 cin = texture(DiffuseSampler, vTexCoord);
-	vec4 cout = vec4(0.0, 0.0, 0.0, cin.a);
-	mat3x2 xy = { ChromaA, ChromaB, ChromaC };
+   if(!Chromaticity)
+   {
+      FragColor = texture(Source, vTexCoord);
+      return;
+   }
+   else
+   {
+      vec4 cin = texture(DiffuseSampler, vTexCoord);
+      vec4 cout = vec4(0.0, 0.0, 0.0, cin.a);
+      mat3x2 xy = { ChromaA, ChromaB, ChromaC };
 
-	for (int i = 0; i < 3; ++i) {
-		float Y = YGain[i] * cin[i];
-		float X = xy[i].x * (Y / xy[i].y);
-		float Z = (1.0 - xy[i].x - xy[i].y) * (Y / xy[i].y);
-		cout.rgb += mul(XYZ_TO_sRGB, vec3(X, Y, Z));
-	}
-	FragColor = cout;
+      for (int i = 0; i < 3; ++i) {
+         float Y = YGain[i] * cin[i];
+         float X = xy[i].x * (Y / xy[i].y);
+         float Z = (1.0 - xy[i].x - xy[i].y) * (Y / xy[i].y);
+         cout.rgb += mul(XYZ_TO_sRGB, vec3(X, Y, Z));
+      }
+      FragColor = cout;
+   }
 }

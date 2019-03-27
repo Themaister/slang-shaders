@@ -12,33 +12,9 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float col_red;
-	float col_grn;
-	float col_blu;
-	float col_offset_x;
-	float col_offset_y;
-	float col_offset_z;
-	float col_scale_x;
-	float col_scale_y;
-	float col_scale_z;
-	float col_saturation;
 } params;
 
-#pragma parameter col_red "Red Shift" 1.0 0.0 1.0 0.01
-#pragma parameter col_grn "Green Shift" 1.0 0.0 1.0 0.01
-#pragma parameter col_blu "Blue Shift" 1.0 0.0 1.0 0.01
-#pragma parameter col_offset_x "Offset X" 0.0 0.0 1.0 0.01
-#pragma parameter col_offset_y "Offset Y" 0.0 0.0 1.0 0.01
-#pragma parameter col_offset_z "Offset Z" 0.0 0.0 1.0 0.01
-#pragma parameter col_scale_x "Scale X" 1.0 0.0 1.0 0.01
-#pragma parameter col_scale_y "Scale Y" 1.0 0.0 1.0 0.01
-#pragma parameter col_scale_z "Scale Z" 1.0 0.0 1.0 0.01
-#pragma parameter col_saturation "Saturation" 1.0 0.0 0.01
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
+#include "mame_parameters.inc"
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -58,12 +34,12 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 #define DiffuseSampler Source
 
-vec3 RedRatios = vec3(params.col_red, 0.0f, 0.0f);
-vec3 GrnRatios = vec3(0.0f, params.col_grn, 0.0f);
-vec3 BluRatios = vec3(0.0f, 0.0f, params.col_blu);
-vec3 Offset = vec3(params.col_offset_x, params.col_offset_y, params.col_offset_z);
-vec3 Scale = vec3(params.col_scale_x, params.col_scale_y, params.col_scale_z);
-float Saturation = params.col_saturation;
+vec3 RedRatios = vec3(global.col_red, 0.0f, 0.0f);
+vec3 GrnRatios = vec3(0.0f, global.col_grn, 0.0f);
+vec3 BluRatios = vec3(0.0f, 0.0f, global.col_blu);
+vec3 Offset = vec3(global.col_offset_x, global.col_offset_y, global.col_offset_z);
+vec3 Scale = vec3(global.col_scale_x, global.col_scale_y, global.col_scale_z);
+float Saturation = global.col_saturation;
 
 void main()
 {

@@ -12,42 +12,13 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float distortion_amount;
-	float cubic_distortion_amount;
-	float distort_corner_amount;
-	float round_corner_amount;
-	float smooth_border_amount;
-	float vignette_amount;
-	float reflection_amount;
-	float reflection_col_r;
-	float reflection_col_g;
-	float reflection_col_b;
-	float swapxy;
-	float target_scale;
 } params;
 
-#pragma parameter distortion_amount "Distortion Amount" 0.0 0.0 1.0 0.01
-#pragma parameter cubic_distortion_amount "Cubic Dist. Amt" 0.0 0.0 1.0 0.01
-#pragma parameter distort_corner_amount "Corner Dist. Amt" 0.0 0.0 1.0 0.01
-#pragma parameter round_corner_amount "Corner Rounding" 0.0 0.0 1.0 0.01
-#pragma parameter smooth_border_amount "Border Smoothing" 0.0 0.0 1.0 0.01
-#pragma parameter vignette_amount "Vignetting Amount" 0.0 0.0 1.0 0.01
-#pragma parameter reflection_amount "Reflection Amount" 0.0 0.0 1.0 0.01
-#pragma parameter reflection_col_r "Reflection Color R" 1.0 0.0 1.0 0.01
-#pragma parameter reflection_col_g "Reflection Color G" 0.9 0.0 1.0 0.01
-#pragma parameter reflection_col_b "Reflection Color B" 0.8 0.0 1.0 0.01
-
-#pragma parameter swapxy "Swap X and Y" 0.0 0.0 1.0 1.0
-#pragma parameter target_scale "Target Scale" 1.0 1.0 10.0 1.0
+#include "mame_parameters.inc"
 
 #define saturate(c) clamp(c, 0.0, 1.0)
 #define mul(a,b) (b*a)
 const int ScreenCount = 1;
-
-layout(std140, set = 0, binding = 0) uniform UBO
-{
-	mat4 MVP;
-} global;
 
 //-----------------------------------------------------------------------------
 // Constants
@@ -103,19 +74,18 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 #define DiffuseSampler Source
 
-float DistortionAmount = params.distortion_amount;      // k     - quartic distortion coefficient
-float CubicDistortionAmount = params.cubic_distortion_amount; // kcube - cubic distortion modifier
-float DistortCornerAmount = params.distort_corner_amount;
-float RoundCornerAmount = params.round_corner_amount;
-float SmoothBorderAmount = params.smooth_border_amount;
-float VignettingAmount = params.vignette_amount;
-float ReflectionAmount = params.reflection_amount;
-vec3 LightReflectionColor = vec3(params.reflection_col_r, params.reflection_col_g, params.reflection_col_b); // color temperature 5.000 Kelvin
+float DistortionAmount = global.distortion_amount;      // k     - quartic distortion coefficient
+float CubicDistortionAmount = global.cubic_distortion_amount; // kcube - cubic distortion modifier
+float DistortCornerAmount = global.distort_corner_amount;
+float RoundCornerAmount = global.round_corner_amount;
+float SmoothBorderAmount = global.smooth_border_amount;
+float VignettingAmount = global.vignette_amount;
+float ReflectionAmount = global.reflection_amount;
+vec3 LightReflectionColor = vec3(global.reflection_col_r, global.reflection_col_g, global.reflection_col_b); // color temperature 5.000 Kelvin
 
-bool SwapXY = bool(params.swapxy);
 vec2 QuadDims = params.SourceSize.xy;
-vec2 TargetDims = params.SourceSize.xy;
-float TargetScale = params.target_scale;
+vec2 TargetDims = params.OutputSize.xy;
+float TargetScale = 1.0;
 
 float GetNoiseFactor(vec3 n, float random)
 {
@@ -242,73 +212,81 @@ vec2 GetQuadCoords(vec2 coord, vec2 scale, float distortionAmount, float cubicDi
 
 void main()
 {
-	// image distortion
-	float distortionAmount = DistortionAmount;
-	float cubicDistortionAmount = CubicDistortionAmount > 0.0f
-		? CubicDistortionAmount * 1.1f  // cubic distortion need to be a little higher to compensate the quartic distortion
-		: CubicDistortionAmount * 1.2f; // negativ values even more
+   if(!Distortion)
+   {
+      FragColor = texture(Source, vTexCoord);
+      return;
+   }
+   else
+   {
+      // image distortion
+      float distortionAmount = DistortionAmount;
+      float cubicDistortionAmount = CubicDistortionAmount > 0.0f
+         ? CubicDistortionAmount * 1.1f  // cubic distortion need to be a little higher to compensate the quartic distortion
+         : CubicDistortionAmount * 1.2f; // negativ values even more
 
-	// corner distortion at least by the amount of the image distorition
-	float distortCornerAmount = max(DistortCornerAmount, DistortionAmount + CubicDistortionAmount);
+      // corner distortion at least by the amount of the image distorition
+      float distortCornerAmount = max(DistortCornerAmount, DistortionAmount + CubicDistortionAmount);
 
-	float roundCornerAmount = RoundCornerAmount * 0.5f;
-	float smoothBorderAmount = SmoothBorderAmount * 0.5f;
+      float roundCornerAmount = RoundCornerAmount * 0.5f;
+      float smoothBorderAmount = SmoothBorderAmount * 0.5f;
 
-	vec2 TexelDims = 1.0f / TargetDims;
+      vec2 TexelDims = 1.0f / TargetDims;
 
-	// base-target dimensions (without oversampling)
-	vec2 BaseTargetDims = TargetDims / TargetScale;
-	BaseTargetDims = SwapXY
-		? BaseTargetDims.yx
-		: BaseTargetDims.xy;
+      // base-target dimensions (without oversampling)
+      vec2 BaseTargetDims = TargetDims / TargetScale;
+      BaseTargetDims = SwapXY
+         ? BaseTargetDims.yx
+         : BaseTargetDims.xy;
 
-	// base-target/quad difference scale
-	vec2 BaseTargetQuadScale = (ScreenCount == 1)
-		? BaseTargetDims / QuadDims // keeps the coords inside of the quad bounds of a single screen
-		: vec2(1.0);
+      // base-target/quad difference scale
+      vec2 BaseTargetQuadScale = (ScreenCount == 1)
+         ? BaseTargetDims / QuadDims // keeps the coords inside of the quad bounds of a single screen
+         : vec2(1.0);
 
-	// Screen Texture Curvature
-	vec2 BaseCoord = GetTextureCoords(vTexCoord, distortionAmount, cubicDistortionAmount);
+      // Screen Texture Curvature
+      vec2 BaseCoord = GetTextureCoords(vTexCoord, distortionAmount, cubicDistortionAmount);
 
-	// Screen Quad Curvature
-	vec2 QuadCoord = GetQuadCoords(vTexCoord, BaseTargetQuadScale, distortCornerAmount, 0.0f);
-/*
-	// clip border
-	if (BaseCoord.x < 0.0f - TexelDims.x || BaseCoord.y < 0.0f - TexelDims.y ||
-		BaseCoord.x > 1.0f + TexelDims.x || BaseCoord.y > 1.0f + TexelDims.y)
-	{
-		// we don't use the clip function, because we don't clear the render target before
-		return vec4(0.0f, 0.0f, 0.0f, 1.0f);
-	}
-*/
+      // Screen Quad Curvature
+      vec2 QuadCoord = GetQuadCoords(vTexCoord, BaseTargetQuadScale, distortCornerAmount, 0.0f);
+   /*
+      // clip border
+      if (BaseCoord.x < 0.0f - TexelDims.x || BaseCoord.y < 0.0f - TexelDims.y ||
+         BaseCoord.x > 1.0f + TexelDims.x || BaseCoord.y > 1.0f + TexelDims.y)
+      {
+         // we don't use the clip function, because we don't clear the render target before
+         return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+      }
+   */
 
-	// Color
-	vec4 BaseColor = texture(DiffuseSampler, BaseCoord);
-	BaseColor.a = 1.0f;
+      // Color
+      vec4 BaseColor = texture(DiffuseSampler, BaseCoord);
+      BaseColor.a = 1.0f;
 
-	// Vignetting Simulation
-	vec2 VignetteCoord = QuadCoord;
+      // Vignetting Simulation
+      vec2 VignetteCoord = QuadCoord;
 
-	float VignetteFactor = GetVignetteFactor(VignetteCoord, VignettingAmount);
-	BaseColor.rgb *= VignetteFactor;
+      float VignetteFactor = GetVignetteFactor(VignetteCoord, VignettingAmount);
+      BaseColor.rgb *= VignetteFactor;
 
-	// Light Reflection Simulation
-	vec2 SpotCoord = QuadCoord;
+      // Light Reflection Simulation
+      vec2 SpotCoord = QuadCoord;
 
-	vec3 SpotAddend = GetSpotAddend(SpotCoord, ReflectionAmount) * LightReflectionColor;
-	BaseColor.rgb += SpotAddend * GetNoiseFactor(SpotAddend, random(SpotCoord));
+      vec3 SpotAddend = GetSpotAddend(SpotCoord, ReflectionAmount) * LightReflectionColor;
+      BaseColor.rgb += SpotAddend * GetNoiseFactor(SpotAddend, random(SpotCoord));
 
-	// Round Corners Simulation
-	vec2 RoundCornerCoord = QuadCoord;
-	vec2 RoundCornerBounds = (ScreenCount == 1)
-		? QuadDims // align corners to quad bounds of a single screen
-		: BaseTargetDims; // align corners to target bounds of multiple screens
-	RoundCornerBounds = SwapXY
-		? RoundCornerBounds.yx
-		: RoundCornerBounds.xy;
+      // Round Corners Simulation
+      vec2 RoundCornerCoord = QuadCoord;
+      vec2 RoundCornerBounds = (ScreenCount == 1)
+         ? QuadDims // align corners to quad bounds of a single screen
+         : BaseTargetDims; // align corners to target bounds of multiple screens
+      RoundCornerBounds = SwapXY
+         ? RoundCornerBounds.yx
+         : RoundCornerBounds.xy;
 
-	float roundCornerFactor = GetBoundsFactor(RoundCornerCoord, RoundCornerBounds, roundCornerAmount, smoothBorderAmount);
-	BaseColor.rgb *= roundCornerFactor;
+      float roundCornerFactor = GetBoundsFactor(RoundCornerCoord, RoundCornerBounds, roundCornerAmount, smoothBorderAmount);
+      BaseColor.rgb *= roundCornerFactor;
 
-	FragColor = BaseColor;
+      FragColor = BaseColor;
+   }
 }
