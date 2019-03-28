@@ -12,6 +12,7 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
+   vec4 FinalViewportSize;
 } params;
 
 #include "mame_parameters.inc"
@@ -35,8 +36,8 @@ float ScanlineOffset = global.scanlineoffset;
 float ScanlineBrightScale = global.scanlinebrightscale;
 float ScanlineBrightOffset = global.scanlinebrightoffset;
 
-vec2 QuadDims = params.SourceSize.xy;
-vec2 SourceDims = params.SourceSize.xy;
+vec2 QuadDims = params.FinalViewportSize.xy;
+vec2 SourceDims = params.OriginalSize.xy;
 
 vec2 GetAdjustedCoords(vec2 coord)
 {
@@ -102,7 +103,7 @@ void main()
       float ColorBrightness = 0.299f * BaseColor.r + 0.587f * BaseColor.g + 0.114 * BaseColor.b;
 
       float ScanlineCoord = BaseCoord.y;
-      ScanlineCoord += SwapXY
+      ScanlineCoord += (SwapXY)
          ? QuadDims.x <= SourceDims.x * 2.0f
             ? 0.5f / QuadDims.x // uncenter scanlines if the quad is less than twice the size of the source
                : 0.0f

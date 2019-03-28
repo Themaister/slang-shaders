@@ -54,7 +54,7 @@ layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
 #define DiffuseSampler Source
-#define SourceDims params.SourceSize.xy
+#define SourceDims params.OriginalSize.xy
 
 float AValue = global.avalue;
 float BValue = global.bvalue;

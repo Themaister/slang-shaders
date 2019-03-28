@@ -148,7 +148,7 @@ bool Chromaticity = bool(global.chromatoggle);
 #pragma parameter distortiontoggle "Distortion Toggle" 0.0 0.0 1.0 1.0
 bool Distortion = bool(global.distortiontoggle);
 #pragma parameter phosphortoggle "Phosphor Toggle" 0.0 0.0 1.0 1.0
-bool Passthrough = bool(global.phosphortoggle);
+bool Passthrough = !bool(global.phosphortoggle);
 #pragma parameter screenscale_x "Screen Scale X" 1.0 0.5 3.0 0.01
 #pragma parameter screenscale_y "Screen Scale Y" 1.0 0.5 3.0 0.01
 vec2 ScreenScale = vec2(global.screenscale_x, global.screenscale_y);
@@ -247,7 +247,7 @@ bool SwapXY = bool(global.swapxy);
 
 // Scanline Pass
 #pragma parameter scanlinealpha "Scanline Alpha" 0.5 0.0 1.0 0.01
-#pragma parameter scanlinescale "Scanline Scale" 1.0 1.0 5.0 1.0
+#pragma parameter scanlinescale "Scanline Scale" 5.0 1.0 5.0 1.0
 #pragma parameter scanlineheight "Scanline Height" 1.0 0.0 2.0 0.1
 #pragma parameter scanlinevariation "Scanline Variation" 1.0 0.0 5.0 0.5
 #pragma parameter scanlineoffset "Scanline Offset" 1.0 -1.5 3.0 0.1

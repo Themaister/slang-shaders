@@ -12,6 +12,7 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
+   vec4 FinalViewportSize;
 } params;
 
 #include "mame_parameters.inc"
@@ -83,8 +84,8 @@ float VignettingAmount = global.vignette_amount;
 float ReflectionAmount = global.reflection_amount;
 vec3 LightReflectionColor = vec3(global.reflection_col_r, global.reflection_col_g, global.reflection_col_b); // color temperature 5.000 Kelvin
 
-vec2 QuadDims = params.SourceSize.xy;
-vec2 TargetDims = params.OutputSize.xy;
+vec2 QuadDims = params.OutputSize.xy;
+vec2 TargetDims = params.FinalViewportSize.xy;
 float TargetScale = 1.0;
 
 float GetNoiseFactor(vec3 n, float random)
