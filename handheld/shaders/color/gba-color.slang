@@ -21,7 +21,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 */
 // Shader that replicates the LCD dynamics from a GameBoy Advance
 
-#pragma parameter darken_screen "Darken Screen" 0.5 -0.25 2.0 0.05
+#pragma parameter darken_screen "Darken Screen" 0.5 -0.25 1.5 0.05
 
 #define target_gamma 2.2
 #define display_gamma 2.2
@@ -31,14 +31,14 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.845
-#define g 0.68
-#define b 0.755
-#define rg 0.09
-#define rb 0.16
-#define gr 0.17
-#define gb 0.085
-#define br -0.015
+#define r 0.86
+#define g 0.66
+#define b 0.81
+#define rg 0.11
+#define rb 0.1325
+#define gr 0.19
+#define gb 0.0575
+#define br -0.05
 #define bg 0.23
 #define overscan_percent_x 0.0
 #define overscan_percent_y 0.0

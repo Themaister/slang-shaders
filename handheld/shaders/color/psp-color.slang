@@ -24,15 +24,15 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.92
+#define r 0.98
 #define g 0.795
-#define b 0.975
-#define rg 0.035
+#define b 0.98
+#define rg 0.04
 #define rb 0.01
-#define gr 0.24
-#define gb 0.015
-#define br -0.16
-#define bg 0.17
+#define gr 0.20
+#define gb 0.01
+#define br -0.18
+#define bg 0.165
 #define overscan_percent_x 0.0
 #define overscan_percent_y 0.0
 
