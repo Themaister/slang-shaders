@@ -1,18 +1,8 @@
 #version 450
 
-/*
-   GBC Color Correction Shader
-   A shader that replicates the LCD dynamics from a Game Boy Color
-   Color values are derived from Gambatte's color correction implementation, with some tweaks.
-
-   Based on Color Mangler
-   Author: hunterk
-   License: Public domain
-*/
-
 layout(push_constant) uniform Push
 {
-   float darken_screen;
+   float brighten_screen;
 } params;
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -23,22 +13,33 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 SourceSize;
 } global;
 
-#pragma parameter darken_screen "Darken Screen" 0.0 -0.25 2.0 0.05
+/*
+   Shader Modified: Pokefan531
+   Color Mangler
+   Author: hunterk
+   License: Public domain
+*/
+// Shader that replicates the LCD dynamics from a GameBoy Advance
+
+#pragma parameter brighten_screen "Brighten Screen" 0.5 -0.25 1.2 0.05
 
 #define target_gamma 2.2
 #define display_gamma 2.2
+#define sat 1.0
+#define lum 1.0
+#define contrast 1.0
 #define blr 0.0
 #define blg 0.0
 #define blb 0.0
-#define r 0.78824
-#define g 0.72941
-#define b 0.82
-#define rg 0.025
-#define rb 0.12039
-#define gr 0.12157
-#define gb 0.12157
-#define br 0.0
-#define bg 0.275000
+#define r 0.87
+#define g 0.66
+#define b 0.79
+#define rg 0.115
+#define rb 0.14
+#define gr 0.18
+#define gb 0.07
+#define br -0.05
+#define bg 0.225
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -58,14 +59,22 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma + params.darken_screen)).rgba;
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(target_gamma + (params.brighten_screen * -1.0))).rgba;
+   vec4 avglum = vec4(0.5);
+   screen = mix(screen, avglum, (1.0 - contrast));
    
-   //                red   green  blue  alpha ; alpha does nothing for our purposes
-   mat4 color = mat4(r,    rg,    rb,   0.0,    //red
-                     gr,   g,     gb,   0.0,    //green
-                     br,   bg,    b,    0.0,    //blue
-                     blr,  blg,   blb,  0.0);   //black
-                 
-   screen = color * screen;
-   FragColor = pow(screen, vec4(1.0 / display_gamma));
+ //				r   g    b   black
+mat4 color = mat4(r,  rg,  rb, 0.0,  //red channel
+			   gr,  g,   gb, 0.0,  //green channel
+			   br,  bg,  b,  0.0,  //blue channel
+			  blr, blg, blb,    0.0); //alpha channel; these numbers do nothing for our purposes.
+			  
+mat4 adjust = mat4((1.0 - sat) * 0.3086 + sat, (1.0 - sat) * 0.3086, (1.0 - sat) * 0.3086, 1.0,
+(1.0 - sat) * 0.6094, (1.0 - sat) * 0.6094 + sat, (1.0 - sat) * 0.6094, 1.0,
+(1.0 - sat) * 0.0820, (1.0 - sat) * 0.0820, (1.0 - sat) * 0.0820 + sat, 1.0,
+0.0, 0.0, 0.0, 1.0);
+	color *= adjust;
+	screen = clamp(screen * lum, 0.0, 1.0);
+	screen = color * screen;
+	FragColor = pow(screen, vec4(1.0 / (display_gamma)));
 }
