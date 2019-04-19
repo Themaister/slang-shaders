@@ -96,9 +96,9 @@ vec3 GetNoiseFactor(vec3 n, float random)
 {
 	// smaller n become more noisy
 	vec3 NoiseFactor;
-	NoiseFactor.x = 1.0f + random * max(0.0f, 0.25f * pow(E, -8. * n.x));
-	NoiseFactor.y = 1.0f + random * max(0.0f, 0.25f * pow(E, -8. * n.y));
-	NoiseFactor.z = 1.0f + random * max(0.0f, 0.25f * pow(E, -8. * n.z));
+	NoiseFactor.x = 1.0 + random * max(0.0, 0.25 * pow(E, -8. * n.x));
+	NoiseFactor.y = 1.0 + random * max(0.0, 0.25 * pow(E, -8. * n.y));
+	NoiseFactor.z = 1.0 + random * max(0.0, 0.25 * pow(E, -8. * n.z));
 	return NoiseFactor;
 }
 
@@ -111,36 +111,36 @@ void main()
    }
    else
    {
-      vec3 texel = textureLod(DiffuseSampler, vTexCoord, 0.0).rgb;
+      vec3 texel = texture(DiffuseSampler, vTexCoord).rgb;
 
-      vec3 texelA = textureLod(BloomSamplerA, BloomCoord.xy, 1.0).rgb;
-      vec3 texelB = textureLod(BloomSamplerB, BloomCoord.xy, 2.0).rgb;
-      vec3 texelC = textureLod(BloomSamplerC, BloomCoord.xy, 3.0).rgb;
-      vec3 texelD = textureLod(BloomSamplerD, BloomCoord.xy, 4.0).rgb;
-      vec3 texelE = textureLod(BloomSamplerE, BloomCoord.xy, 5.0).rgb;
-      vec3 texelF = textureLod(BloomSamplerF, BloomCoord.xy, 6.0).rgb;
-      vec3 texelG = textureLod(BloomSamplerG, BloomCoord.xy, 7.0).rgb;
-      vec3 texelH = textureLod(BloomSamplerH, BloomCoord.xy, 8.0).rgb;
+      vec3 texelA = texture(BloomSamplerA, BloomCoord.xy).rgb;
+      vec3 texelB = texture(BloomSamplerB, BloomCoord.xy).rgb;
+      vec3 texelC = texture(BloomSamplerC, BloomCoord.xy).rgb;
+      vec3 texelD = texture(BloomSamplerD, BloomCoord.xy).rgb;
+      vec3 texelE = texture(BloomSamplerE, BloomCoord.xy).rgb;
+      vec3 texelF = texture(BloomSamplerF, BloomCoord.xy).rgb;
+      vec3 texelG = texture(BloomSamplerG, BloomCoord.xy).rgb;
+      vec3 texelH = texture(BloomSamplerH, BloomCoord.xy).rgb;
 
-      vec3 texelI = vec3(0.0f, 0.0f, 0.0f);
-      vec3 texelJ = vec3(0.0f, 0.0f, 0.0f);
-      vec3 texelK = vec3(0.0f, 0.0f, 0.0f);
-      vec3 texelL = vec3(0.0f, 0.0f, 0.0f);
-      vec3 texelM = vec3(0.0f, 0.0f, 0.0f);
-      vec3 texelN = vec3(0.0f, 0.0f, 0.0f);
-      vec3 texelO = vec3(0.0f, 0.0f, 0.0f);
+      vec3 texelI = vec3(0.0, 0.0, 0.0);
+      vec3 texelJ = vec3(0.0, 0.0, 0.0);
+      vec3 texelK = vec3(0.0, 0.0, 0.0);
+      vec3 texelL = vec3(0.0, 0.0, 0.0);
+      vec3 texelM = vec3(0.0, 0.0, 0.0);
+      vec3 texelN = vec3(0.0, 0.0, 0.0);
+      vec3 texelO = vec3(0.0, 0.0, 0.0);
 
 
       // vector screen uses twice -1 as many bloom levels
       if (VectorScreen)
       {
-         texelI = textureLod(BloomSamplerI, BloomCoord.xy, 1.0).rgb;
-         texelJ = textureLod(BloomSamplerJ, BloomCoord.xy, 1.0).rgb;
-         texelK = textureLod(BloomSamplerK, BloomCoord.xy, 1.0).rgb;
-         texelL = textureLod(BloomSamplerL, BloomCoord.xy, 1.0).rgb;
-         texelM = textureLod(BloomSamplerM, BloomCoord.xy, 1.0).rgb;
-         texelN = textureLod(BloomSamplerN, BloomCoord.xy, 1.0).rgb;
-         texelO = textureLod(BloomSamplerO, BloomCoord.xy, 1.0).rgb;
+         texelI = texture(BloomSamplerI, BloomCoord.xy).rgb;
+         texelJ = texture(BloomSamplerJ, BloomCoord.xy).rgb;
+         texelK = texture(BloomSamplerK, BloomCoord.xy).rgb;
+         texelL = texture(BloomSamplerL, BloomCoord.xy).rgb;
+         texelM = texture(BloomSamplerM, BloomCoord.xy).rgb;
+         texelN = texture(BloomSamplerN, BloomCoord.xy).rgb;
+         texelO = texture(BloomSamplerO, BloomCoord.xy).rgb;
       }
 
       vec3 blend;
@@ -148,7 +148,7 @@ void main()
       // brighten
       if (BloomBlendMode < 0.5)
       {
-         vec3 bloom = vec3(0.0f, 0.0f, 0.0f);
+         vec3 bloom = vec3(0.0, 0.0, 0.0);
 
          texel *= Level0Weight;
 
@@ -167,35 +167,35 @@ void main()
          else
          {
             bloom += texelA * (Level1Weight);
-            bloom += texelB * (Level1Weight + Level2Weight) * 0.5f;
+            bloom += texelB * (Level1Weight + Level2Weight) * 0.5;
             bloom += texelC * (Level2Weight);
-            bloom += texelD * (Level2Weight + Level3Weight) * 0.5f;
+            bloom += texelD * (Level2Weight + Level3Weight) * 0.5;
             bloom += texelE * (Level3Weight);
-            bloom += texelF * (Level3Weight + Level4Weight) * 0.5f;
+            bloom += texelF * (Level3Weight + Level4Weight) * 0.5;
             bloom += texelG * (Level4Weight);
-            bloom += texelH * (Level4Weight + Level5Weight) * 0.5f;
+            bloom += texelH * (Level4Weight + Level5Weight) * 0.5;
             bloom += texelI * (Level5Weight);
-            bloom += texelJ * (Level5Weight + Level6Weight) * 0.5f;
+            bloom += texelJ * (Level5Weight + Level6Weight) * 0.5;
             bloom += texelK * (Level6Weight);
-            bloom += texelL * (Level6Weight + Level7Weight) * 0.5f;
+            bloom += texelL * (Level6Weight + Level7Weight) * 0.5;
             bloom += texelM * (Level7Weight);
-            bloom += texelN * (Level7Weight + Level8Weight) * 0.5f;
+            bloom += texelN * (Level7Weight + Level8Weight) * 0.5;
             bloom += texelO * (Level8Weight);
          }
 
          bloom *= BloomScale;
 
          vec3 bloomOverdrive;
-         bloomOverdrive.r = max(0.0f, texel.r + bloom.r - 1.0f) * BloomOverdrive.r;
-         bloomOverdrive.g = max(0.0f, texel.g + bloom.g - 1.0f) * BloomOverdrive.g;
-         bloomOverdrive.b = max(0.0f, texel.b + bloom.b - 1.0f) * BloomOverdrive.b;
+         bloomOverdrive.r = max(0.0, texel.r + bloom.r - 1.0) * BloomOverdrive.r;
+         bloomOverdrive.g = max(0.0, texel.g + bloom.g - 1.0) * BloomOverdrive.g;
+         bloomOverdrive.b = max(0.0, texel.b + bloom.b - 1.0) * BloomOverdrive.b;
 
-         bloom.r += bloomOverdrive.g * 0.5f;
-         bloom.r += bloomOverdrive.b * 0.5f;
-         bloom.g += bloomOverdrive.r * 0.5f;
-         bloom.g += bloomOverdrive.b * 0.5f;
-         bloom.b += bloomOverdrive.r * 0.5f;
-         bloom.b += bloomOverdrive.g * 0.5f;
+         bloom.r += bloomOverdrive.g * 0.5;
+         bloom.r += bloomOverdrive.b * 0.5;
+         bloom.g += bloomOverdrive.r * 0.5;
+         bloom.g += bloomOverdrive.b * 0.5;
+         bloom.b += bloomOverdrive.r * 0.5;
+         bloom.b += bloomOverdrive.g * 0.5;
 
          vec2 NoiseCoord = vTexCoord;
          vec3 NoiseFactor = GetNoiseFactor(bloom, random(NoiseCoord));

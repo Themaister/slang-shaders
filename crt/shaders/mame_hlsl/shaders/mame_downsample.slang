@@ -25,10 +25,10 @@ layout(location = 1) in vec2 TexCoord;
 layout(location = 0) out vec4 TexCoord01;
 layout(location = 1) out vec4 TexCoord23;
 
-const vec2 Coord0Offset = vec2(-0.5f, -0.5f);
-const vec2 Coord1Offset = vec2( 0.5f, -0.5f);
-const vec2 Coord2Offset = vec2(-0.5f,  0.5f);
-const vec2 Coord3Offset = vec2( 0.5f,  0.5f);
+const vec2 Coord0Offset = vec2(-0.5, -0.5);
+const vec2 Coord1Offset = vec2( 0.5, -0.5);
+const vec2 Coord2Offset = vec2(-0.5,  0.5);
+const vec2 Coord3Offset = vec2( 0.5,  0.5);
 
 void main()
 {

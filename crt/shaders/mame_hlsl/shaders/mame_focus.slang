@@ -41,30 +41,30 @@ vec2 Defocus = vec2(global.defocus_x, global.defocus_y);
 const vec2 CoordOffset8[8] =
 vec2[8](
 	// 0.075x² + 0.225x + 0.25
-	vec2(-1.60f,  0.25f),
-	vec2(-1.00f, -0.55f),
-	vec2(-0.55f,  1.00f),
-	vec2(-0.25f, -1.60f),
-	vec2( 0.25f,  1.60f),
-	vec2( 0.55f, -1.00f),
-	vec2( 1.00f,  0.55f),
-	vec2( 1.60f, -0.25f)
+	vec2(-1.60,  0.25),
+	vec2(-1.00, -0.55),
+	vec2(-0.55,  1.00),
+	vec2(-0.25, -1.60),
+	vec2( 0.25,  1.60),
+	vec2( 0.55, -1.00),
+	vec2( 1.00,  0.55),
+	vec2( 1.60, -0.25)
 );
 
 void main()
 {
 	// imaginary texel dimensions independed from source and target dimension
-	vec2 TexelDims = vec2(1.0f / 1024.0f);
+	vec2 TexelDims = vec2(1.0 / 1024.0);
 
 	vec2 DefocusTexelDims = Defocus * TexelDims;
 
 	vec3 texel = texture(DiffuseSampler, vTexCoord).rgb;
-	float samples = 1.0f;
+	float samples = 1.0;
 
 	for (int i = 0; i < 8; i++)
 	{
 		texel += texture(DiffuseSampler, vTexCoord + CoordOffset8[i] * DefocusTexelDims).rgb;
-		samples += 1.0f;
+		samples += 1.0;
 	}
 
     FragColor = vec4(texel / samples, 1.0);

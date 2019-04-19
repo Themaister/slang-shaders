@@ -21,8 +21,8 @@ layout(push_constant) uniform Push
 // Constants
 //-----------------------------------------------------------------------------
 
-const float PI = 3.1415927f;
-const float HalfPI = PI * 0.5f;
+const float PI = 3.1415927;
+const float HalfPI = PI * 0.5;
 
 //-----------------------------------------------------------------------------
 // Scanline Pixel Shader
@@ -42,13 +42,13 @@ vec2 SourceDims = params.OriginalSize.xy;
 vec2 GetAdjustedCoords(vec2 coord)
 {
 	// center coordinates
-	coord -= 0.5f;
+	coord -= 0.5;
 
 	// apply screen scale
 	coord *= ScreenScale;
 
 	// un-center coordinates
-	coord += 0.5f;
+	coord += 0.5;
 
 	// apply screen offset
 	coord += ScreenOffset;
@@ -87,38 +87,38 @@ void main()
 
       // Color
       vec4 BaseColor = texture(DiffuseSampler, BaseCoord);
-      BaseColor.a = 1.0f;
+      BaseColor.a = 1.0;
 /*
       // clip border
-      if (BaseCoord.x < 0.0f || BaseCoord.y < 0.0f ||
-      BaseCoord.x > 1.0f || BaseCoord.y > 1.0f)
+      if (BaseCoord.x < 0.0 || BaseCoord.y < 0.0 ||
+      BaseCoord.x > 1.0 || BaseCoord.y > 1.0)
       {
          // we don't use the clip function, because we don't clear the render target before
-         return vec4(0.0f, 0.0f, 0.0f, 1.0f);
+         return vec4(0.0, 0.0, 0.0, 1.0);
       }
 */
       float BrightnessOffset = (ScanlineBrightOffset * ScanlineAlpha);
-      float BrightnessScale = (ScanlineBrightScale * ScanlineAlpha) + (1.0f - ScanlineAlpha);
+      float BrightnessScale = (ScanlineBrightScale * ScanlineAlpha) + (1.0 - ScanlineAlpha);
 
-      float ColorBrightness = 0.299f * BaseColor.r + 0.587f * BaseColor.g + 0.114 * BaseColor.b;
+      float ColorBrightness = 0.299 * BaseColor.r + 0.587 * BaseColor.g + 0.114 * BaseColor.b;
 
       float ScanlineCoord = BaseCoord.y;
       ScanlineCoord += (SwapXY)
-         ? QuadDims.x <= SourceDims.x * 2.0f
-            ? 0.5f / QuadDims.x // uncenter scanlines if the quad is less than twice the size of the source
-               : 0.0f
-               : QuadDims.y <= SourceDims.y * 2.0f
-            ? 0.5f / QuadDims.y // uncenter scanlines if the quad is less than twice the size of the source
-               : 0.0f;
+         ? QuadDims.x <= SourceDims.x * 2.0
+            ? 0.5 / QuadDims.x // uncenter scanlines if the quad is less than twice the size of the source
+               : 0.0
+               : QuadDims.y <= SourceDims.y * 2.0
+            ? 0.5 / QuadDims.y // uncenter scanlines if the quad is less than twice the size of the source
+               : 0.0;
       ScanlineCoord *= SourceDims.y * ScanlineScale * PI;
 
       float ScanlineCoordJitter = ScanlineOffset * HalfPI;
       float ScanlineSine = sin(ScanlineCoord + ScanlineCoordJitter);
-      float ScanlineWide = ScanlineHeight + ScanlineVariation * max(1.0f, ScanlineHeight) * (1.0f - ColorBrightness);
+      float ScanlineWide = ScanlineHeight + ScanlineVariation * max(1.0f, ScanlineHeight) * (1.0 - ColorBrightness);
       float ScanlineAmount = pow(ScanlineSine * ScanlineSine, ScanlineWide);
       float ScanlineBrightness = ScanlineAmount * BrightnessScale + BrightnessOffset * BrightnessScale;
 
-      BaseColor.rgb *= mix(1.0f, ScanlineBrightness, ScanlineAlpha);
+      BaseColor.rgb *= mix(1.0, ScanlineBrightness, ScanlineAlpha);
 
       FragColor = BaseColor;
    }

@@ -163,13 +163,12 @@ vec2 ScreenOffset = vec2(global.screenoffset_x, global.screenoffset_y);
 bool SwapXY = bool(global.swapxy);
 
 // Bloom Pass
-#pragma parameter bloomtoggle "Bloom Enable" 0.0 0.0 1.0 1.0
 #pragma parameter bloomblendmode "Bloom Blend Mode" 0.0 0.0 1.0 1.0
-#pragma parameter bloomscale "Bloom Scale" 0.06 0.0 1.0 0.01
-#pragma parameter bloomoverdrive_r "Bloom Overdrive R" 1.0 0.0 1.0 0.01
-#pragma parameter bloomoverdrive_g "Bloom Overdrive G" 1.0 0.0 1.0 0.01
-#pragma parameter bloomoverdrive_b "Bloom Overdrive B" 1.0 0.0 1.0 0.01
-#pragma parameter level0weight "Bloom Level 0 Weight" 1.0 0.0 1.0 0.01
+#pragma parameter bloomscale "Bloom Scale" 0.33 0.0 1.0 0.01
+#pragma parameter bloomoverdrive_r "Bloom Overdrive R" 1.0 0.0 2.0 0.01
+#pragma parameter bloomoverdrive_g "Bloom Overdrive G" 1.0 0.0 2.0 0.01
+#pragma parameter bloomoverdrive_b "Bloom Overdrive B" 1.0 0.0 2.0 0.01
+#pragma parameter level0weight "Bloom Level 0 Weight" 0.64 0.0 1.0 0.01
 #pragma parameter level1weight "Bloom Level 1 Weight" 0.64 0.0 1.0 0.01
 #pragma parameter level2weight "Bloom Level 2 Weight" 0.32 0.0 1.0 0.01
 #pragma parameter level3weight "Bloom Level 3 Weight" 0.16 0.0 1.0 0.01
@@ -207,43 +206,43 @@ bool SwapXY = bool(global.swapxy);
 #pragma parameter preparebloom "Prepare Bloom" 0.0 0.0 1.0 1.0
 
 // NTSC Pass
-#pragma parameter avalue "A Value" 0.5 0.0 1.0 0.01
-#pragma parameter bvalue "B Value" 0.5 0.0 1.0 0.01
-#pragma parameter ccvalue "CC Value" 3.5795454 0.0 5.0 0.1
-#pragma parameter ovalue "O Value" 0.0 -2.0 2.0 0.1
-#pragma parameter pvalue "P Value" 1.0 -2.0 3.0 0.1
-#pragma parameter scantime "Scan Time" 52.6 0.0 100.0 1.0
-#pragma parameter notchhalfwidth "Notch Half Width" 1.0 0.0 5.0 0.5
-#pragma parameter yfreqresponse "Y Freq Response" 6.0 0.0 10.0 0.1
-#pragma parameter ifreqresponse "I Freq Response" 1.2 0.0 10.0 0.1
-#pragma parameter qfreqresponse "Q Freq Response" 0.6 0.0 10.0 0.1
-#pragma parameter signaloffset "Signal Offset" 0.0 -5.0 5.0 0.01
+#pragma parameter avalue "A Value" 0.5 -1.0 1.0 0.01
+#pragma parameter bvalue "B Value" 0.5 -1.0 1.0 0.01
+#pragma parameter ccvalue "CC Value" 3.5795454 0.0 6.0 0.0005
+#pragma parameter ovalue "O Value" 0.0 -3.0 3.0 0.1
+#pragma parameter pvalue "P Value" 1.0 -3.0 3.0 0.1
+#pragma parameter scantime "Scan Time" 52.6 0.0 100.0 0.1
+#pragma parameter notchhalfwidth "Notch Half Width" 1.0 0.0 6.0 0.05
+#pragma parameter yfreqresponse "Y Freq Response" 6.0 0.0 6.0 0.05
+#pragma parameter ifreqresponse "I Freq Response" 1.2 0.0 6.0 0.05
+#pragma parameter qfreqresponse "Q Freq Response" 0.6 0.0 6.0 0.05
+#pragma parameter signaloffset "Signal Offset" 1.0 0.0 1.0 0.01
 
 // Color Pass
-#pragma parameter col_red "Red Shift" 1.0 0.0 1.0 0.01
-#pragma parameter col_grn "Green Shift" 1.0 0.0 1.0 0.01
-#pragma parameter col_blu "Blue Shift" 1.0 0.0 1.0 0.01
-#pragma parameter col_offset_x "Offset X" 0.0 0.0 1.0 0.01
-#pragma parameter col_offset_y "Offset Y" 0.0 0.0 1.0 0.01
-#pragma parameter col_offset_z "Offset Z" 0.0 0.0 1.0 0.01
-#pragma parameter col_scale_x "Scale X" 1.0 0.0 1.0 0.01
-#pragma parameter col_scale_y "Scale Y" 1.0 0.0 1.0 0.01
-#pragma parameter col_scale_z "Scale Z" 1.0 0.0 1.0 0.01
-#pragma parameter col_saturation "Saturation" 1.0 0.0 0.01
+#pragma parameter col_red "Red Shift" 1.0 0.0 2.0 0.01
+#pragma parameter col_grn "Green Shift" 1.0 0.0 2.0 0.01
+#pragma parameter col_blu "Blue Shift" 1.0 0.0 2.0 0.01
+#pragma parameter col_offset_x "Offset X" 0.0 -1.0 1.0 0.01
+#pragma parameter col_offset_y "Offset Y" 0.0 -1.0 1.0 0.01
+#pragma parameter col_offset_z "Offset Z" 0.0 -1.0 1.0 0.01
+#pragma parameter col_scale_x "Scale X" 1.0 0.0 2.0 0.01
+#pragma parameter col_scale_y "Scale Y" 1.0 0.0 2.0 0.01
+#pragma parameter col_scale_z "Scale Z" 1.0 0.0 2.0 0.01
+#pragma parameter col_saturation "Saturation" 1.0 0.0 5.0 0.01
 
 // Deconverge Pass
-#pragma parameter converge_x_r "Convergence X Red" 0.0 -100.0 100.0 0.5
-#pragma parameter converge_x_g "Convergence X Green" 0.0 -100.0 100.0 0.5
-#pragma parameter converge_x_b "Convergence X Blue" 0.0 -100.0 100.0 0.5
-#pragma parameter converge_y_r "Convergence Y Red" 0.0 -100.0 100.0 0.5
-#pragma parameter converge_y_g "Convergence Y Green" 0.0 -100.0 100.0 0.5
-#pragma parameter converge_y_b "Convergence Y Blue" 0.0 -100.0 100.0 0.5
-#pragma parameter radial_conv_x_r "Radial Conv X Red" 0.0 -100.0 100.0 0.5
-#pragma parameter radial_conv_x_g "Radial Conv X Green" 0.0 -100.0 100.0 0.5
-#pragma parameter radial_conv_x_b "Radial Conv X Blue" 0.0 -100.0 100.0 0.5
-#pragma parameter radial_conv_y_r "Radial Conv Y Red" 0.0 -100.0 100.0 0.5
-#pragma parameter radial_conv_y_g "Radial Conv Y Green" 0.0 -100.0 100.0 0.5
-#pragma parameter radial_conv_y_b "Radial Conv Y Blue" 0.0 -100.0 100.0 0.5
+#pragma parameter converge_x_r "Convergence X Red" 0.0 -10.0 10.0 0.05
+#pragma parameter converge_x_g "Convergence X Green" 0.0 -10.0 10.0 0.05
+#pragma parameter converge_x_b "Convergence X Blue" 0.0 -10.0 10.0 0.05
+#pragma parameter converge_y_r "Convergence Y Red" 0.0 -10.0 10.0 0.05
+#pragma parameter converge_y_g "Convergence Y Green" 0.0 -10.0 10.0 0.05
+#pragma parameter converge_y_b "Convergence Y Blue" 0.0 -10.0 10.0 0.05
+#pragma parameter radial_conv_x_r "Radial Conv X Red" 0.0 -10.0 10.0 0.05
+#pragma parameter radial_conv_x_g "Radial Conv X Green" 0.0 -10.0 10.0 0.05
+#pragma parameter radial_conv_x_b "Radial Conv X Blue" 0.0 -10.0 10.0 0.05
+#pragma parameter radial_conv_y_r "Radial Conv Y Red" 0.0 -10.0 10.0 0.05
+#pragma parameter radial_conv_y_g "Radial Conv Y Green" 0.0 -10.0 10.0 0.05
+#pragma parameter radial_conv_y_b "Radial Conv Y Blue" 0.0 -10.0 10.0 0.05
 
 // Scanline Pass
 #pragma parameter scanlinealpha "Scanline Alpha" 0.5 0.0 1.0 0.01

@@ -34,9 +34,9 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 #define DiffuseSampler Source
 
-vec3 RedRatios = vec3(global.col_red, 0.0f, 0.0f);
-vec3 GrnRatios = vec3(0.0f, global.col_grn, 0.0f);
-vec3 BluRatios = vec3(0.0f, 0.0f, global.col_blu);
+vec3 RedRatios = vec3(global.col_red, 0.0, 0.0);
+vec3 GrnRatios = vec3(0.0, global.col_grn, 0.0);
+vec3 BluRatios = vec3(0.0, 0.0, global.col_blu);
 vec3 Offset = vec3(global.col_offset_x, global.col_offset_y, global.col_offset_z);
 vec3 Scale = vec3(global.col_scale_x, global.col_scale_y, global.col_scale_z);
 float Saturation = global.col_saturation;

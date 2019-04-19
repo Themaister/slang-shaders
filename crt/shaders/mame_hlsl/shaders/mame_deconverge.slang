@@ -33,25 +33,25 @@ void main()
    gl_Position = global.MVP * Position;
 
 	// imaginary texel dimensions independed from screen dimension, but ratio
-	vec2 TexelDims = vec2(1.0f / 1024.);
+	vec2 TexelDims = vec2(1.0 / 1024.);
 
 	TexCoordX = TexCoord.xxx;
 	TexCoordY = TexCoord.yyy;
 
 	// center coordinates
-	TexCoordX -= 0.5f;
-	TexCoordY -= 0.5f;
+	TexCoordX -= 0.5;
+	TexCoordY -= 0.5;
 
 	// radial converge offset to "translate" the most outer pixel as thay would be translated by the linar converge with the same amount
 	vec2 radialConvergeOffset = vec2(2.0);
 
 	// radial converge
-	TexCoordX *= 1.0f + RadialConvergeX * TexelDims.xxx * radialConvergeOffset.xxx;
-	TexCoordY *= 1.0f + RadialConvergeY * TexelDims.yyy * radialConvergeOffset.yyy;
+	TexCoordX *= 1.0 + RadialConvergeX * TexelDims.xxx * radialConvergeOffset.xxx;
+	TexCoordY *= 1.0 + RadialConvergeY * TexelDims.yyy * radialConvergeOffset.yyy;
 
 	// un-center coordinates
-	TexCoordX += 0.5f;
-	TexCoordY += 0.5f;
+	TexCoordX += 0.5;
+	TexCoordY += 0.5;
 
 	// linear converge
 	TexCoordX += ConvergeX * TexelDims.xxx;

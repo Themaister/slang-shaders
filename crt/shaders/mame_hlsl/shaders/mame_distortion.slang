@@ -25,11 +25,11 @@ const int ScreenCount = 1;
 // Constants
 //-----------------------------------------------------------------------------
 
-const float Epsilon = 1.0e-7f;
-const float PI = 3.1415927f;
-const float E = 2.7182817f;
-const float Gelfond = 23.140692f; // e^pi (Gelfond constant)
-const float GelfondSchneider = 2.6651442f; // 2^sqrt(2) (Gelfond-Schneider constant)
+const float Epsilon = 1.0e-7;
+const float PI = 3.1415927;
+const float E = 2.7182817;
+const float Gelfond = 23.140692; // e^pi (Gelfond constant)
+const float GelfondSchneider = 2.6651442; // 2^sqrt(2) (Gelfond-Schneider constant)
 
 //-----------------------------------------------------------------------------
 // Functions
@@ -41,20 +41,20 @@ float random(vec2 seed)
 	// irrationals for pseudo randomness
 	vec2 i = vec2(Gelfond, GelfondSchneider);
 
-	return fract(cos(dot(seed, i)) * 123456.0f);
+	return fract(cos(dot(seed, i)) * 123456.0);
 }
 
 // www.dinodini.wordpress.com/2010/04/05/normalized-tunable-sigmoid-functions/
 float normalizedSigmoid(float n, float k)
 {
 	// valid for n and k in range of -1.0 and 1.0
-	return (n - n * k) / (k - abs(n) * 2.0f * k + 1);
+	return (n - n * k) / (k - abs(n) * 2.0 * k + 1);
 }
 
 // www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 float roundBox(vec2 p, vec2 b, float r)
 {
-	return length(max(abs(p) - b + r, 0.0f)) - r;
+	return length(max(abs(p) - b + r, 0.0)) - r;
 }
 
 #pragma stage vertex
