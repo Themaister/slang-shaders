@@ -46,7 +46,7 @@ layout(push_constant) uniform Push
 	float NEDI_JINC2_AR_STRENGTH;
 } params;
 
-#pragma parameter JNEDI_INC2_WINDOW_SINC "Window Sinc Param" 0.42 0.0 1.0 0.01
+#pragma parameter NEDI_JINC2_WINDOW_SINC "Window Sinc Param" 0.42 0.0 1.0 0.01
 #pragma parameter NEDI_JINC2_SINC "Sinc Param" 0.92 0.0 1.0 0.01
 #pragma parameter NEDI_JINC2_AR_STRENGTH "Anti-ringing Strength" 0.8 0.0 1.0 0.1
 
