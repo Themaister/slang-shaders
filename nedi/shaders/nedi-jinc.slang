@@ -41,18 +41,18 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float JINC2_WINDOW_SINC;
-	float JINC2_SINC;
-	float JINC2_AR_STRENGTH;
+	float NEDI_JINC2_WINDOW_SINC;
+	float NEDI_JINC2_SINC;
+	float NEDI_JINC2_AR_STRENGTH;
 } params;
 
-#pragma parameter JINC2_WINDOW_SINC "Window Sinc Param" 0.42 0.0 1.0 0.01
-#pragma parameter JINC2_SINC "Sinc Param" 0.92 0.0 1.0 0.01
-#pragma parameter JINC2_AR_STRENGTH "Anti-ringing Strength" 0.8 0.0 1.0 0.1
+#pragma parameter JNEDI_INC2_WINDOW_SINC "Window Sinc Param" 0.42 0.0 1.0 0.01
+#pragma parameter NEDI_JINC2_SINC "Sinc Param" 0.92 0.0 1.0 0.01
+#pragma parameter NEDI_JINC2_AR_STRENGTH "Anti-ringing Strength" 0.8 0.0 1.0 0.1
 
-#define JINC2_WINDOW_SINC params.JINC2_WINDOW_SINC
-#define JINC2_SINC params.JINC2_SINC
-#define JINC2_AR_STRENGTH params.JINC2_AR_STRENGTH
+#define JINC2_WINDOW_SINC params.NEDI_JINC2_WINDOW_SINC
+#define JINC2_SINC params.NEDI_JINC2_SINC
+#define JINC2_AR_STRENGTH params.NEDI_JINC2_AR_STRENGTH
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
