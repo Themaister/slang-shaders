@@ -2,8 +2,9 @@
 
 layout(push_constant) uniform Push
 {
-	float display_gamma;
-	float target_gamma;
+	float gamma_boost_r;
+	float gamma_boost_g;
+	float gamma_boost_b;
 	float sat;
 	float lum;
 	float cntrst;
@@ -34,8 +35,9 @@ layout(std140, set = 0, binding = 0) uniform UBO
    Author: hunterk
    License: Public domain
 */
-#pragma parameter display_gamma "Display Gamma" 2.2 0.0 10.0 0.1
-#pragma parameter target_gamma "Target Gamma" 2.2 0.0 10.0 0.1
+#pragma parameter gamma_boost_r "Gamma Mod Red Channel" 0.0 -5.0 5.0 0.1
+#pragma parameter gamma_boost_g "Gamma Mod Green Channel" 0.0 -5.0 5.0 0.1
+#pragma parameter gamma_boost_b "Gamma Mod Blue Channel" 0.0 -5.0 5.0 0.1
 #pragma parameter sat "Saturation" 1.0 0.0 3.0 0.01
 #pragma parameter lum "Luminance" 1.0 0.0 5.0 0.01
 #pragma parameter cntrst "Contrast" 1.0 0.0 2.0 0.01
@@ -70,7 +72,7 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 void main()
 {
-   vec4 screen = pow(texture(Source, vTexCoord), vec4(params.target_gamma)).rgba;
+   vec4 screen = pow(texture(Source, vTexCoord), vec4(2.2)).rgba;
    vec4 avglum = vec4(0.5);
    screen = mix(screen, avglum, (1.0 - params.cntrst));
    
@@ -80,12 +82,13 @@ mat4 color = mat4(params.r,  params.rg,  params.rb, 0.0,  //red channel
 			   params.br,  params.bg,  params.b,  0.0,  //blue channel
 			  params.blr, params.blg, params.blb,    0.0); //alpha channel; these numbers do nothing for our purposes.
 			  
-mat4 adjust = mat4((1.0 - params.sat) * 0.3086 + params.sat, (1.0 - params.sat) * 0.3086, (1.0 - params.sat) * 0.3086, 1.0,
-(1.0 - params.sat) * 0.6094, (1.0 - params.sat) * 0.6094 + params.sat, (1.0 - params.sat) * 0.6094, 1.0,
-(1.0 - params.sat) * 0.0820, (1.0 - params.sat) * 0.0820, (1.0 - params.sat) * 0.0820 + params.sat, 1.0,
+mat4 adjust = mat4((1.0 - params.sat) * 0.2126 + params.sat, (1.0 - params.sat) * 0.2126, (1.0 - params.sat) * 0.2126, 1.0,
+(1.0 - params.sat) * 0.7152, (1.0 - params.sat) * 0.7152 + params.sat, (1.0 - params.sat) * 0.7152, 1.0,
+(1.0 - params.sat) * 0.0722, (1.0 - params.sat) * 0.0722, (1.0 - params.sat) * 0.0722 + params.sat, 1.0,
 0.0, 0.0, 0.0, 1.0);
 	color *= adjust;
 	screen = clamp(screen * params.lum, 0.0, 1.0);
 	screen = color * screen;
-	FragColor = pow(screen, vec4(1.0 / params.display_gamma));
+	vec3 out_gamma = vec3(1.) / (vec3(2.2) - vec3(params.gamma_boost_r, params.gamma_boost_g, params.gamma_boost_b));
+	FragColor = pow(screen, vec4(out_gamma, 1.0));
 }
