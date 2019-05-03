@@ -2,7 +2,11 @@
 
 layout(push_constant) uniform Push
 {
-	float GAMMA_INPUT;
+	vec4 SourceSize;
+	vec4 OriginalSize;
+	vec4 OutputSize;
+	uint FrameCount;
+   float GAMMA_INPUT;
 } params;
 
 #pragma parameter GAMMA_INPUT "Gamma Input" 2.4 0.1 5.0 0.05
@@ -27,12 +31,9 @@ void main()
 #pragma stage fragment
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
-layout(set = 0, binding = 2) uniform sampler2D AfterglowPass;
-
-#define PassPrev3Texture AfterglowPass
-#define COMPAT_TEXTURE(c,d) texture(c,d)
+layout(set = 0, binding = 2) uniform sampler2D Original;
 
 void main()
 {
-   FragColor = pow(vec4(COMPAT_TEXTURE(PassPrev3Texture, vTexCoord)), vec4(GAMMA_INPUT));
+   FragColor = pow(texture(Original, vTexCoord), vec4(GAMMA_INPUT));
 }

@@ -23,19 +23,7 @@
 
 layout(push_constant) uniform Push
 {
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
-	float SW;
-	float AR;
-	float PR;
-	float AG;
-	float PG;
-	float AB;
-	float PB;
-	float sat;
-	float GTH;
+   float SW, AR, PR, AG, PG, AB, PB, sat;
 } params;
 
 #pragma parameter SW "Afterglow switch ON/OFF" 1.0 0.0 1.0 1.0
@@ -46,7 +34,17 @@ layout(push_constant) uniform Push
 #pragma parameter AB "Afterglow Blue" 0.07 0.0 1.0 0.01
 #pragma parameter PB "Persistence Blue"  0.05 0.0 1.0 0.01
 #pragma parameter sat "Afterglow saturation" 0.10 0.0 1.0 0.01
-#pragma parameter GTH "Afterglow threshold" 5.0 0.0 255.0 1.0
+
+#define SW params.SW
+#define AR params.AR
+#define PR params.PR
+#define AG params.AG
+#define PG params.PG
+#define AB params.AB
+#define PB params.PB
+#define sat params.sat
+
+#define COMPAT_TEXTURE(c,d) texture(c,d)
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -75,30 +73,39 @@ layout(set = 0, binding = 6) uniform sampler2D OriginalHistory4;
 layout(set = 0, binding = 7) uniform sampler2D OriginalHistory5;
 layout(set = 0, binding = 8) uniform sampler2D OriginalHistory6;
 
-#define eps 1e-4
+#define Prev1Texture OriginalHistory1
+#define Prev2Texture OriginalHistory2
+#define Prev3Texture OriginalHistory3
+#define Prev4Texture OriginalHistory4
+#define Prev5Texture OriginalHistory5
+#define Prev6Texture OriginalHistory6
+
+#define TEX0 vTexCoord
+
+#define eps 1e-3
 
 vec3 afterglow(float number)
 {
-	return vec3(params.AR, params.AG, params.AB)*exp2(-vec3(params.PR, params.PG, params.PB)*vec3(number*number));
+	return vec3(AR, AG, AB)*exp2(-vec3(PR, PG, PB)*vec3(number*number));
 }
 
 void main()
 {
-	vec3 color = texture(Source, vTexCoord.xy).rgb;
-	vec3 color1 = texture(OriginalHistory1, vTexCoord.xy).rgb * afterglow(1.0);
-	vec3 color2 = texture(OriginalHistory2, vTexCoord.xy).rgb * afterglow(2.0);
-	vec3 color3 = texture(OriginalHistory3, vTexCoord.xy).rgb * afterglow(3.0);
-	vec3 color4 = texture(OriginalHistory4, vTexCoord.xy).rgb * afterglow(4.0);
-	vec3 color5 = texture(OriginalHistory5, vTexCoord.xy).rgb * afterglow(5.0);
-	vec3 color6 = texture(OriginalHistory6, vTexCoord.xy).rgb * afterglow(6.0);
+	vec3 color = COMPAT_TEXTURE(Source, TEX0.xy).rgb;
+	vec3 color1 = COMPAT_TEXTURE(Prev1Texture, TEX0.xy).rgb * afterglow(1.0);
+	vec3 color2 = COMPAT_TEXTURE(Prev2Texture, TEX0.xy).rgb * afterglow(2.0);
+	vec3 color3 = COMPAT_TEXTURE(Prev3Texture, TEX0.xy).rgb * afterglow(3.0);
+	vec3 color4 = COMPAT_TEXTURE(Prev4Texture, TEX0.xy).rgb * afterglow(4.0);
+	vec3 color5 = COMPAT_TEXTURE(Prev5Texture, TEX0.xy).rgb * afterglow(5.0);
+	vec3 color6 = COMPAT_TEXTURE(Prev6Texture, TEX0.xy).rgb * afterglow(6.0);
 
 	vec3 glow = color1 + color2 + color3 + color4 + color5 + color6;
 	
 	float l = length(glow);
-	glow = normalize(pow(glow + vec3(eps), vec3(params.sat)))*l;		
+	glow = normalize(pow(glow + vec3(eps), vec3(sat)))*l;		
 	
 	float w = 1.0;
-	if ((color.r + color.g + color.b) > params.GTH/255.0) w = 0.0;
+	if ((color.r + color.g + color.b) > 7.0/255.0) w = 0.0;
 	
-	FragColor = vec4(color + params.SW*w*glow,1.0);
+	FragColor = vec4(color + SW*w*glow,1.0);
 }

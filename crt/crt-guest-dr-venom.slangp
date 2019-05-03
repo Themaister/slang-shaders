@@ -1,43 +1,68 @@
-shaders = 7
+shaders = 10
 
-shader0 = shaders/guest/afterglow.slang
+shader0 = shaders/guest/lut/lut.slang
 filter_linear0 = false
 scale_type0 = source
 scale0 = 1.0
 
-shader1 = shaders/guest/d65-d50.slang
+textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3"
+SamplerLUT1 = shaders/guest/lut/sony_trinitron1.png
+SamplerLUT1_linear = true 
+SamplerLUT2 = shaders/guest/lut/sony_trinitron2.png
+SamplerLUT2_linear = true 
+SamplerLUT3 = shaders/guest/lut/other1.png
+SamplerLUT3_linear = true 
+
+shader1 = shaders/guest/color-profiles.slang
 filter_linear1 = false
 scale_type1 = source
 scale1 = 1.0
-alias1 = temp_pass
 
-shader2 = shaders/guest/avg-lum.slang
+shader2 = shaders/guest/d65-d50.slang
 filter_linear2 = false
 scale_type2 = source
 scale2 = 1.0
-mipmap_input2 = true
-alias2 = lum_pass
+alias2 = WhitePointPass
 
-shader3 = shaders/guest/linearize.slang
+shader3 = shaders/guest/afterglow.slang
 filter_linear3 = false
 scale_type3 = source
 scale3 = 1.0
-float_framebuffer3 = true
-alias3 = linearize_pass
+alias3 = AfterglowPass
 
-shader4 = shaders/guest/blur_horiz.slang
+shader4 = shaders/guest/avg-lum0.slang
 filter_linear4 = false
 scale_type4 = source
 scale4 = 1.0
-float_framebuffer4 = true
 
-shader5 = shaders/guest/blur_vert.slang
+shader5 = shaders/guest/avg-lum.slang
 filter_linear5 = false
 scale_type5 = source
 scale5 = 1.0
-float_framebuffer5 = true
+mipmap_input5 = true
+alias5 = AvgLumPass
 
-shader6 = shaders/guest/crt-guest-dr-venom.slang
-filter_linear6 = true
-scale_type6 = viewport
+shader6 = shaders/guest/linearize.slang
+filter_linear6 = false
+scale_type6 = source
 scale6 = 1.0
+float_framebuffer6 = true
+alias6 = LinearizePass
+
+shader7 = shaders/guest/blur_horiz.slang
+filter_linear7 = false
+scale_type7 = source
+scale7 = 1.0
+float_framebuffer7 = true
+
+shader8 = shaders/guest/blur_vert.slang
+filter_linear8 = false
+scale_type8 = source
+scale8 = 1.0
+float_framebuffer8 = true
+
+shader9 = shaders/guest/crt-guest-dr-venom.slang
+filter_linear9 = true
+scale_type9 = viewport
+scale_x9 = 1.0
+scale_y9 = 1.0

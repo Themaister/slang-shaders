@@ -1,20 +1,21 @@
 #version 450
 
-// Higher value, more centered glow.
-// Lower values might need more taps.
-
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float TAPSH;
-	float GLOW_FALLOFF_H;
+   float TAPSH;
+   float GLOW_FALLOFF_H;
 } params;
 
+// Higher value, more centered glow.
+// Lower values might need more taps.
 #pragma parameter TAPSH "H. Glow Radius" 4.0 1.0 10.0 1.0 
-#pragma parameter GLOW_FALLOFF_H "Horizontal Glow Grade" 0.30 0.0 1.0 0.01 
+#define TAPSH params.TAPSH
+#pragma parameter GLOW_FALLOFF_H "Horizontal Glow Grade" 0.30 0.00 1.0 0.01 
+#define GLOW_FALLOFF_H params.GLOW_FALLOFF_H
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -37,19 +38,22 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
-#define kernel(x) exp(-params.GLOW_FALLOFF_H * (x) * (x))
+#define COMPAT_TEXTURE(c,d) texture(c,d)
+#define SourceSize params.SourceSize
+
+#define kernel(x) exp(-GLOW_FALLOFF_H * (x) * (x))
 
 void main()
 {
 	vec3 col = vec3(0.0);
-	float dx = params.SourceSize.z;
+	float dx = SourceSize.z;
 
 	float k_total = 0.;
-	for (float i = -params.TAPSH; i <= params.TAPSH; i++)
+	for (float i = -TAPSH; i <= TAPSH; i++)
 		{
 		float k = kernel(i);
 		k_total += k;
-		col += k * texture(Source, vTexCoord + vec2(float(i) * dx, 0.0)).rgb;
+		col += k * COMPAT_TEXTURE(Source, vTexCoord + vec2(float(i) * dx, 0.0)).rgb;
 		}
    FragColor = vec4(col / k_total, 1.0);
 }
