@@ -7,11 +7,14 @@ layout(push_constant) uniform Push
 	vec4 OutputSize;
 	uint FrameCount;
    float WP;
+   float wp_saturation;
 } params;
 
 #pragma parameter WP "Color Temperature %" 0.0 -100.0 100.0 5.0 
+#pragma parameter wp_saturation "Saturation Adjustment" 1.0 0.0 2.0 0.05 
 
 #define WP params.WP
+#define wp_saturation params.wp_saturation
 
 #define COMPAT_TEXTURE(c,d) texture(c,d)
 #define TEX0 vTexCoord
@@ -60,6 +63,9 @@ const mat3 XYZ_to_D50 = mat3 (
 void main()
 {
 	vec3 color = COMPAT_TEXTURE(Source, TEX0.xy).rgb;
+   
+   color = normalize(pow(color + 1e-4, vec3(wp_saturation)))*length(color);
+   
 	float p = 2.4;
 	
 	color = pow(color, vec3(p));
