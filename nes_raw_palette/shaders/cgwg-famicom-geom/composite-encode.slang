@@ -1,13 +1,10 @@
 #version 450
-#pragma format R32_UINT
 #pragma name encode_pass
 
 layout(push_constant) uniform Push
 {
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
+   vec4 SourceSize;
+   uint FrameCount;
 } params;
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -31,12 +28,26 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 
+bool wave (int p, int color)
+{
+   return ((color + p + 8) % 12 < 6);
+}
+
 void main()
 {
+/* original palette decode for historical purposes:
   uint n = uint(texture(Source, vTexCoord).r);
   uint color = n & 0xfu;
   uint level = color < 0xeu ? (n>>4u)&3u : 1u;
-  uint emphasis = n >> 6u;
+uint emphasis = n >> 6u;
+*/
+
+   vec4 c = texture(Source, vTexCoord.xy);
+
+   // Extract the chroma, level, and emphasis from the normalized RGB triplet
+   int color =    int(floor((c.r * 15.0) + 0.5));
+   int level =    int(floor((c.g *  3.0) + 0.5));
+   int emphasis = int(floor((c.b *  7.0) + 0.5));
 
   const float levels[] = float[](0.350, 0.518, 0.962, 1.550,
 				 1.094, 1.506, 1.962, 1.962);
