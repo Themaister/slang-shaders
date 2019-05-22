@@ -1,5 +1,5 @@
 shaders = "3"
-shader0 = ../misc/nes-color-decoder.slang
+shader0 = ../nes_raw_palette/shaders/nes-color-decoder.slang
 shader1 = ../misc/colorimetry.slang
 shader2 = ../retro/shaders/pixellate.slang
 

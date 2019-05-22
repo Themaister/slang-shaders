@@ -1,5 +1,5 @@
 shaders = 5
-shader0 = ../../misc/nes-color-decoder.slang
+shader0 = ../../nes_raw_palette/shaders/nes-color-decoder.slang
 shader1 = ../../ntsc/shaders/ntsc-pass1-composite-3phase.slang
 shader2 = ../../ntsc/shaders/ntsc-pass2-3phase.slang
 shader3 = ../../crt/shaders/tvout-tweaks.slang
