@@ -64,7 +64,7 @@ void main()
 	vec2 g1 = vec2(inv_size.x,inv_size.y);
 	vec2 g2 = vec2(-inv_size.x,inv_size.y);
 	
-	vec2 pC4 = floor(OGL2Pos) * inv_size;	
+	vec2 pC4 = floor(OGL2Pos) * 1.0001 * inv_size;	
 	
 	// Reading the texels
 	vec3 C1 = texture2d_(Source, pC4 - dy, yx);
