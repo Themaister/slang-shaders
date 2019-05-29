@@ -13,8 +13,8 @@ filter_linear1 = false
 srgb_framebuffer1 = false
 scale_type1 = source
 
-// Uncomment these lines for a sharper variation
-//parameters = "SHARPNESS;SCANLINES_STRENGTH;BEAM_MIN_WIDTH"
-//SHARPNESS = "2.0"
-//SCANLINES_STRENGTH = "0.50"
-//BEAM_MIN_WIDTH = "0.44"
+# Uncomment these lines for a sharper variation
+#parameters = "SHARPNESS;SCANLINES_STRENGTH;BEAM_MIN_WIDTH"
+#SHARPNESS = "2.0"
+#SCANLINES_STRENGTH = "0.50"
+#BEAM_MIN_WIDTH = "0.44"
