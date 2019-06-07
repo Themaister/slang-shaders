@@ -2,10 +2,10 @@
 
 layout(push_constant) uniform Push
 {
-	vec4 SourceSize;
-	vec4 OriginalSize;
-	vec4 OutputSize;
-	uint FrameCount;
+   vec4 SourceSize;
+   vec4 OriginalSize;
+   vec4 OutputSize;
+   uint FrameCount;
    float TNTC;
 } params;
 
@@ -14,7 +14,7 @@ layout(push_constant) uniform Push
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
-	mat4 MVP;
+   mat4 MVP;
 } global;
 
 #pragma stage vertex
@@ -60,45 +60,53 @@ vec4 mixfix(vec4 a, vec4 b, float c)
 
 void main()
 {
-	vec4 imgColor = COMPAT_TEXTURE(Source, vTexCoord.xy);
-	float red = ( imgColor.r * (LUT_Size - 1.0) + 0.499999 ) / (LUT_Size * LUT_Size);
-	float green = ( imgColor.g * (LUT_Size - 1.0) + 0.499999 ) / LUT_Size;
-	float blue1 = (floor( imgColor.b  * (LUT_Size - 1.0) ) / LUT_Size) + red;
-	float blue2 = (ceil( imgColor.b  * (LUT_Size - 1.0) ) / LUT_Size) + red;
-	float mixer = clamp(max((imgColor.b - blue1) / (blue2 - blue1), 0.0), 0.0, 32.0);
-	vec4 color1, color2, res;
-	if (int(TNTC) == 1)
-	{
-		color1 = COMPAT_TEXTURE( SamplerLUT1, vec2( blue1, green ));
-		color2 = COMPAT_TEXTURE( SamplerLUT1, vec2( blue2, green ));
-		res = mixfix(color1, color2, mixer);
-		float mx = max(res.r,max(res.g,res.b));
-		float l = mix(length(imgColor.rgb), length(res.rgb), max(mx-0.5,0.0));
-		res.rgb = mix(imgColor.rgb, res.rgb, clamp(25.0*(mx-0.02),0.0,1.0));
-		res.rgb = normalize(res.rgb+1e-10)*l;
-		vec3 cooler = D65_to_XYZ*res.rgb;
-		cooler = XYZ_to_D50*cooler;
-		res.rgb = mix(res.rgb, cooler, 0.25);
-	}
-	else if (int(TNTC) == 2)
-	{
-		color1 = COMPAT_TEXTURE( SamplerLUT2, vec2( blue1, green ));
-		color2 = COMPAT_TEXTURE( SamplerLUT2, vec2( blue2, green ));
-		res = mixfix(color1, color2, mixer);
-		float l = mix(length(imgColor.rgb), length(res.rgb), 0.4);
-		res.rgb = normalize(res.rgb + 1e-10)*l;
-	}	
-	else if (int(TNTC) == 3)
-	{
-		color1 = COMPAT_TEXTURE( SamplerLUT3, vec2( blue1, green ));
-		color2 = COMPAT_TEXTURE( SamplerLUT3, vec2( blue2, green ));
-		res = mixfix(color1, color2, mixer);
-		res.rgb = pow(res.rgb, vec3(1.0/1.20));
-		float mx = max(res.r,max(res.g,res.b));
-		res.rgb = mix(imgColor.rgb, res.rgb, clamp(25.0*(mx-0.05),0.0,1.0));		
-		float l = length(imgColor.rgb);
-		res.rgb = normalize(res.rgb + 1e-10)*l;
-	}	
-	
-	FragColor = vec4(mix(imgColor.rgb, res.rgb, min(TNTC,1.0)),1.0);
+   vec4 imgColor = COMPAT_TEXTURE(Source, vTexCoord.xy);
+   if (int(TNTC) == 0)
+   {
+      FragColor = imgColor;
+      return;
+   }
+   else
+   {
+      float red = ( imgColor.r * (LUT_Size - 1.0) + 0.499999 ) / (LUT_Size * LUT_Size);
+      float green = ( imgColor.g * (LUT_Size - 1.0) + 0.499999 ) / LUT_Size;
+      float blue1 = (floor( imgColor.b  * (LUT_Size - 1.0) ) / LUT_Size) + red;
+      float blue2 = (ceil( imgColor.b  * (LUT_Size - 1.0) ) / LUT_Size) + red;
+      float mixer = clamp(max((imgColor.b - blue1) / (blue2 - blue1), 0.0), 0.0, 32.0);
+      vec4 color1, color2, res;
+      if (int(TNTC) == 1)
+      {
+         color1 = COMPAT_TEXTURE( SamplerLUT1, vec2( blue1, green ));
+         color2 = COMPAT_TEXTURE( SamplerLUT1, vec2( blue2, green ));
+         res = mixfix(color1, color2, mixer);
+         float mx = max(res.r,max(res.g,res.b));
+         float l = mix(length(imgColor.rgb), length(res.rgb), max(mx-0.5,0.0));
+         res.rgb = mix(imgColor.rgb, res.rgb, clamp(25.0*(mx-0.02),0.0,1.0));
+         res.rgb = normalize(res.rgb+1e-10)*l;
+         vec3 cooler = D65_to_XYZ*res.rgb;
+         cooler = XYZ_to_D50*cooler;
+         res.rgb = mix(res.rgb, cooler, 0.25);
+      }
+      else if (int(TNTC) == 2)
+      {
+         color1 = COMPAT_TEXTURE( SamplerLUT2, vec2( blue1, green ));
+         color2 = COMPAT_TEXTURE( SamplerLUT2, vec2( blue2, green ));
+         res = mixfix(color1, color2, mixer);
+         float l = mix(length(imgColor.rgb), length(res.rgb), 0.4);
+         res.rgb = normalize(res.rgb + 1e-10)*l;
+      }	
+      else if (int(TNTC) == 3)
+      {
+         color1 = COMPAT_TEXTURE( SamplerLUT3, vec2( blue1, green ));
+         color2 = COMPAT_TEXTURE( SamplerLUT3, vec2( blue2, green ));
+         res = mixfix(color1, color2, mixer);
+         res.rgb = pow(res.rgb, vec3(1.0/1.20));
+         float mx = max(res.r,max(res.g,res.b));
+         res.rgb = mix(imgColor.rgb, res.rgb, clamp(25.0*(mx-0.05),0.0,1.0));		
+         float l = length(imgColor.rgb);
+         res.rgb = normalize(res.rgb + 1e-10)*l;
+      }	
+      
+      FragColor = vec4(mix(imgColor.rgb, res.rgb, min(TNTC,1.0)),1.0);
+   }
 }
