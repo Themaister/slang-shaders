@@ -11,6 +11,7 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
+   int FrameDirection;
 	float wiggle;
 	float smear;
 } params;
@@ -42,6 +43,7 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
+layout(set = 0, binding = 3) uniform sampler2D play;
 
 #define iTime mod(float(FrameCount), 7.0)
 #define iChannel0 Source
@@ -164,6 +166,12 @@ void main()
 	final.xyz =Blur(uv,c);
 	float q = rgb2yiq(final.xyz).b;
 	final = vec4(yiq2rgb(vec3(y,i,q))-pow(s+e*2.0,3.0), 1.0);
+   
+	vec4 play_osd = texture(play, uv2);
+   float timer = (params.FrameDirection > 0.5) ? float(FrameCount) : 0.0;
+	float show_overlay = (mod(timer, 100.0) < 50.0) && (timer != 0.0) && (timer < 500.0) ? play_osd.a : 0.0;
+	show_overlay = clamp(show_overlay, 0.0, 1.0);
+	final = mix(final, play_osd, show_overlay);
 	
 	FragColor = final;
 }
