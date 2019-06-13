@@ -1,5 +1,8 @@
 #version 450
 
+// based on VHS Compression
+// shadertoy by mpalko https://www.shadertoy.com/view/tsfXWj
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
