@@ -13,10 +13,22 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-	float distortion;
+	float warpX, warpY;
+   float DOTMASK_STRENGTH;
+   float maskDark;
+   float maskLight;
+   float shadowMask;
 } params;
 
-#pragma parameter distortion "EWA Curvature" 0.15 0.0 1.0 0.01
+#pragma parameter warpX "EWA Curvature X-Axis" 0.031 0.0 0.125 0.01
+#pragma parameter warpY "EWA Curvature Y-Axis" 0.041 0.0 0.125 0.01
+vec2 Distortion = vec2(params.warpX, params.warpY) * 15.;
+#pragma parameter shadowMask "Mask Style" 3.0 -1.0 5.0 1.0
+#pragma parameter DOTMASK_STRENGTH "CGWG Dot Mask Strength" 0.3 0.0 1.0 0.01
+#pragma parameter maskDark "Lottes maskDark" 0.5 0.0 2.0 0.1
+#pragma parameter maskLight "Lottes maskLight" 1.5 0.0 2.0 0.1
+
+#define mod_factor vTexCoord.x * params.SourceSize.x * params.OutputSize.x / params.SourceSize.x
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -185,13 +197,122 @@ vec4 texture2DEWA(sampler2D tex, vec2 coords){
  
 }
 
-vec2 radialDistortion(vec2 coord) {
-  vec2 cc = coord - vec2(0.5);
-  float dist = dot(cc, cc) * params.distortion;
-  return coord + cc * (1.0 - dist) * dist;
+vec2 Warp(vec2 texCoord){
+  vec2 curvedCoords = texCoord * 2.0 - 1.0;
+  float curvedCoordsDistance = sqrt(curvedCoords.x*curvedCoords.x+curvedCoords.y*curvedCoords.y);
+
+  curvedCoords = curvedCoords / curvedCoordsDistance;
+
+  curvedCoords = curvedCoords * (1.0-pow(vec2(1.0-(curvedCoordsDistance/1.4142135623730950488016887242097)),(1.0/(1.0+Distortion*0.2))));
+
+  curvedCoords = curvedCoords / (1.0-pow(vec2(0.29289321881345247559915563789515),(1.0/(vec2(1.0)+Distortion*0.2))));
+
+  curvedCoords = curvedCoords * 0.5 + 0.5;
+  return curvedCoords;
+}
+
+// Lottes' public domain mask code
+// Shadow mask.
+vec3 Mask(vec2 pos){
+  vec3 mask=vec3(params.maskDark,params.maskDark,params.maskDark);
+  
+// Very compressed TV style shadow mask.
+  if (params.shadowMask == 1.0) {
+    float line=params.maskLight;
+    float odd=0.0;
+    if(fract(pos.x/6.0)<0.5)odd=1.0;
+    if(fract((pos.y+odd)/2.0)<0.5)line=params.maskDark;  
+    pos.x=fract(pos.x/3.0);
+   
+    if(pos.x<0.333)mask.r=params.maskLight;
+    else if(pos.x<0.666)mask.g=params.maskLight;
+    else mask.b=params.maskLight;
+    mask*=line;  
+  } 
+
+// Aperture-grille.
+  else if (params.shadowMask == 2.0) {
+    pos.x=fract(pos.x/3.0);
+
+    if(pos.x<0.333)mask.r=params.maskLight;
+    else if(pos.x<0.666)mask.g=params.maskLight;
+    else mask.b=params.maskLight;
+  } 
+
+// Stretched VGA style shadow mask (same as prior shaders).
+  else if (params.shadowMask == 3.0) {
+    pos.x+=pos.y*3.0;
+    pos.x=fract(pos.x/6.0);
+
+    if(pos.x<0.333)mask.r=params.maskLight;
+    else if(pos.x<0.666)mask.g=params.maskLight;
+    else mask.b=params.maskLight;
+  }
+
+// VGA style shadow mask.
+  else if (params.shadowMask == 4.0) {
+    pos.xy=floor(pos.xy*vec2(1.0,0.5));
+    pos.x+=pos.y*3.0;
+    pos.x=fract(pos.x/6.0);
+
+    if(pos.x<0.333)mask.r=params.maskLight;
+    else if(pos.x<0.666)mask.g=params.maskLight;
+    else mask.b=params.maskLight;
+  }
+
+  return mask;
+}
+
+// torridgristle's shadowmask code
+const float Pi = 3.1415926536;
+
+vec3 SinPhosphor(vec3 image)
+{
+    float MaskR = sin(params.OutputSize.x*vTexCoord.x*Pi*1.0+Pi*0.00000+vTexCoord.y*params.OutputSize.y*Pi*0.5)*0.5+0.5;
+    float MaskG = sin(params.OutputSize.x*vTexCoord.x*Pi*1.0+Pi*1.33333+vTexCoord.y*params.OutputSize.y*Pi*0.5)*0.5+0.5;
+    float MaskB = sin(params.OutputSize.x*vTexCoord.x*Pi*1.0+Pi*0.66667+vTexCoord.y*params.OutputSize.y*Pi*0.5)*0.5+0.5;
+    
+    vec3 Mask = vec3(MaskR,MaskG,MaskB);
+    
+    Mask = min(Mask*2.0,1.0);
+    
+    return vec3(Mask * image);
+}
+
+// cgwg's aperture grille
+vec3 cgwg_mask(vec3 image)
+{
+   float mask = 1.0 - params.DOTMASK_STRENGTH;
+   //Output pixels are alternately tinted green and magenta
+   vec3 dotMaskWeights = mix(vec3(1.0, mask, 1.0),
+						  vec3(mask, 1.0, mask),
+						  floor(mod(mod_factor, 2.0)));
+   return image * dotMaskWeights;
 }
 
 void main()
 {
-   FragColor = texture2DEWA(SourceImage,radialDistortion(vTexCoord));
+   FragColor = texture2DEWA(SourceImage, Warp(vTexCoord));
+   if(params.shadowMask < -0.5)
+      return;
+   else
+   {
+      if (params.shadowMask == 0.0)
+      {
+         FragColor.rgb = cgwg_mask(FragColor.rgb);
+         FragColor = vec4(FragColor.rgb, 1.0);
+         return;
+      }
+      else if (params.shadowMask == 5.0)
+      {
+         FragColor.rgb *= SinPhosphor(FragColor.rgb);
+      }
+      else
+      {
+         // Lottes mask needs linear gamma
+         FragColor.rgb = pow(FragColor.rgb, vec3(2.2));
+         FragColor.rgb *= Mask(floor(1.000001 * vTexCoord.xy * params.OutputSize.xy + vec2(0.5)));
+      }
+      FragColor = vec4(pow(FragColor.rgb, vec3(1.0/2.2)), 1.0);
+   }
 }
