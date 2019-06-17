@@ -6,15 +6,14 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 OutputSize;
    vec4 OriginalSize;
    vec4 SourceSize;
+   float GRID_STRENGTH, gamma;
 } global;
 
-#define GRID_STRENGTH 0.05
-
-#define outgamma 2.2
+#pragma parameter GRID_STRENGTH "LCD Grid Strength" 0.05 0.0 1.0 0.01
+#pragma parameter gamma "LCD Input Gamma" 2.2 1.0 5.0 0.1
 
 #define round(x) floor( (x) + 0.5 )
-#define gamma 2.2
-#define TEX2D(c) pow(texture(Source, (c)), vec4(gamma))
+#define TEX2D(c) pow(texture(Source, (c)), vec4(global.gamma))
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -75,9 +74,9 @@ void main()
   vec4 topRightColor    = TEX2D((floor(vec2(right, top)    / texelSize) + 0.5) * texelSize) * rcol;
   
   vec2 border = round(vTexCoord.st/subtexelSize);
-  vec2 bordert = clamp((border+vec2(0.0,+GRID_STRENGTH)) * subtexelSize,
+  vec2 bordert = clamp((border+vec2(0.0,+global.GRID_STRENGTH)) * subtexelSize,
 		       vec2(left, bottom), vec2(right, top));
-  vec2 borderb = clamp((border+vec2(0.0,-GRID_STRENGTH)) * subtexelSize,
+  vec2 borderb = clamp((border+vec2(0.0,-global.GRID_STRENGTH)) * subtexelSize,
 		       vec2(left, bottom), vec2(right, top));
   float totalArea = 2.0 * range.y;  
 
@@ -87,5 +86,5 @@ void main()
   averageColor += ((borderb.y - bottom) / totalArea) * bottomLeftColor;
   averageColor += ((top - bordert.y)    / totalArea) * topRightColor;
   
-   FragColor = pow(averageColor,vec4(1.0/gamma));
+   FragColor = pow(averageColor,vec4(1.0/global.gamma));
 }
