@@ -20,6 +20,7 @@ layout(push_constant) uniform Push
 	float SHARPER;
 	float scanline_weight;
 	float CURVATURE;
+	float interlace_detect;
 } registers;
 
 layout(std140, set = 0, binding = 0) uniform UBO
@@ -42,6 +43,7 @@ layout(std140, set = 0, binding = 0) uniform UBO
 #pragma parameter DOTMASK "CRTGeom Dot Mask Toggle" 0.3 0.0 0.3 0.3
 #pragma parameter SHARPER "CRTGeom Sharpness" 1.0 1.0 3.0 1.0
 #pragma parameter scanline_weight "CRTGeom Scanline Weight" 0.3 0.1 0.5 0.05
+#pragma parameter interlace_detect "CRTGeom Interlacing Simulation" 1.0 0.0 1.0 1.0
 
 /*
     CRT-interlaced
@@ -74,9 +76,6 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 // Use the older, purely gaussian beam profile; uncomment for speed
 #define USEGAUSSIAN
-  
-// Use interlacing detection; may interfere with other shaders if combined
-#define INTERLACED
 
 // Macros.
 #define FIX(c) max(abs(c), 1e-5);
@@ -198,11 +197,7 @@ void main()
     stretch     = maxscale();
     TextureSize = vec2(registers.SHARPER * registers.SourceSize.x, registers.SourceSize.y);
     
-#ifdef INTERLACED
     ilfac = vec2(1.0, clamp(floor(registers.SourceSize.y/200.0),  1.0, 2.0));
-#else
-    ilfac = vec2(1.0, clamp(floor(registers.SourceSize.y/1000.0), 1.0, 2.0));
-#endif
 
     // The size of one texel, in texture-coordinates.
     one = ilfac / TextureSize;
@@ -355,11 +350,8 @@ void main()
 
     // Of all the pixels that are mapped onto the texel we are
     // currently rendering, which pixel are we currently rendering?
-#ifdef INTERLACED
-    vec2 ilvec = vec2(0.0, ilfac.y > 1.5 ? mod(float(registers.FrameCount), 2.0) : 0.0);
-#else
-    vec2 ilvec = vec2(0.0, ilfac.y);
-#endif
+    
+    vec2 ilvec = vec2(0.0, ilfac.y * registers.interlace_detect > 1.5 ? mod(float(registers.FrameCount), 2.0) : 0.0);
 
     vec2 ratio_scale = (xy * TextureSize - vec2(0.5, 0.5) + ilvec) / ilfac;
     vec2 uv_ratio = fract(ratio_scale);
