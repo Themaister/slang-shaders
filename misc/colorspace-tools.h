@@ -1,6 +1,7 @@
 // Colorspace Tools
 // ported from Asmodean's PsxFX Shader Suite v2.00
 // NTSC color code from SimoneT
+// Jzazbz code from torridgristle
 // License: GPL v2+
 
 /*------------------------------------------------------------------------------
@@ -43,6 +44,25 @@ vec4 GammaPass(vec4 color, vec2 texcoord)
     return color;
 }
 #endif
+
+// more gamma linearization algos
+vec3 linear_srgb(vec3 x) {
+#ifdef GAMMA_CORRECT
+// use slower, more accurate calculation
+    return mix(1.055*pow(x, vec3(1./2.4)) - 0.055, 12.92*x, step(x,vec3(0.0031308)));
+#else
+// use faster, less accurate calculation
+    return pow(x,vec3(1.0/2.2));
+#endif
+}
+ 
+vec3 srgb_linear(vec3 x) {
+#ifdef GAMMA_CORRECT
+    return mix(pow((x + 0.055)/1.055,vec3(2.4)), x / 12.92, step(x,vec3(0.04045)));
+#else
+    return pow(x,vec3(2.2));
+#endif
+}
 
 //Conversion matrices
 vec3 RGBtoXYZ(vec3 RGB)
@@ -225,3 +245,108 @@ vec3 NTSCtoSRGB( vec3 c )
  { 
      return sRGB(NTSC( c )); 
  }
+
+const float Pi = 3.1415926535897932384626433832795;
+ 
+//  ---  Reference White Values  ---  //{
+       
+const vec3 D50 = vec3(0.9642, 1.0000, 0.8251);
+const vec3 D55 = vec3(0.9568, 1.0000, 0.9214);
+const vec3 D65 = vec3(0.9504, 1.0000, 1.0888);
+    //D9000 apparently isn't a real standard so here's the CCT daylight calculation result
+const vec3 D9000 = vec3(0.9520, 1.0000, 1.3661);
+    //D9300 apparently isn't a real standard so here's the CCT daylight calculation result
+const vec3 D9300 = vec3(0.95271,1.00000,1.39177);
+        //Various CRT monitors, Duv describes distance from the blackbody curve. The smaller it is, the closer to "white" it is. +/- 0.006 is recommended by ANSI and EnergyStar.
+    //NEC Multisync C400, claims 9300K but it isn't
+const vec3 D9000NEC = vec3(0.88889,1.00000,1.28571);//8890K, 0.0139 Duv
+    //KDS VS19
+const vec3 D9000KDS = vec3(0.90354,1.00000,1.31190);//8939K, 0.0114 Duv
+//}
+ 
+//  ---  sRGB  ---  //
+vec3 XYZ_to_sRGB(vec3 x) {
+    x = x * mat3x3( 3.2404542, -1.5371385, -0.4985314, -0.9692660, 1.8760108, 0.0415560, 0.0556434, -0.2040259, 1.0572252 );
+    x = mix(1.055*pow(x, vec3(1./2.4)) - 0.055, 12.92*x, step(x,vec3(0.0031308)));
+    return x;
+}
+ 
+vec3 sRGB_to_XYZ(vec3 x) {
+    x = mix(pow((x + 0.055)/1.055,vec3(2.4)), x / 12.92, step(x,vec3(0.04045)));
+    x = x * mat3x3( 0.4124564, 0.3575761, 0.1804375, 0.2126729, 0.7151522, 0.0721750, 0.0193339, 0.1191920, 0.9503041 );
+    return x;
+}
+ 
+//  ---  Jzazbz  ---  //{
+vec3 XYZ_to_Jzazbz(vec3 XYZ) {
+    float b = 1.15;
+    float g = 0.66;
+    vec3 XYZprime = XYZ;
+    XYZprime.x = XYZ.x * b - (b - 1) * XYZ.z;
+    XYZprime.y = XYZ.y * g - (g - 1) * XYZ.x;
+    XYZprime.z = XYZ.z;
+    vec3 LMS = XYZprime * mat3x3(0.41478972, 0.579999, 0.0146480, -0.2015100, 1.120649, 0.0531008, -0.0166008, 0.264800, 0.6684799);
+    float c1 = 3424 / pow(2.0,12.0);
+    float c2 = 2413 / pow(2.0,7.0);
+    float c3 = 2392 / pow(2.0,7.0);
+    float n  = 2610 / pow(2.0,14.0);
+    float p  = 1.7 * 2523 / pow(2.0,5.0);
+    vec3 LMSprime = pow((c1 + c2 * pow(LMS/10000,vec3(n)))/(1 + c3 * pow(LMS/10000,vec3(n))),vec3(p));
+    vec3 Izazbz = LMSprime * mat3x3(0.5, 0.5, 0.0, 3.524000, -4.066708, 0.542708, 0.199076, 1.096799, -1.295875);
+    float d = -0.56;
+    float d0 = 1.6295499532821566 * pow(10.0,-11.0);
+    vec3 Jzazbz = Izazbz;
+    Jzazbz.x = ((1 + d) * Izazbz.x)/(1 + d * Izazbz.x) - d0;
+    return Jzazbz;
+}    
+ 
+vec3 Jzazbz_to_JzCzhz(vec3 Jzazbz) {
+    float Cz = sqrt(Jzazbz.y*Jzazbz.y + Jzazbz.z*Jzazbz.z);
+    float hz = atan(Jzazbz.z,Jzazbz.y);
+    vec3 JzCzhz = vec3(Jzazbz.x,Cz,hz);
+    return JzCzhz;
+}
+ 
+vec3 JzCzhz_Normalize(vec3 JzCzhz) {
+    JzCzhz.x = JzCzhz.x*56.91964;
+    JzCzhz.y = JzCzhz.y*40.05235;
+    JzCzhz.z = (JzCzhz.z+2.761)/5.522;
+    //-2.6274509803921568627450980392157
+    //2.760784313725490196078431372549
+    //Assume 2.761 both ways so +2.761 then / 5.522
+    return JzCzhz;
+}
+ 
+vec3 JzCzhz_Denormalize(vec3 JzCzhz) {
+    JzCzhz.x = JzCzhz.x/56.91964;
+    JzCzhz.y = JzCzhz.y/40.05235;
+    JzCzhz.z = JzCzhz.z * 5.522 - 2.761;
+    return JzCzhz;
+}
+ 
+vec3 JzCzhz_to_Jzazbz(vec3 JzCzhz) {
+    vec3 Jzazbz = vec3(JzCzhz.x,JzCzhz.y*cos(JzCzhz.z),JzCzhz.y*sin(JzCzhz.z));;
+    return Jzazbz;
+}
+ 
+vec3 Jzazbz_to_XYZ(vec3 Jzazbz) {
+    float d0 = 1.6295499532821566 * pow(10.0,-11.0);
+    float d = -0.56;
+    float Iz = (Jzazbz.x + d0) / (1 + d - d * (Jzazbz.x + d0));
+    vec3 Izazbz = vec3(Iz,Jzazbz.y,Jzazbz.z);
+    vec3 LMSprime = Izazbz * mat3x3(1.0, 0.138605043271539, 0.0580473161561189, 1.0, -0.138605043271539, -0.0580473161561189, 1.0, -0.0960192420263189, -0.811891896056039);
+    float c1 = 3424 / pow(2.0,12.0);
+    float c2 = 2413 / pow(2.0,7.0);
+    float c3 = 2392 / pow(2.0,7.0);
+    float n  = 2610 / pow(2.0,14.0);
+    float p  = 1.7 * 2523 / pow(2.0,5.0);
+    vec3 LMS = 10000 * pow((c1 - pow(LMSprime,vec3(1.0/p)))/(c3 * pow(LMSprime,vec3(1.0/p)) - c2),vec3(1.0/n));
+    vec3 XYZprime = LMS * mat3x3(1.92422643578761, -1.00479231259537, 0.037651404030618, 0.350316762094999, 0.726481193931655, -0.065384422948085, -0.0909828109828476, -0.312728290523074, 1.52276656130526);
+    float b = 1.15;
+    float g = 0.66;
+    vec3 XYZ = XYZprime;
+    XYZ.x = (XYZprime.x + (b - 1.0) * XYZprime.z) / b;
+    XYZ.y = (XYZprime.y + (g - 1.0) * XYZ.x) / g;
+    XYZ.z = XYZprime.z;
+    return XYZ;
+}
