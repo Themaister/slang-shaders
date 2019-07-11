@@ -26,9 +26,9 @@
 
 */
 
-const float XBR_EDGE_STR = 0.0;
-const float XBR_WEIGHT = 0.0;
-const float XBR_ANTI_RINGING = 0.0;
+const float XBR_EDGE_STR = 0.6;
+const float XBR_WEIGHT = 1.0;
+const float XBR_ANTI_RINGING = 1.0;
 
 layout(push_constant) uniform Push
 {
@@ -49,10 +49,12 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define wp1  1.0
 #define wp2  0.0
-#define wp3  0.0
-#define wp4  0.0
-#define wp5 -1.0
-#define wp6  0.0
+#define wp3  2.0
+#define wp4  3.0
+#define wp5 -2.0
+#define wp6  1.0
+
+#define XBR_RES 2.0
 
 #define weight1 (XBR_WEIGHT*1.29633/10.0)
 #define weight2 (XBR_WEIGHT*1.75068/10.0/2.0)
@@ -168,8 +170,8 @@ void main()
 	vec3  F = texture(Source, t4.zy).xyz;
 	vec3  H = texture(Source, t4.xw).xyz;
 	vec3  I = texture(Source, t4.zw).xyz;
-
-	vec3 A = texture(Source, vTexCoord).xyz;
+   
+   vec3 A = texture(Source, vTexCoord).xyz;
 
 	vec3 F6 = texture(Original, tex +g1+0.25*g1+0.25*g2).xyz;
 	vec3 F7 = texture(Original, tex +g1+0.25*g1-0.25*g2).xyz;
@@ -184,7 +186,7 @@ void main()
 	vec4 f0 = reduce4(F6, F7, F8, F9);
 	vec4 h0 = reduce4(H6, H7, H8, H9);
 
-        bool block_3d = ((f0.xyz==f0.yzw) && (h0.xyz==h0.yzw));
+   bool block_3d = ((f0.xyz==f0.yzw) && (h0.xyz==h0.yzw));
 
 	float b = RGBtoYUV( B );
 	float c = RGBtoYUV( C );
@@ -229,18 +231,15 @@ void main()
 	vec3 c3 = mul(w2, mat4x3(D+G, E+H, F+I, F4+I4));
 	vec3 c4 = mul(w2, mat4x3(C+B, F+E, I+H, I5+H5));
 
-	bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
-
 	/* Smoothly blends the two strongest directions (one in diagonal and the other in vert/horiz direction). */
 	vec3 color =  mix(mix(c1, c2, step(0.0, d_edge)), mix(c3, c4, step(0.0, hv_edge)), 1. - edge_strength);
 
 	/* Anti-ringing code. */
 	vec3 min_sample = min4( E, F, H, I ) + (1.-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
 	vec3 max_sample = max4( E, F, H, I ) - (1.-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
-
 	color = clamp(color, min_sample, max_sample);
-
-	color = block_3d ? color : A;
-
+   
+   color = (block_3d) ? color : A;
+	
    FragColor = vec4(color, 1.0);
 }

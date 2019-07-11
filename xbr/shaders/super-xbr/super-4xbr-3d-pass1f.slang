@@ -49,10 +49,10 @@ const float XBR_ANTI_RINGING = 0.0;
 
 #define wp1  1.0
 #define wp2  0.0
-#define wp3  0.0
-#define wp4  0.0
-#define wp5 -1.0
-#define wp6  0.0
+#define wp3  2.0
+#define wp4  3.0
+#define wp5 -2.0
+#define wp6  1.0
 
 #define weight1 (XBR_WEIGHT*1.29633/10.0)
 #define weight2 (XBR_WEIGHT*1.75068/10.0/2.0)
@@ -146,8 +146,8 @@ void main()
 {
 	vec2 tex = (floor(vTexCoord*params.SourceSize.xy/XBR_RES) + vec2(0.5, 0.5))*XBR_RES/params.SourceSize.xy;
 
-	vec2 g1 = vec2((XBR_RES/2.0)/params.SourceSize.x, 0.0);
-	vec2 g2 = vec2(0.0, (XBR_RES/2.0)/params.SourceSize.y);
+	vec2 g1 = vec2(XBR_RES/params.SourceSize.x, 0.0);
+	vec2 g2 = vec2(0.0, XBR_RES/params.SourceSize.y);
 
 	vec3 P0 = texture(Source, t1.xy).xyz;
 	vec3 P1 = texture(Source, t1.zy).xyz;
@@ -184,7 +184,7 @@ void main()
 	vec4 f0 = reduce4(F6, F7, F8, F9);
 	vec4 h0 = reduce4(H6, H7, H8, H9);
 
-    bool block_3d = ((f0.xyz==f0.yzw) && (h0.xyz==h0.yzw));
+   bool block_3d = ((f0.xyz==f0.yzw) && (h0.xyz==h0.yzw));
 
 	float b = RGBtoYUV( B );
 	float c = RGBtoYUV( C );
@@ -199,7 +199,7 @@ void main()
 	float i5 = RGBtoYUV( I5 ); float p1 = RGBtoYUV( P1 );
 	float h5 = RGBtoYUV( H5 ); float p2 = RGBtoYUV( P2 );
 	float f4 = RGBtoYUV( F4 ); float p3 = RGBtoYUV( P3 );
-	
+
 /*
                               P1
      |P0|B |C |P1|         C     F4          |a0|b1|c2|d3|
@@ -209,6 +209,7 @@ void main()
                            G     H5
                               P2
 */
+
 
 	/* Calc edgeness in diagonal directions. */
 	float d_edge  = (d_wd( d, b, g, e, c, p2, h, f, p1, h5, i, f4, i5, i4 ) - d_wd( c, f4, b, f, i4, p0, e, i, p3, d, h, i5, g, h5 ));
@@ -224,15 +225,16 @@ void main()
 	vec4 w2 = vec4(-weight2, weight2+0.25, weight2+0.25, -weight2);
 
 	/* Filtering and normalization in four direction generating four colors. */
-    vec3 c1 = mul(w1, mat4x3( P2,   H,   F,   P1 ));
-    vec3 c2 = mul(w1, mat4x3( P0,   E,   I,   P3 ));
+   vec3 c1 = mul(w1, mat4x3( P2,   H,   F,   P1 ));
+   vec3 c2 = mul(w1, mat4x3( P0,   E,   I,   P3 ));
 	vec3 c3 = mul(w2, mat4x3(D+G, E+H, F+I, F4+I4));
-    vec3 c4 = mul(w2, mat4x3(C+B, F+E, I+H, I5+H5));
+   vec3 c4 = mul(w2, mat4x3(C+B, F+E, I+H, I5+H5));
 
-	bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
+	//bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
+
 
 	/* Smoothly blends the two strongest directions (one in diagonal and the other in vert/horiz direction). */
-	vec3 color =  mix(mix(c1, c2, step(0.0, d_edge)), mix(c3, c4, step(0.0, hv_edge)), 1 - edge_strength);
+	vec3 color =  mix(mix(c1, c2, step(0.0, d_edge)), mix(c3, c4, step(0.0, hv_edge)), 1. - edge_strength);
 
 	/* Anti-ringing code. */
 	vec3 min_sample = min4( E, F, H, I ) + (1-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
@@ -240,7 +242,7 @@ void main()
 
 	color = clamp(color, min_sample, max_sample);
 
-	color = block_3d ? color : A;
+	color = (block_3d) ? color : A;
 
 	FragColor = vec4(color, 1.0);	
 }

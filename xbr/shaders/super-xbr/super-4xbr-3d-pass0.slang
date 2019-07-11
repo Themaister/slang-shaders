@@ -37,7 +37,7 @@ layout(push_constant) uniform Push
 	float XBR_ANTI_RINGING;
 } params;
 
-#pragma parameter XBR_EDGE_STR "Xbr - Edge Strength p0" 0.6 0.0 5.0 0.5
+#pragma parameter XBR_EDGE_STR "Xbr - Edge Strength p0" 2.0 0.0 5.0 0.2
 #pragma parameter XBR_WEIGHT "Xbr - Filter Weight" 1.0 0.00 1.50 0.05
 #pragma parameter XBR_ANTI_RINGING "Xbr - Anti-Ringing Level" 1.0 0.0 1.0 1.0
 
@@ -52,14 +52,14 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define mul(a,b) (b*a)
 
-#define XBR_RES 4.0
-
-#define wp1  1.0
-#define wp2  0.0
-#define wp3  0.0
-#define wp4  2.0
+#define wp1  2.0
+#define wp2  1.0
+#define wp3 -1.0
+#define wp4  4.0
 #define wp5 -1.0
-#define wp6  0.0
+#define wp6  1.0
+
+#define XBR_RES 4.0
 
 #define weight1 (XBR_WEIGHT*1.29633/10.0)
 #define weight2 (XBR_WEIGHT*1.75068/10.0/2.0)
@@ -141,6 +141,7 @@ void main()
  	if (any(lessThan(fract(vTexCoord*params.SourceSize.xy/XBR_RES) , vec2(0.5,0.5))))
 		{
 			FragColor = texture(Source, vTexCoord);
+         return;
 		}
 	else
 		{
@@ -226,11 +227,11 @@ void main()
 			vec3 c3 = mul(w2, mat4x3(D+G, E+H, F+I, F4+I4));
 			vec3 c4 = mul(w2, mat4x3(C+B, F+E, I+H, I5+H5));
 
-			bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
+			//bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
 
 
 			/* Smoothly blends the two strongest directions (one in diagonal and the other in vert/horiz direction). */
-			vec3 color =  mix(mix(c1, c2, step(0.0, d_edge)), mix(c3, c4, step(0.0, hv_edge)), 1 - edge_strength);
+			vec3 color =  mix(mix(c1, c2, step(0.0, d_edge)), mix(c3, c4, step(0.0, hv_edge)), 1. - edge_strength);
 
 /*
                               P1
@@ -243,12 +244,12 @@ void main()
 */
 
 			/* Anti-ringing code. */
-			vec3 min_sample = min4( E, F, H, I ) + (1-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
-			vec3 max_sample = max4( E, F, H, I ) - (1-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
+			vec3 min_sample = min4( E, F, H, I ) + (1.-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
+			vec3 max_sample = max4( E, F, H, I ) - (1.-XBR_ANTI_RINGING)*mix((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
 
 			color = clamp(color, min_sample, max_sample);
 
-			color = block_3d ? color : E;
+			color = (block_3d) ? color : E;
 
 			FragColor = vec4(color, 1.0);
 		}

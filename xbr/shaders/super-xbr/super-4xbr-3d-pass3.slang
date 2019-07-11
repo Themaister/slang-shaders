@@ -45,14 +45,14 @@ layout(std140, set = 0, binding = 0) uniform UBO
 
 #define mul(a,b) (b*a)
 
-#define XBR_RES 2.0
-
-#define wp1  1.0
+#define wp1  8.0
 #define wp2  0.0
 #define wp3  0.0
-#define wp4  4.0
+#define wp4  0.0
 #define wp5  0.0
 #define wp6  0.0
+
+#define XBR_RES2  2.0
 
 #define weight1 (XBR_WEIGHT*1.75068/10.0)
 #define weight2 (XBR_WEIGHT*1.29633/10.0/2.0)
@@ -130,36 +130,36 @@ layout(set = 0, binding = 3) uniform sampler2D Original;
 void main()
 {
 	//Skip pixels on wrong grid
-	vec2 dir = fract(vTexCoord*params.SourceSize.xy/XBR_RES) - vec2(0.5,0.5);
- 	if ((dir.x*dir.y)>0.0){
-	FragColor = texture(Source, vTexCoord);
-	}else{
-	
-	vec2 tex = (floor(vTexCoord*params.SourceSize.xy/XBR_RES) + vec2(0.5, 0.5))*XBR_RES/params.SourceSize.xy;
+	vec2 dir = fract(vTexCoord*params.SourceSize.xy/XBR_RES2) - vec2(0.5,0.5);
+ 	if ((dir.x*dir.y)>0.0){ FragColor = texture(Source, vTexCoord);
+      return;}
+      else{
 
-	vec2 g1 = vec2((XBR_RES/2.0)/params.SourceSize.x, 0.0);
-	vec2 g2 = vec2(0.0, (XBR_RES/2.0)/params.SourceSize.y);
+	vec2 tex = (floor(vTexCoord*params.SourceSize.xy/XBR_RES2) + vec2(0.5, 0.5))*XBR_RES2/params.SourceSize.xy;
+
+	vec2 g1 = vec2((XBR_RES2/2.0)/params.SourceSize.x, 0.0);
+	vec2 g2 = vec2(0.0, (XBR_RES2/2.0)/params.SourceSize.y);
 
 	vec3 P0 = texture(Source, vTexCoord -3.0*g1       ).xyz;
 	vec3 P1 = texture(Source, vTexCoord        -3.0*g2).xyz;
 	vec3 P2 = texture(Source, vTexCoord        +3.0*g2).xyz;
 	vec3 P3 = texture(Source, vTexCoord +3.0*g1       ).xyz;
 
-	vec3 B = texture(Source, vTexCoord -2.0*g1     -g2).xyz;
-	vec3 C = texture(Source, vTexCoord     -g1 -2.0*g2).xyz;
-	vec3 D = texture(Source, vTexCoord -2.0*g1     +g2).xyz;
-	vec3 E = texture(Source, vTexCoord     -g1        ).xyz;
-	vec3 F = texture(Source, vTexCoord             -g2).xyz;
-	vec3 G = texture(Source, vTexCoord     -g1 +2.0*g2).xyz;
-	vec3 H = texture(Source, vTexCoord             +g2).xyz;
-	vec3 I = texture(Source, vTexCoord     +g1        ).xyz;
+	vec3  B = texture(Source, vTexCoord -2.0*g1     -g2).xyz;
+	vec3  C = texture(Source, vTexCoord     -g1 -2.0*g2).xyz;
+	vec3  D = texture(Source, vTexCoord -2.0*g1     +g2).xyz;
+	vec3  E = texture(Source, vTexCoord     -g1        ).xyz;
+	vec3  F = texture(Source, vTexCoord             -g2).xyz;
+	vec3  G = texture(Source, vTexCoord     -g1 +2.0*g2).xyz;
+	vec3  H = texture(Source, vTexCoord             +g2).xyz;
+	vec3  I = texture(Source, vTexCoord     +g1        ).xyz;
 
 	vec3 F4 = texture(Source, vTexCoord     +g1 -2.0*g2).xyz;
 	vec3 I4 = texture(Source, vTexCoord +2.0*g1     -g2).xyz;
 	vec3 H5 = texture(Source, vTexCoord     +g1 +2.0*g2).xyz;
 	vec3 I5 = texture(Source, vTexCoord +2.0*g1     +g2).xyz;
 
-	vec3 A = texture(Source, vTexCoord).xyz;
+	vec3  A = texture(Source, vTexCoord).xyz;
 
 	g1 *= 2.0;
 	g2 *= 2.0;
@@ -222,7 +222,7 @@ void main()
 	vec3 c3 = mul(w2, mat4x3(D+G, E+H, F+I, F4+I4));
 	vec3 c4 = mul(w2, mat4x3(C+B, F+E, I+H, I5+H5));
 
-	bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
+	//bool ir_lv1 = (((e!=f) && (e!=h))  && ( !eq(f,b) && !eq(f,c) || !eq(h,d) && !eq(h,g) || eq(e,i) && (!eq(f,f4) && !eq(f,i4) || !eq(h,h5) && !eq(h,i5)) || eq(e,g) || eq(e,c)) );
 
 	/* Smoothly blends the two strongest directions (one in diagonal and the other in vert/horiz direction). */
 	vec3 color =  mix(mix(c1, c2, step(0.0, d_edge)), mix(c3, c4, step(0.0, hv_edge)), 1. - edge_strength);
@@ -243,7 +243,7 @@ void main()
 
 	color = clamp(color, min_sample, max_sample);
 
-	color = block_3d ? color : E;
+	color = (block_3d) ? color : A;
 
 	FragColor = vec4(color, 1.0);
 	}
