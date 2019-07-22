@@ -34,7 +34,7 @@ void main()
    vec4 lens = vec4(0.);
 
    // Lenz
-   if (global.bLenzEnable > 0.5)
+   if (bLenzEnable)
    {
       const vec3 lfoffset[19] = {
          vec3(0.9, 0.01, 4),
@@ -92,7 +92,7 @@ void main()
          lfcoord.xy = 0.5 - lfcoord.xy;
          vec2 tempfact = (lfcoord.xy - 0.5) * 2.;
          float templensmult = clamp(1.0 - dot(tempfact, tempfact), 0., 1.);
-         vec3 lenstemp1 = vec3(dot(textureLod(Original, vec2(lfcoord.xy), 1.0).rgb, vec3(0.333)));
+         vec3 lenstemp1 = vec3(dot(textureLod(BackBuffer, vec2(lfcoord.xy), 1.0).rgb, vec3(0.333)));
 /* Doesn't exist in RetroArch, so comment it out
 #if LENZ_DEPTH_CHECK
          float templensdepth = texture(ReShade::DepthBuffer, lfcoord.xy).x;
@@ -110,17 +110,17 @@ void main()
    }
 
    // Chapman Lens
-   if (global.bChapFlareEnable > 0.5)
+   if (bChapFlareEnable)
    {
       vec2 sample_vector = (vec2(0.5, 0.5) - vTexCoord.xy) * global.fChapFlareDispersal;
       vec2 halo_vector = normalize(sample_vector) * global.fChapFlareSize;
 
-      vec3 chaplens = GetDistortedTex(Original, vTexCoord.xy + halo_vector, halo_vector, fChapFlareCA * 2.5).rgb;
+      vec3 chaplens = GetDistortedTex(BackBuffer, vTexCoord.xy + halo_vector, halo_vector, fChapFlareCA * 2.5).rgb;
 
       for (int j = 0; j < int(global.iChapFlareCount); ++j)
       {
          vec2 foffset = sample_vector * float(j);
-         chaplens += GetDistortedTex(Original, vTexCoord.xy + foffset, foffset, fChapFlareCA).rgb;
+         chaplens += GetDistortedTex(BackBuffer, vTexCoord.xy + foffset, foffset, fChapFlareCA).rgb;
       }
 
       chaplens *= 1.0 / global.iChapFlareCount;
@@ -128,7 +128,7 @@ void main()
    }
 
    // Godrays
-   if (global.bGodrayEnable > 0.5)
+   if (bGodrayEnable)
    {
       const vec2 ScreenLightPos = vec2(0.5, 0.5);
       vec2 texcoord2 = vTexCoord;
@@ -140,8 +140,8 @@ void main()
       for (int g = 0; g < int(global.iGodraySamples); g++)
       {
          texcoord2 -= deltaTexCoord;;
-         vec4 sample2 = textureLod(Original, vec2(texcoord2), 0.);
-         float sampledepth = textureLod(Original, vec2(texcoord2), 0.).x;
+         vec4 sample2 = textureLod(BackBuffer, vec2(texcoord2), 0.);
+//         float sampledepth = textureLod(BackBuffer, vec2(texcoord2), 0.).x; //no depth checking in RA so just comment it out
          sample2.w = clamp(dot(sample2.xyz, vec3(0.3333)) - global.fGodrayThreshold, 0., 1.);
          sample2.r *= 1.00;
          sample2.g *= 0.95;
@@ -158,14 +158,14 @@ void main()
    }
 
    // Anamorphic flare
-   if (global.bAnamFlareEnable > 0.5)
+   if (bAnamFlareEnable)
    {
       vec3 anamFlare = vec3(0.);
       const float gaussweight[5] = { 0.2270270270, 0.1945945946, 0.1216216216, 0.0540540541, 0.0162162162 };
 
       for (int z = -4; z < 5; z++)
       {
-         anamFlare += GetAnamorphicSample(0, vTexCoord.xy + vec2(0, z * (vTexCoord.y * params.SourceSize.w) * 2.), global.fFlareBlur) * fFlareTint * gaussweight[abs(z)];
+         anamFlare += GetAnamorphicSample(0, vTexCoord.xy + vec2(0, z * PixelSize.y * 2.), global.fFlareBlur) * fFlareTint * gaussweight[abs(z)];
       }
 
       lens.xyz += anamFlare * global.fFlareIntensity;

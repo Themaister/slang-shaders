@@ -26,8 +26,8 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D Original;
-layout(set = 0, binding = 4) uniform sampler2D Bloom3;
-layout(set = 0, binding = 5) uniform sampler2D Bloom5;
+layout(set = 0, binding = 4) uniform sampler2D SamplerBloom3;
+layout(set = 0, binding = 5) uniform sampler2D SamplerBloom5;
 layout(set = 0, binding = 6) uniform sampler2D Dirt;
 layout(set = 0, binding = 7) uniform sampler2D Sprite;
 layout(set = 0, binding = 8) uniform sampler2D LensFlare1;
@@ -39,12 +39,12 @@ layout(set = 0, binding = 8) uniform sampler2D LensFlare1;
 void main()
 {
    vec4 color = vec4(0.);
-   color = texture(Original, vTexCoord.xy);
+   color = texture(BackBuffer, vTexCoord.xy);
 
    // Bloom
    vec3 colorbloom = vec3(0.);
-   colorbloom += texture(Bloom3, vTexCoord.xy).rgb * 1.0;
-   colorbloom += texture(Bloom5, vTexCoord.xy).rgb * 9.0;
+   colorbloom += texture(SamplerBloom3, vTexCoord.xy).rgb * 1.0;
+   colorbloom += texture(SamplerBloom5, vTexCoord.xy).rgb * 9.0;
    colorbloom *= 0.1;
    colorbloom = saturate(colorbloom);
    float colorbloomgray = dot(colorbloom, vec3(0.333));
@@ -61,17 +61,17 @@ void main()
       color.rgb = max(color.rgb, colorbloom);
 
    // Anamorphic flare
-   if (global.bAnamFlareEnable > 0.5)
+   if (bAnamFlareEnable)
    {
-      vec3 anamflare = texture(Bloom5, vTexCoord.xy).w * 2. * fAnamFlareColor;
+      vec3 anamflare = texture(SamplerBloom5, vTexCoord.xy).w * 2. * fAnamFlareColor;
       anamflare = max(anamflare, 0.0);
       color.rgb += pow(anamflare, vec3(1.0 / global.fAnamFlareCurve));
    }
 
    // Lens dirt
-   if (global.bLensdirtEnable > 0.5)
+   if (bLensdirtEnable)
    {
-      float lensdirtmult = dot(texture(Bloom5, vTexCoord).rgb, vec3(0.333));
+      float lensdirtmult = dot(texture(SamplerBloom5, vTexCoord).rgb, vec3(0.333));
       vec3 dirttex = texture(Dirt, vTexCoord).rgb;
       vec3 lensdirt = dirttex * lensdirtmult * global.fLensdirtIntensity;
 
@@ -88,13 +88,13 @@ void main()
    }
 
    // Lens flares
-   if (global.bAnamFlareEnable > 0.5 || global.bLenzEnable > 0.5 || global.bGodrayEnable > 0.5 || global.bChapFlareEnable > 0.5)
+   if (bAnamFlareEnable || bLenzEnable || bGodrayEnable || bChapFlareEnable)
    {
       vec3 lensflareSample = texture(LensFlare1, vTexCoord.xy).rgb, lensflareMask;
-      lensflareMask  = texture(Sprite, vTexCoord + vec2( 0.5,  0.5) * (vTexCoord.xy * params.SourceSize.zw)).rgb;
-      lensflareMask += texture(Sprite, vTexCoord + vec2(-0.5,  0.5) * (vTexCoord.xy * params.SourceSize.zw)).rgb;
-      lensflareMask += texture(Sprite, vTexCoord + vec2( 0.5, -0.5) * (vTexCoord.xy * params.SourceSize.zw)).rgb;
-      lensflareMask += texture(Sprite, vTexCoord + vec2(-0.5, -0.5) * (vTexCoord.xy * params.SourceSize.zw)).rgb;
+      lensflareMask  = texture(Sprite, vTexCoord + vec2( 0.5,  0.5) * PixelSize).rgb;
+      lensflareMask += texture(Sprite, vTexCoord + vec2(-0.5,  0.5) * PixelSize).rgb;
+      lensflareMask += texture(Sprite, vTexCoord + vec2( 0.5, -0.5) * PixelSize).rgb;
+      lensflareMask += texture(Sprite, vTexCoord + vec2(-0.5, -0.5) * PixelSize).rgb;
 
       color.rgb += lensflareMask * 0.25 * lensflareSample;
    }

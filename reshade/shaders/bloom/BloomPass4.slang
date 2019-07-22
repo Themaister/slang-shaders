@@ -26,13 +26,14 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D Original;
+layout(set = 0, binding = 4) uniform sampler2D SamplerBloom4;
 
 #include "frag_funcs.inc"
 
 void main()
 {
    vec4 bloom = vec4(0.);
-   bloom.xyz = GaussBlur22(vTexCoord, Source, 16., 0., true).xyz * 2.5;   
-   bloom.w = GaussBlur22(vTexCoord, Source, 32 * global.fAnamFlareWideness, 0., false).w * 2.5; // to have anamflare texture (bloom.w) avoid vertical blur
+   bloom.xyz = GaussBlur22(vTexCoord, SamplerBloom4, 16., 0., true).xyz * 2.5;   
+   bloom.w = GaussBlur22(vTexCoord, SamplerBloom4, 32 * global.fAnamFlareWideness, 0., false).w * 2.5; // to have anamflare texture (bloom.w) avoid vertical blur
    FragColor = bloom;
 }

@@ -44,9 +44,9 @@ void main()
 
    for (int i = 0; i < 4; i++)
    {
-      bloomuv = offset[i] * (vTexCoord.xy * params.SourceSize.zw) * 2.;
+      bloomuv = offset[i] * PixelSize * 2.;
       bloomuv += vTexCoord.xy;
-      tempbloom = textureLod(Source, vec2(bloomuv.xy), 0.);
+      tempbloom = textureLod(BackBuffer, vec2(bloomuv.xy), 0.);
       tempbloom.w = max(0., dot(tempbloom.xyz, vec3(0.333)) - global.fAnamFlareThreshold);
       tempbloom.xyz = max(vec3(0.), tempbloom.xyz - vec3(global.fBloomThreshold)); 
       bloom += tempbloom;

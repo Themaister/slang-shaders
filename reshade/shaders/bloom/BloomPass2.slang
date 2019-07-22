@@ -26,6 +26,7 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D Original;
+layout(set = 0, binding = 4) uniform sampler2D SamplerBloom2;
 
 #include "frag_funcs.inc"
 
@@ -46,11 +47,11 @@ void main()
 
    for (int i = 0; i < 8; i++)
    {
-      vec2 bloomuv = offset[i] * (vTexCoord.xy * params.SourceSize.zw) * 8.;
+      vec2 bloomuv = offset[i] * PixelSize * 8.;
       bloomuv += vTexCoord.xy;
-      bloom += textureLod(Source, vec2(bloomuv), 0.);
+      bloom += textureLod(SamplerBloom2, vec2(bloomuv), 0.);
    }
 
-bloom *= 0.5; // brighten up the sample, it will lose brightness in H/V Gaussian blur
+   bloom *= 0.5; // brighten up the sample, it will lose brightness in H/V Gaussian blur
    FragColor = bloom;
 }

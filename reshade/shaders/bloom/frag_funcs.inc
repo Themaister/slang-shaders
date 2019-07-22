@@ -1,7 +1,10 @@
+#define PixelSize (params.SourceSize.zw)
+#define BackBuffer Original
+
 vec4 GaussBlur22(vec2 coord, sampler2D tex, float mult, float lodlevel, bool isBlurVert)
 {
    vec4 sum = vec4(0.);
-   vec2 axis = isBlurVert ? vec2(0, 1) : vec2(1, 0);
+   vec2 axis = isBlurVert ? vec2(0., 1.) : vec2(1., 0.);
 
    const float weight[11] = {
       0.082607,
@@ -20,7 +23,7 @@ vec4 GaussBlur22(vec2 coord, sampler2D tex, float mult, float lodlevel, bool isB
    for (int i = -10; i < 11; i++)
    {
       float currweight = weight[abs(i)];
-      sum += textureLod(tex, vec2(coord.xy + axis.xy * float(i) * (vTexCoord.xy * params.SourceSize.zw) * mult), lodlevel) * currweight;
+      sum += textureLod(tex, vec2(coord.xy + axis.xy * float(i) * PixelSize * mult), lodlevel) * currweight;
    }
 
    return sum;
@@ -52,7 +55,7 @@ vec3 GetDistortedTex(sampler2D tex, vec2 sample_center, vec2 sample_vector, vec3
 
 vec3 GetBrightPass(vec2 coords)
 {
-   vec3 c = texture(Original, coords).rgb;
+   vec3 c = texture(BackBuffer, coords).rgb;
    vec3 bC = max(c - global.fFlareLuminance.xxx, 0.0);
    float bright = dot(bC, vec3(1.0));
    bright = smoothstep(0.0f, 0.5, bright);

@@ -26,12 +26,13 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D Original;
+layout(set = 0, binding = 4) uniform sampler2D SamplerBloom3;
 
 #include "frag_funcs.inc"
 
 void main()
 {
-   vec4 bloom = GaussBlur22(vTexCoord.xy, Source, 16., 0., false);
+   vec4 bloom = GaussBlur22(vTexCoord.xy, SamplerBloom3, 16., 0., false);
    bloom.w *= global.fAnamFlareAmount;
    bloom.xyz *= global.fBloomAmount;
    FragColor = bloom;
