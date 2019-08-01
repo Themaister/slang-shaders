@@ -40,7 +40,10 @@ vec4 l(vec4 x)
 {
    vec4 res;
 
-   res = (x==vec4(0.0, 0.0, 0.0, 0.0)) ?  vec4(pi*floatpi)  :  sin(x*floatpi)*sin(x*pi)/(x*x);
+   res.x = (x.x==0.0) ?  (pi*floatpi)  :  sin(x.x*floatpi)*sin(x.x*pi)/(x.x*x.x);
+   res.y = (x.y==0.0) ?  (pi*floatpi)  :  sin(x.y*floatpi)*sin(x.y*pi)/(x.y*x.y);
+   res.z = (x.z==0.0) ?  (pi*floatpi)  :  sin(x.z*floatpi)*sin(x.z*pi)/(x.z*x.z);
+   res.w = (x.w==0.0) ?  (pi*floatpi)  :  sin(x.w*floatpi)*sin(x.w*pi)/(x.w*x.w);
 
    return res;
 }
