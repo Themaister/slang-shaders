@@ -1,5 +1,10 @@
 #version 450
 
+/*
+   Author: Themaister
+   License: Public domain
+*/
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
