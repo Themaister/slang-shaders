@@ -2,6 +2,7 @@
 // im so sorry 
 // done for Flashback 2019 cracktro
 // written by mudlord.
+
 layout(std140, set = 0, binding = 0) uniform UBO
 {
    mat4 MVP;
@@ -9,7 +10,11 @@ layout(std140, set = 0, binding = 0) uniform UBO
    vec4 OriginalSize;
    vec4 SourceSize;
    uint FrameCount;
+   float SPEED;
 } global;
+
+#pragma parameter SPEED "Animation Speed" 0.5 0.0 1.0 0.05
+#define time global.FrameCount / 10. * global.SPEED
 
 #pragma stage vertex
 layout(location = 0) in vec4 Position;
@@ -37,9 +42,9 @@ float SuperFormula(float phi, float a, float b, float m, float n1, float n2, flo
 
 vec2 scene(vec3 p)
 {
-	p = rotatex(p, 0.18*global.FrameCount);
-	p = rotatez(p, 0.20*global.FrameCount);
-	p = rotatey(p, 0.22*global.FrameCount);
+	p = rotatex(p, 0.18*time);
+	p = rotatez(p, 0.20*time);
+	p = rotatey(p, 0.22*time);
     float d=length(p);
 	float sn=p.z/d;
 	vec4 w =vec4(12.,6.,6.,16.);
@@ -93,7 +98,7 @@ float voronoi(vec2 v)
 	{
 	vec2 g=vec2(m,u);
 	vec2 d=noise(r+g);
-	d=.1+.5*sin(global.FrameCount+4.2831*d);
+	d=.1+.5*sin(time+4.2831*d);
 	vec2 s=g+d-e;
 	float o=dot(s,s);
 	f=min(f,o);
