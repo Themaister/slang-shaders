@@ -1,14 +1,14 @@
 #version 450
 
 /*
-	simpletex_lcd+gba-color - a simple, textured LCD shader intended for non-backlit
-	systems - includes GBA colour correction
+	simpletex_lcd_720p+gbc-color - a simple, textured LCD shader intended for non-backlit systems.
+	Designed for use at 720p, without integer scaling. Includes GBC colour correction.
 	
-	- Makes use of the 'line weighting' equation from zfast_lcd_standard
-	  [original zfast_lcd_standard code copyright (C) 2017 Greg Hogan (SoltanGris42)]
+	- Makes use of grid effect from lcd3x
+	  [original lcd3x code written by Gigaherz and released into the public domain]
 	
-	- Colour correction code taken from 'gba-color', written by hunterk, modified by Pokefan531
-	  and realeased into the public domain
+	- Colour correction code taken from 'gbc-color', written by hunterk and realeased
+	  into the public domain, with further tweaks by Pokefan531
 	
 	Other code by jdgleaver
 	
@@ -24,11 +24,12 @@
 	                    - 1.0: Grid is shown
 	                    - 0.0: Grid is invisible (same colour as pixels)
 	  > GRID_WIDTH: Sets effective with of grid lines
-	                - 1.0: Normal full width
+	                - 1.0: Maximum width
 	                - 0.0: Minimum width
-	                       (Note - this does not mean zero width! Instead, this
-	                        is the minimum 'sane' width, below which the grid
-	                        becomes pointless...)
+	                       (Note - this is kind of a hack: changing the width
+	                        also changes the grid intensity, but we have to do
+	                        it like this otherwise the grid is uneven without
+	                        integer scaling enabled...)
 	  > GRID_BIAS: Dynamically adjusts the grid intensity based on pixel luminosity
 	               - 0.0: Grid intensity is uniform
 	               - 1.0: Grid intensity scales linearly with pixel luminosity
@@ -50,15 +51,15 @@
 // Background texture size
 // > 2048 x 2048 textures are suitable for screen resolutions up to
 //   1200p (or 1440p if running 'square' aspect ratio systems)
-//#define BG_TEXTURE_SIZE 2048.0
+#define BG_TEXTURE_SIZE 2048.0
 // > 4096 x 4096 textures are suitable for screen resolutions up to 4k
-#define BG_TEXTURE_SIZE 4096.0
+//#define BG_TEXTURE_SIZE 4096.0
 
-#pragma parameter GRID_INTENSITY "Grid Intensity" 1.0 0.0 1.0 0.05
-#pragma parameter GRID_WIDTH "Grid Width" 1.0 0.0 1.0 0.05
-#pragma parameter GRID_BIAS "Grid Bias" 0.0 0.0 1.0 0.05
-#pragma parameter DARKEN_GRID "Darken Grid" 0.0 0.0 1.0 0.05
-#pragma parameter DARKEN_COLOUR "Darken Colours" 0.0 0.0 2.0 0.05
+#pragma parameter GRID_INTENSITY "Grid Intensity" 0.9 0.0 1.0 0.01
+#pragma parameter GRID_WIDTH "Grid Width" 0.9 0.0 1.0 0.01
+#pragma parameter GRID_BIAS "Grid Bias" 0.5 0.0 1.0 0.01
+#pragma parameter DARKEN_GRID "Darken Grid" 0.0 0.0 1.0 0.01
+#pragma parameter DARKEN_COLOUR "Darken Colours" 0.0 0.0 2.0 0.01
 
 layout(push_constant) uniform Push
 {
@@ -101,11 +102,9 @@ layout(set = 0, binding = 3) uniform sampler2D BACKGROUND;
 
 // ### Magic Numbers...
 
-// Grid pattern
-// > Line weighting equation:
-//   y = a * (x^4 - b * x^6)
-const float LINE_WEIGHT_A = 48.0;
-const float LINE_WEIGHT_B = 8.0 / 3.0;
+// Grid parameters
+#define PI 3.141592654
+#define WIDTH_FACTOR_MAX 31.0
 
 // RGB -> Luminosity conversion
 // > Photometric/digital ITU BT.709
@@ -123,15 +122,15 @@ const float INV_BG_TEXTURE_SIZE = 1.0 / BG_TEXTURE_SIZE;
 // Colour correction
 #define TARGET_GAMMA 2.2
 const float INV_DISPLAY_GAMMA = 1.0 / 2.2;
-#define CC_R 0.86
+#define CC_R 0.87
 #define CC_G 0.66
-#define CC_B 0.81
-#define CC_RG 0.11
-#define CC_RB 0.1325
-#define CC_GR 0.19
-#define CC_GB 0.0575
+#define CC_B 0.79
+#define CC_RG 0.115
+#define CC_RB 0.14
+#define CC_GR 0.18
+#define CC_GB 0.07
 #define CC_BR -0.05
-#define CC_BG 0.23
+#define CC_BG 0.225
 
 /*
     FRAGMENT SHADER
@@ -146,35 +145,28 @@ void main()
 	vec3 colour = texture(Source, registers.SourceSize.zw * imgCenterCoord.xy).rgb;
 	
 	// Darken colours (if required...) and apply colour correction
-	colour.rgb = pow(colour.rgb, vec3(TARGET_GAMMA + 0.5 + registers.DARKEN_COLOUR));
+	colour.rgb = pow(colour.rgb, vec3(TARGET_GAMMA - 0.5 + registers.DARKEN_COLOUR));
 	colour.rgb = mat3(CC_R,  CC_RG, CC_RB,
 							CC_GR, CC_G,  CC_GB,
 							CC_BR, CC_BG, CC_B) * colour.rgb;
 	colour.rgb = clamp(pow(colour.rgb, vec3(INV_DISPLAY_GAMMA)), 0.0, 1.0);
 	
 	// Generate grid pattern...
-	vec2 distFromCenter = abs(imgCenterCoord.xy - imgPixelCoord.xy);
+	// > Note the 0.25 pixel offset -> required to ensure that
+	//   grid lines occur *between* pixels
+	vec2 angle = 2.0 * PI * (imgPixelCoord - 0.25);
 	
-	float xSquared = max(distFromCenter.x, distFromCenter.y);
-	xSquared = xSquared * xSquared;
+	float wfactor = 1.0 + (WIDTH_FACTOR_MAX - (registers.GRID_WIDTH * WIDTH_FACTOR_MAX));
+	float yfactor = (wfactor + sin(angle.y)) / (wfactor + 1.0);
+	float xfactor = (wfactor + sin(angle.x)) / (wfactor + 1.0);
 	
-	float xQuarted = xSquared * xSquared;
-	
-	// > Line weighting equation:
-	//   y = 48 * (x^4 - (8/3) * x^6)
-	float lineWeight = LINE_WEIGHT_A * (xQuarted - (LINE_WEIGHT_B * xQuarted * xSquared));
+	float lineWeight = 1.0 - (yfactor * xfactor);
 	
 	// > Apply grid adjustments (phase 1)
-	//   - GRID_WIDTH:
-	//        1.0: Use raw lineWeight value
-	//        0.0: Use lineWeight ^ 2 (makes lines thinner - realistically, this is
-	//                                 the thinnest we can go before the grid effect
-	//                                 becomes pointless, particularly with 'high resolution'
-	//                                 systems like the GBA)
 	//   - GRID_INTENSITY:
 	//        1.0: Grid lines are white
 	//        0.0: Grid lines are invisible
-	lineWeight = lineWeight * (lineWeight + ((1.0 - lineWeight) * registers.GRID_WIDTH)) * registers.GRID_INTENSITY;
+	lineWeight = lineWeight * registers.GRID_INTENSITY;
 	
 	// > Apply grid adjustments (phase 2)
 	//   - GRID_BIAS:
