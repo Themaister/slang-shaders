@@ -18,12 +18,12 @@ void main()
 layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
-layout(set = 0, binding = 3) uniform sampler2D phosphor;
+layout(set = 0, binding = 3) uniform sampler2D phosphorFeedback;
 
 void main()
 {
    vec4 screen = texture(Source, vTexCoord);
-   vec4 phosphor = texture(phosphor, vTexCoord);
+   vec4 phosphor = texture(phosphorFeedback, vTexCoord);
    
    vec3 lum = vec3(0.299,0.587,0.114);
    float bscrn = dot(pow(screen.rgb,vec3(gamma)),lum);
