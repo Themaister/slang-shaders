@@ -1,4 +1,4 @@
-shaders = "10"
+shaders = "11"
 
 shader0 = "../crt/shaders/guest/lut/lut.slang"
 filter_linear0 = "false"
@@ -51,10 +51,17 @@ filter_linear8 = "false"
 scale_type8 = "source"
 scale8 = "1.000000"
 
-shader9 = "../crt/shaders/guest/crt-guest-dr-venom.slang"
-filter_linear9 = "true"
-scale_type9 = "viewport"
-scale9 = "1.000000"
+shader9 = ../crt/shaders/guest/linearize_scanlines.slang
+filter_linear9 = true
+scale_type9 = source
+scale9 = 1.0
+float_framebuffer9 = true
+
+shader10 = ../crt/shaders/guest/crt-guest-dr-venom.slang
+filter_linear10 = true
+scale_type10 = viewport
+scale_x10 = 1.0
+scale_y10 = 1.0
 
 textures = "SamplerLUT1;SamplerLUT2;SamplerLUT3"
 SamplerLUT1 = "../crt/shaders/guest/lut/sony_trinitron1.png"
