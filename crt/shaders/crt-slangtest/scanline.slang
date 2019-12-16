@@ -33,7 +33,7 @@ void main()
 {
    vec2 tex = vTexCoord * global.SourceSize.xy;
 
-   float frac = fract(tex.y) - 0.5;
+   float fraction = fract(tex.y) - 0.5;
    tex.y = floor(tex.y) + 0.5;
    tex = tex * global.SourceSize.zw;
 
@@ -42,7 +42,7 @@ void main()
    vec3 l1 = TEX(0,  0);
    vec3 l2 = TEX(0,  1);
 
-   vec3 dist = (3.5 - 1.0 * vec3(luma(l0), luma(l1), luma(l2))) * (frac + vec3(+1.0, 0.0, -1.0));
+   vec3 dist = (3.5 - 1.0 * vec3(luma(l0), luma(l1), luma(l2))) * (fraction + vec3(+1.0, 0.0, -1.0));
    dist = exp2(-dist * dist);
 
    vec3 color =

@@ -53,3 +53,4 @@ void main()
    vec3 scanline = res * (SCANLINE_BASE_BRIGHTNESS + dot(sine_comp * sin(vTexCoord * omega), vec2(1.0, 1.0)));
    FragColor = vec4(scanline.x, scanline.y, scanline.z, 1.0);
 }
+
