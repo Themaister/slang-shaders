@@ -6,11 +6,7 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-   float SCANLINE_GAMMA;
 } params;
-
-#pragma parameter SCANLINE_GAMMA "Scanline Spike Removal" 12.0 1.0 15.0 0.5
-#define SCANLINE_GAMMA params.SCANLINE_GAMMA
 
 layout(std140, set = 0, binding = 0) uniform UBO
 {
@@ -33,7 +29,10 @@ layout(location = 0) in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D AfterglowPass;
 
+#define PassPrev6Texture AfterglowPass
+#define COMPAT_TEXTURE(c,d) texture(c,d)
+
 void main()
 {
-   FragColor = vec4(pow(vec3(texture(AfterglowPass, vTexCoord).rgb), vec3(SCANLINE_GAMMA)),1.0/SCANLINE_GAMMA);
+   FragColor = vec4(pow(vec3(COMPAT_TEXTURE(PassPrev6Texture, vTexCoord).rgb), vec3(10.0)),1.0);
 }

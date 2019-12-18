@@ -27,7 +27,7 @@ layout(push_constant) uniform Push
 {
 	float TATE, IOS, OS, BLOOM, brightboost, gsl, scanline1, scanline2, beam_min, beam_max, beam_size,
       h_sharp, s_sharp, h_smart, csize, bsize, warpX, warpY, glow, shadowMask, masksize, vertmask,
-      slotmask, slotwidth, double_slot, mcut, maskDark, maskLight, CGWG, GTW, gamma_out;
+      slotmask, slotwidth, double_slot, mcut, maskDark, maskLight, CGWG, GTW, gamma_out, spike;
 } params;
 
 #pragma parameter TATE "TATE Mode" 0.0 0.0 1.0 1.0
@@ -92,6 +92,8 @@ layout(push_constant) uniform Push
 #define GTW          params.GTW     // Gamma tweak
 #pragma parameter gamma_out "Gamma out" 2.4 1.0 3.5 0.05
 #define gamma_out    params.gamma_out     // output gamma
+#pragma parameter spike "Scanline Spike Removal (0.0 - for speedup)" 1.0 0.0 2.0 0.2
+#define spike params.spike
 
 #define COMPAT_TEXTURE(c,d) texture(c,d)
 #define TEX0 vTexCoord
@@ -128,10 +130,12 @@ layout(location = 0) out vec4 FragColor;
 layout(set = 0, binding = 2) uniform sampler2D Source;
 layout(set = 0, binding = 3) uniform sampler2D LinearizePass;
 layout(set = 0, binding = 4) uniform sampler2D AvgLumPass;
+layout(set = 0, binding = 5) uniform sampler2D GlowPass;
 
 #define Texture Source
-#define PassPrev3Texture LinearizePass
-#define PassPrev4Texture AvgLumPass
+#define PassPrev5Texture AvgLumPass
+#define PassPrev4Texture LinearizePass
+#define PassPrev2Texture GlowPass
 
 #define eps 1e-10
 
@@ -331,7 +335,7 @@ vec3 gamma_correct(vec3 color, vec3 tmp)
 
 void main()
 {
-	float lum = COMPAT_TEXTURE(PassPrev4Texture, vec2(0.33,0.33)).a;
+	float lum = COMPAT_TEXTURE(PassPrev5Texture, vec2(0.33,0.33)).a;
 
 	// Calculating texel coordinates
    
@@ -387,8 +391,8 @@ void main()
 	else
 	{	
 		// reading differences for smoothing
-		vec3 diffs_top = COMPAT_TEXTURE(PassPrev4Texture, pC4       ).xyz;
-		vec3 diffs_bot = COMPAT_TEXTURE(PassPrev4Texture, pC4 + offy).xyz;
+		vec3 diffs_top = COMPAT_TEXTURE(PassPrev5Texture, pC4       ).xyz;
+		vec3 diffs_bot = COMPAT_TEXTURE(PassPrev5Texture, pC4 + offy).xyz;
 		
 		if(TATE > 0.5) 
 		{ 	
@@ -416,26 +420,59 @@ void main()
 	float wtt = 1.0/(twl2+twl1+twct+twr1+twr2);
 	float wtb = 1.0/(bwl2+bwl1+bwct+bwr1+bwr2);
 	
-	vec3 l2 = COMPAT_TEXTURE(PassPrev3Texture, pC4 -off2).xyz;
-	vec3 l1 = COMPAT_TEXTURE(PassPrev3Texture, pC4 -offx).xyz;
-	vec3 ct = COMPAT_TEXTURE(PassPrev3Texture, pC4      ).xyz;
-	vec3 r1 = COMPAT_TEXTURE(PassPrev3Texture, pC4 +offx).xyz;
-	vec3 r2 = COMPAT_TEXTURE(PassPrev3Texture, pC4 +off2).xyz;
+	vec3 l2 = COMPAT_TEXTURE(PassPrev4Texture, pC4 -off2).xyz;
+	vec3 l1 = COMPAT_TEXTURE(PassPrev4Texture, pC4 -offx).xyz;
+	vec3 ct = COMPAT_TEXTURE(PassPrev4Texture, pC4      ).xyz;
+	vec3 r1 = COMPAT_TEXTURE(PassPrev4Texture, pC4 +offx).xyz;
+	vec3 r2 = COMPAT_TEXTURE(PassPrev4Texture, pC4 +off2).xyz;
+	
+	vec3 sl2 = COMPAT_TEXTURE(Texture, pC4 -off2).xyz;
+	vec3 sl1 = COMPAT_TEXTURE(Texture, pC4 -offx).xyz;
+	vec3 sct = COMPAT_TEXTURE(Texture, pC4      ).xyz;
+	vec3 sr1 = COMPAT_TEXTURE(Texture, pC4 +offx).xyz;
+	vec3 sr2 = COMPAT_TEXTURE(Texture, pC4 +off2).xyz;
 	
 	vec3 color1 = (l2*twl2 + l1*twl1 + ct*twct + r1*twr1 + r2*twr2)*wtt;
 	if (sharp) color1 = clamp(color1, min(min(l1,r1),ct), max(max(l1,r1),ct)); 
-   
-	l2 = COMPAT_TEXTURE(PassPrev3Texture, pC4 -off2 +offy).xyz;
-	l1 = COMPAT_TEXTURE(PassPrev3Texture, pC4 -offx +offy).xyz;
-	ct = COMPAT_TEXTURE(PassPrev3Texture, pC4       +offy).xyz; 
-	r1 = COMPAT_TEXTURE(PassPrev3Texture, pC4 +offx +offy).xyz;
-	r2 = COMPAT_TEXTURE(PassPrev3Texture, pC4 +off2 +offy).xyz;
+
+	vec3 gtmp = vec3(gamma_out*0.1); 
+	vec3 scolor1 = color1;
+	
+	if (spike > 0.0)
+	{
+		scolor1 = (sl2*twl2 + sl1*twl1 + sct*twct + sr1*twr1 + sr2*twr2)*wtt;
+		if (sharp) scolor1 = clamp(scolor1, min(min(sl1,sr1),sct), max(max(sl1,sr1),sct)); 
+		scolor1 = pow(scolor1, gtmp);	
+		scolor1 = mix(color1, scolor1, spike);
+	} 
+	
+	l2 = COMPAT_TEXTURE(PassPrev4Texture, pC4 -off2 +offy).xyz;
+	l1 = COMPAT_TEXTURE(PassPrev4Texture, pC4 -offx +offy).xyz;
+	ct = COMPAT_TEXTURE(PassPrev4Texture, pC4       +offy).xyz; 
+	r1 = COMPAT_TEXTURE(PassPrev4Texture, pC4 +offx +offy).xyz;
+	r2 = COMPAT_TEXTURE(PassPrev4Texture, pC4 +off2 +offy).xyz;
+	
+	sl2 = COMPAT_TEXTURE(Texture, pC4 -off2 +offy).xyz;
+	sl1 = COMPAT_TEXTURE(Texture, pC4 -offx +offy).xyz;
+	sct = COMPAT_TEXTURE(Texture, pC4       +offy).xyz; 
+	sr1 = COMPAT_TEXTURE(Texture, pC4 +offx +offy).xyz;
+	sr2 = COMPAT_TEXTURE(Texture, pC4 +off2 +offy).xyz;
 	
 	vec3 color2 = (l2*bwl2 + l1*bwl1 + ct*bwct + r1*bwr1 + r2*bwr2)*wtb;
 	if (sharp) color2 = clamp(color2, min(min(l1,r1),ct), max(max(l1,r1),ct)); 
-   
+
+	vec3 scolor2 = color2;
+	
+	if (spike > 0.0)
+	{	
+		scolor2 = (sl2*bwl2 + sl1*bwl1 + sct*bwct + sr1*bwr1 + sr2*bwr2)*wtb;
+		if (sharp) scolor2 = clamp(scolor2, min(min(sl1,sr1),sct), max(max(sl1,sr1),sct)); 
+		scolor2 = pow(scolor2, gtmp);	
+		scolor2 = mix(color2, scolor2, spike);
+	} 
+	
 	// calculating scanlines
-   
+	
 	float f = (TATE < 0.5) ? fp.y : fp.x;
 	
 	float shape1 = mix(scanline1, scanline2, f);
@@ -443,14 +480,19 @@ void main()
 	
 	float wt1 = st(f, shape1);
 	float wt2 = st(1.0-f, shape2);
+
 	vec3 color0 = color1*wt1 + color2*wt2;
+	vec3 scolor0 = scolor1*wt1 + scolor2*wt2;
+	
 	vec3 ctmp = color0/(wt1+wt2);
+	vec3 sctmp = scolor0/(wt1+wt2);
+	
 	vec3 tmp = pow(ctmp, vec3(1.0/gamma_out));
 	
 	vec3 w1,w2 = vec3(0.0);
 	
-	vec3 cref1 = mix(ctmp, color1, beam_size);
-	vec3 cref2 = mix(ctmp, color2, beam_size);
+	vec3 cref1 = mix(sctmp, scolor1, beam_size);
+	vec3 cref2 = mix(sctmp, scolor2, beam_size);
 	
 	vec3 shift = vec3(-vertmask, vertmask, -vertmask);
 	
@@ -459,7 +501,7 @@ void main()
 	
 	if (gsl == 0.0) { w1 = sw0(f1,cref1,shape1); w2 = sw0(f2,cref2,shape2);} else
 	if (gsl == 1.0) { w1 = sw1(f1,cref1,shape1); w2 = sw1(f2,cref2,shape2);} else
-	if (gsl == 2.0) { w1 = sw2(f1,cref1,shape1); w2 = sw2(f2,cref2,shape2);} 
+	if (gsl == 2.0) { w1 = sw2(f1,cref1,shape1); w2 = sw2(f2,cref2,shape2);}
 	
 	vec3 color = color1*w1 + color2*w2;
 	
@@ -476,7 +518,7 @@ void main()
 	color *= (TATE < 0.5) ? SlotMask(gl_FragCoord.xy * 1.000001,tmp) :
 		SlotMask(gl_FragCoord.yx * 1.000001,tmp);		
 		
-	vec3 Bloom = COMPAT_TEXTURE(Texture, pos).xyz;
+	vec3 Bloom = COMPAT_TEXTURE(PassPrev2Texture, pos).xyz;
    
 	color+=glow*Bloom;
    
