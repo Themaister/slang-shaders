@@ -1,5 +1,11 @@
 #version 450
 
+/*
+   based on scanline shader by:
+   Author: Themaister
+   License: Public domain
+*/
+
 layout(push_constant) uniform Push
 {
 	vec4 SourceSize;
@@ -48,8 +54,7 @@ void main()
 {
    vec2 sine_comp = vec2(0.0, SCANLINE_SINE_COMP_B);
    vec3 res = texture(Source, vTexCoord).xyz;
-   vec2 fragcoord = vTexCoord.xy * params.FinalViewportSize.xy;
-   // picked 224 here as a magic number because it's a common 240p res and therefore a good starting point
-   vec3 scanline = res * ((1. - 0.75 * SCANLINE_SINE_COMP_B) + dot(sine_comp * sin((fragcoord / (224. * scanline_size)) * omega), vec2(1.0, 1.0)));
+   vec2 fragcoord = fract(floor(vTexCoord.xy * params.OutputSize.xy * 1.0001) / scanline_size);
+   vec3 scanline = (fragcoord.y > 0.3333)? res : vec3(SCANLINE_SINE_COMP_B * res);//res * ((1. - 0.75 * SCANLINE_SINE_COMP_B) + dot(sine_comp * sin((fragcoord / scanline_size) * omega), vec2(1.0, 1.0)));
    FragColor = vec4(scanline.x, scanline.y, scanline.z, 1.0);
 }
