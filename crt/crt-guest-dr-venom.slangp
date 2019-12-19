@@ -64,7 +64,7 @@ alias8 = GlowPass
 
 shader9 = shaders/guest/linearize_scanlines.slang
 filter_linear9 = true
-scale_type9 - source
+scale_type9 = source
 scale9 = 1.0
 float_framebuffer9 = true
 
