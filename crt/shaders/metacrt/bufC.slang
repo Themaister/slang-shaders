@@ -6,11 +6,17 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-   float cam_spot, noise_intensity;
+   float cam_spot, noise_intensity, cam_loc_y, cam_loc_x, cam_zoom, cam_angle_y, cam_angle_x, cam_fov;
 } params;
 
-#pragma parameter cam_spot "Camera Location" 2.0 0.0 9.0 1.0
-#pragma parameter noise_intensity "Noise Intensity" 0.1 0.0 0.5 0.01
+#pragma parameter cam_spot "Cam Loc (0 = Custom, -1 = cycle)" 0.0 -1.0 9.0 1.0
+#pragma parameter noise_intensity "Noise Intensity" 0.03 0.0 0.5 0.01
+#pragma parameter cam_angle_y "Tilt Cam Y" 0.24 -0.5 0.5 0.01
+#pragma parameter cam_angle_x "Turn Cam X" 0.0 -0.5 0.5 0.01
+#pragma parameter cam_zoom "Custom Cam Zoom" -0.915 -2.0 2.0 0.05
+#pragma parameter cam_loc_y "Rotate World Y Axis" 0.25 0.0001 1.0 0.01
+#pragma parameter cam_loc_x "Rotate World X Axis" 0.0  -0.5 0.5 0.01
+#pragma parameter cam_fov "Custom Cam FOV" 10.0 0.0 100.0 1.0
 
 #define vFragCoord vTexCoord.xy * params.OutputSize.xy
 #define iResolution params.OutputSize.xy
@@ -688,10 +694,10 @@ Interference GetInterference( vec2 vUV )
     
 vec3 SampleScreen( vec3 vUVW )
 {   
-    vec3 vAmbientEmissive = vec3(0.1);
+    vec3 vAmbientEmissive = vec3(0.01);
     vec3 vBlackEmissive = vec3(0.02);
     float fBrightness = 1.75;
-    vec2 vResolution = vec2(480.0f, 576.0f);
+    vec2 vResolution = 2.4999 * params.SourceSize.xy;
     vec2 vPixelCoord = vUVW.xy * vResolution;
     
     vec3 vPixelMatrix = GetPixelMatrix( vPixelCoord );
@@ -918,7 +924,7 @@ SceneResult Scene_GetDistance( vec3 vPos )
 	resultSet.fDist = length(vPos - vec3(0.35,0.075,-0.1)) - 0.075;
     resultSet.iObjectId = MAT_CHROME;
     Scene_Union( result, resultSet );    
-    
+   
     return result;
 }
 
@@ -955,7 +961,7 @@ vec4 Env_GetSkyColor( const vec3 vViewPos, const vec3 vViewDir )
 	vec4 vResult = vec4( 0.0, 0.0, 0.0, kFarDist );
 
 //#if 1
-    vec3 vEnvMap = textureLod( iChannel1, vViewDir.xy, 0.0 ).rgb;
+    vec3 vEnvMap = textureLod( iChannel1, (vViewDir.xy - vec2(0.0, 1.0)) / 2., 0.0 ).rgb;
     vResult.rgb = vEnvMap;
 //#endif    
     
@@ -1036,17 +1042,17 @@ CameraState GetCameraPosition( int index )
 
     //index=2;
     
-    if ( index == 0 )
+    if ( index == 1 )
     {
         cam.vPos = vec3(-0.1,0.2,-0.08);
         cam.vTarget = vec3(0,0.25,0.1);
         cam.fFov = 10.0;
     }
-    if ( index == 1 )
+    if ( index == 0 )
     {
-        cam.vPos = vec3(0.0,0.25,-0.915);
-        cam.vTarget = vec3(0.0,0.24,0.25);
-        cam.fFov = 10.0;
+        cam.vPos = vec3(params.cam_loc_x,params.cam_loc_y,params.cam_zoom);
+        cam.vTarget = vec3(params.cam_angle_x,params.cam_angle_y,0.0);
+        cam.fFov = params.cam_fov;
     }
     if ( index == 2 )
     {
@@ -1115,11 +1121,19 @@ void main()
     	CameraState camA;
     	CameraState camB;
     
-        float fSeqTime = 1.0;//iTime;
+      if(params.cam_spot > -0.5){
+        camA = GetCameraPosition(int(params.cam_spot));
+        cam.vPos = camA.vPos;
+        cam.vTarget = camA.vTarget;
+        cam.fFov = camA.fFov;
+        cam.fPlaneInFocus = camA.fPlaneInFocus;
+      }
+      else{        
+        float fSeqTime = iTime;
         float fSequenceSegLength = 5.0;
         float fSeqIndex = floor(fSeqTime / fSequenceSegLength);
         float fSeqPos = fract(fSeqTime / fSequenceSegLength);
-        int iIndex = int(params.cam_spot);
+        int iIndex = int(fSeqIndex);
 		int iIndexNext = int(fSeqIndex) + 1;
         camA = GetCameraPosition(iIndex);
         camB = GetCameraPosition(iIndexNext);
@@ -1129,8 +1143,10 @@ void main()
         cam.vTarget = mix(camA.vTarget, camB.vTarget, t );
         cam.fFov = mix(camA.fFov, camB.fFov, t );
         cam.fPlaneInFocus = mix(camA.fPlaneInFocus, camB.fPlaneInFocus, t );
+      }
     }
-    
+
+#if 0    
     if ( iMouse.z > 0.0 )
     {
         float fDist = 0.01 + 3.0 * (iMouse.y / iResolution.y);
@@ -1146,7 +1162,8 @@ void main()
     	vec3 vFocus = vec3(0,0.25,-0.012);	    
 	    cam.fPlaneInFocus = length( vFocus - cam.vPos );
     }
-    
+#endif
+   
 #ifdef ENABLE_TAA_JITTER
     cam.vJitter = hash21( fract( iTime ) ) - 0.5f;
 #else
