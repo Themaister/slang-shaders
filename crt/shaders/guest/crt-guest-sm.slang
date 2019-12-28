@@ -50,41 +50,59 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-   float smart, brightboost, scanline, beam_min, beam_max, s_gamma, h_sharp, mask, maskstr, masksize, gamma_out;
+	float smart, brightboost1, brightboost2, stype, scanline1, scanline2, beam_min, beam_max, s_beam, saturation1, h_sharp, mask, maskmode, maskdark, maskbright, masksize, gamma_out;
 } params;
 
 // smart Y integer scaline
 #pragma parameter smart "Smart Y Integer Scaling" 0.0 0.0 1.0 1.0
-// adjust brightness
-#pragma parameter brightboost "Bright boost" 1.15 0.5 2.0 0.05
+// adjust brightness dark colors
+#pragma parameter brightboost1 "Bright boost dark colors" 1.50 0.5 3.0 0.05
+// adjust brightness bright colors
+#pragma parameter brightboost2 "Bright boost bright colors" 1.10 0.5 2.0 0.05
+// scanline type
+#pragma parameter stype "Scanline Type" 0.0 0.0 2.0 1.0
 // scanline param, vertical sharpness
-#pragma parameter scanline "Scanline adjust" 8.0 1.0 12.0 1.0
+#pragma parameter scanline1 "Scanline Shape Center" 8.0 2.0 14.0 0.5
+// scanline param, vertical sharpness
+#pragma parameter scanline2 "Scanline Shape Edges" 8.0 4.0 16.0 0.5
 // dark area beam min - narrow
-#pragma parameter beam_min "Scanline dark" 1.35 0.5 2.0 0.05
+#pragma parameter beam_min "Scanline dark" 1.40 0.5 2.0 0.05
 // bright area beam max -wide
-#pragma parameter beam_max "Scanline bright" 1.05 0.5 2.0 0.05
-// scanline gamma
-#pragma parameter s_gamma "Scanline gamma" 2.4 1.5 3.0 0.05
+#pragma parameter beam_max "Scanline bright" 1.10 0.5 2.0 0.05
+// Overgrown Bright Beam
+#pragma parameter s_beam "Overgrown Bright Beam" 0.75 0.0 1.0 0.05
+// Scanline Saturation
+#pragma parameter saturation1 "Scanline Saturation" 2.75 0.0 6.0 0.25
 // pixel sharpness
 #pragma parameter h_sharp "Horizontal sharpness" 2.0 1.0 5.0 0.05
 // crt mask
 #pragma parameter mask "CRT Mask (3&4 are 4k masks)" 0.0 0.0 4.0 1.0
-// raw crt mask strength
-#pragma parameter maskstr "Raw CRT Mask Strength" 0.15 0.0 1.0 0.05
+// CRT Mask Mode: Classic, Fine, Coarse
+#pragma parameter maskmode "CRT Mask Mode: Classic, Fine, Coarse" 0.0 0.0 2.0 1.0
+// CRT Mask Strength Dark Pixels
+#pragma parameter maskdark "CRT Mask Strength Dark Pixels" 1.0 0.0 1.5 0.05
+// CRT Mask Strength Bright Pixels
+#pragma parameter maskbright "CRT Mask Strength Bright Pixels" 0.20 -0.5 1.0 0.05
 // crt mask size
 #pragma parameter masksize "CRT Mask Size" 1.0 1.0 2.0 1.0
 // gamma out
 #pragma parameter gamma_out "Gamma Out" 2.40 1.0 3.0 0.05
 
 #define smart params.smart
-#define brightboost params.brightboost
-#define scanline params.scanline
+#define brightboost1 params.brightboost1
+#define brightboost2 params.brightboost2
+#define stype params.stype
+#define scanline1 params.scanline1
+#define scanline2 params.scanline2
 #define beam_min params.beam_min
 #define beam_max params.beam_max
-#define s_gamma params.s_gamma
+#define s_beam params.s_beam
+#define saturation1 params.saturation1
 #define h_sharp params.h_sharp
 #define mask params.mask
-#define maskstr params.maskstr
+#define maskmode params.maskmode
+#define maskdark params.maskdark
+#define maskbright params.maskbright
 #define masksize params.masksize
 #define gamma_out params.gamma_out
 
@@ -116,21 +134,36 @@ layout(set = 0, binding = 2) uniform sampler2D Source;
 
 float st(float x)
 {
-	return exp2(-scanline*x*x);
+	return exp2(-10.0*x*x);
 }  
 
-vec3 sw(float x, vec3 color)
+float st1(float x, float scan)
 {
-	vec3 tmp = mix(vec3(2.75*beam_min),vec3(beam_max), color);
-	tmp = mix(vec3(beam_max), tmp, pow(vec3(x), color+0.3));
-	vec3 ex = vec3(x)*tmp;
-	return exp2(-scanline*ex*ex)/(0.65 + 0.35*color);
+	return exp2(-scan*x*x);
+}  
+
+float sw1(float x, vec3 color, float scan)
+{	
+	float mx = max(max(color.r,color.g),color.b);
+	float ex = mix((2.75 - 1.75*stype)*beam_min, beam_max, mx);
+	ex = mix(beam_max, ex, pow(x, mx + 0.25))*x;
+	return exp2(-scan*ex*ex);
+}
+
+float sw2(float x, vec3 color)
+{	
+	float mx = max(max(color.r,color.g),color.b);
+	float ex = mix(2.0*beam_min, beam_max, mx);
+	float m = 0.5*ex;
+	x = x*ex; float xx = x*x;
+	xx = mix(xx, x*xx, m);
+	return exp2(-10.0*xx);
 }
 
 float Overscan(float pos, float dy){
-  pos=pos*2.0-1.0;    
-  pos*=dy;
-  return pos*0.5+0.5;
+	pos=pos*2.0-1.0;    
+	pos*=dy;
+	return pos*0.5+0.5;
 }
 
 void main()
@@ -160,45 +193,74 @@ void main()
 	float rx = 1.0 - fp.x;  rx = pow(rx, h_sharp);
 	
 	float w = 1.0/(lx+rx);
+	float f1 = fp.y;
+	float f2 = 1.0 - fp.y;
+	float f3 = fract(tex.y * params.SourceSize.y); f3 = abs(f3-0.5);
 	
-	vec3 color1 = w*(ur*lx + ul*rx);
-	vec3 color2 = w*(dr*lx + dl*rx);
-
-
-	ul*=ul*ul; ul*=ul;
-	ur*=ur*ur; ur*=ur;
-	dl*=dl*dl; dl*=dl;
-	dr*=dr*dr; dr*=dr;	
-	
-	vec3 scolor1 = w*(ur*lx + ul*rx); scolor1 = pow(scolor1, vec3(s_gamma*(1.0/12.0)));
-	vec3 scolor2 = w*(dr*lx + dl*rx); scolor2 = pow(scolor2, vec3(s_gamma*(1.0/12.0)));	
+	vec3 color;
+	float t1 = st(f1);
+	float t2 = st(f2);
+	float wt = 1.0/(t1+t2);
 	
 // calculating scanlines
-	
-	float f = fp.y;
 
-	float t1 = st(f);
-	float t2 = st(1.0-f);
+	vec3 cl = (ul*t1 + dl*t2)*wt;
+	vec3 cr = (ur*t1 + dr*t2)*wt;	
 	
-	vec3 color = color1*t1 + color2*t2;
-	vec3 scolor = scolor1*t1 + scolor2*t2;
+	vec3 ref_ul = mix(cl, ul, s_beam);
+	vec3 ref_ur = mix(cr, ur, s_beam);
+	vec3 ref_dl = mix(cl, dl, s_beam);
+	vec3 ref_dr = mix(cr, dr, s_beam);	
 	
-	vec3 ctemp = color / (t1 + t2);
-	vec3 sctemp = scolor / (t1 + t2);
+	float scan1 = mix(scanline1, scanline2, f1);
+	float scan2 = mix(scanline1, scanline2, f2);
+	float scan0 = mix(scanline1, scanline2, f3);
+	f3 = st1(f3,scan0);
+	f3 = f3*f3*(3.0-2.0*f3);
 	
-	vec3 cref1 = mix(scolor1, sctemp, 0.35);
-	vec3 cref2 = mix(scolor2, sctemp, 0.35);
+	float w1, w2, w3, w4 = 0.0;
+
+	if (stype < 2.0)
+	{
+		w1 = sw1(f1, ref_ul, scan1);
+		w2 = sw1(f2, ref_dl, scan2);
+		w3 = sw1(f1, ref_ur, scan1);
+		w4 = sw1(f2, ref_dr, scan2);
+	}
+	else
+	{
+		w1 = sw2(f1, ref_ul);
+		w2 = sw2(f2, ref_dl);
+		w3 = sw2(f1, ref_ur);
+		w4 = sw2(f2, ref_dr);	
+	}
+
+	vec3 colorl = w1*ul + w2*dl;
+	vec3 colorr = w3*ur + w4*dr;
+	color = w*(colorr*lx + colorl*rx);
+	color = min(color,1.0);	
 	
-	vec3 w1 = sw(f,cref1);
-	vec3 w2 = sw(1.0-f,cref2);
-	
-	color = color1*w1 + color2*w2;
-	color = min(color, 1.0);
+	vec3 ctemp = w*(cr*lx + cl*rx);
+
+	cl*=cl*cl; cl*=cl; cr*=cr*cr; cr*=cr;
+
+	vec3 sctemp = w*(cr*lx + cl*rx); sctemp = pow(sctemp, vec3(1.0/6.0));
+
+	float mx1 = max(max(color.r,color.g),color.b);
+	float sp = (stype == 1.0) ? (0.5*saturation1) : saturation1;
+	vec3 saturated_color = max((1.0+sp)*color - 0.5*sp*(color+mx1), 0.0);
+	color = mix(saturated_color, color, f3);
 	
 	vec3 scan3 = vec3(0.0);
 	float spos = floor((gl_FragCoord.x * 1.000001)/masksize); float spos1 = 0.0;
-	vec3 tmp1 = 0.5*(ctemp+sqrt(ctemp));
 
+	vec3 tmp1 = 0.5*(sqrt(ctemp) + sctemp);
+	
+	color*=mix(brightboost1, brightboost2, max(max(ctemp.r,ctemp.g),ctemp.b));
+	color = min(color,1.0);	
+	
+	float mboost = 1.25;
+	
 	if (mask == 0.0)
 	{
 		spos1 = fract(spos*0.5);
@@ -215,6 +277,7 @@ void main()
 	else
 	if (mask == 2.0)
 	{
+		mboost = 1.0;
 		spos1 = fract(spos/3.0);
 		if      (spos1 < 0.333)  scan3.r = color.r;
 		else if (spos1 < 0.666)  scan3.g = color.g;
@@ -235,16 +298,24 @@ void main()
 		if      (spos1 < 0.25)  scan3.r = color.r;
 		else if (spos1 < 0.50)  scan3.rb = color.rb;
 		else if (spos1 < 0.75)  scan3.gb = color.gb;
-		else                    scan3.g =  color.g;
+		else                    scan3.g =  color.g; 
 	}
 	
-	color = mix(1.15*scan3, color, (1.0-maskstr)*tmp1)*(1.0 + 0.15*maskstr);
+	vec3 lerpmask = tmp1;
+	if (maskmode == 1.0) lerpmask = vec3(max(max(tmp1.r,tmp1.g),tmp1.b)); else
+	if (maskmode == 2.0) lerpmask = color;
 	
-	color*=brightboost;
-	float corr = (max(max(color.r,color.g),color.b) + 0.0001);
-	if (corr < 1.0) corr = 1.0;
-	color = color/corr;
+	color = max(mix( mix(color, mboost*scan3, maskdark), mix(color, scan3, maskbright), lerpmask), 0.0);
+	
+	vec3 color1 = pow(color, vec3(1.0/2.1));
 
-	color = pow(color, vec3(1.0/gamma_out));
-    FragColor = vec4(color, 1.0);
+	if (stype != 1.0)
+	{
+		vec3 color2 = pow(color, vec3(1.0/gamma_out));			
+		mx1 = max(max(color1.r,color1.g),color1.b) + 1e-12;	
+		float mx2 = max(max(color2.r,color2.g),color2.b);
+		color1*=mx2/mx1;		
+	}
+	
+    FragColor = vec4(color1, 1.0);
 }
