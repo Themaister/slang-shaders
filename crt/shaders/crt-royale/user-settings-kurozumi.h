@@ -74,14 +74,14 @@
 //  Enable runtime shader parameters in the Retroarch (etc.) GUI?  They override
 //  many of the options in this file and allow real-time tuning, but many of
 //  them are slower.  Disabling them and using this text file will boost FPS.
-#define RUNTIME_SHADER_PARAMS_ENABLE
+//#define RUNTIME_SHADER_PARAMS_ENABLE
 //  Specify the phosphor bloom sigma at runtime?  This option is 10% slower, but
 //  it's the only way to do a wide-enough full bloom with a runtime dot pitch.
 #define RUNTIME_PHOSPHOR_BLOOM_SIGMA
 //  Specify antialiasing weight parameters at runtime?  (Costs ~20% with cubics)
 #define RUNTIME_ANTIALIAS_WEIGHTS
 //  Specify subpixel offsets at runtime? (WARNING: EXTREMELY EXPENSIVE!)
-#define RUNTIME_ANTIALIAS_SUBPIXEL_OFFSETS
+//#define RUNTIME_ANTIALIAS_SUBPIXEL_OFFSETS
 //  Make beam_horiz_filter and beam_horiz_linear_rgb_weight into runtime shader
 //  parameters?  This will require more math or dynamic branching.
 #define RUNTIME_SCANLINES_HORIZ_FILTER_COLORSPACE
@@ -105,9 +105,9 @@
 //  dynamic branches, but otherwise we use the largest blur the user indicates
 //  they might need:
     #define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_3_PIXELS
-    #define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_6_PIXELS
-    #define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_9_PIXELS
-    #define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_12_PIXELS
+    //#define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_6_PIXELS
+    //#define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_9_PIXELS
+    //#define PHOSPHOR_BLOOM_TRIADS_LARGER_THAN_12_PIXELS
     //  Here's a helpful chart:
     //  MaxTriadSize    BlurSize    MinTriadCountsByResolution
     //  3.0             9.0         480/640/960/1920 triads at 1080p/1440p/2160p/4320p, 4:3 aspect
@@ -124,12 +124,12 @@
 //  options that were cleaner or more convert to code as static constants.
 
 //  GAMMA:
-    static const float crt_gamma_static = 2.5;                  //  range [1, 5]
-    static const float lcd_gamma_static = 2.2;                  //  range [1, 5]
+    static const float crt_gamma_static = 2.4;                  //  range [1, 5]
+    static const float lcd_gamma_static = 2.4;                  //  range [1, 5]
 
 //  LEVELS MANAGEMENT:
     //  Control the final multiplicative image contrast:
-    static const float levels_contrast_static = 1.0;            //  range [0, 4)
+    static const float levels_contrast_static = 0.74;            //  range [0, 4)
     //  We auto-dim to avoid clipping between passes and restore brightness
     //  later.  Control the dim factor here: Lower values clip less but crush
     //  blacks more (static only for now).
@@ -138,10 +138,10 @@
 //  HALATION/DIFFUSION/BLOOM:
     //  Halation weight: How much energy should be lost to electrons bounding
     //  around under the CRT glass and exciting random phosphors?
-    static const float halation_weight_static = 0.0;            //  range [0, 1]
+    static const float halation_weight_static = 0.004600;            //  range [0, 1]
     //  Refractive diffusion weight: How much light should spread/diffuse from
     //  refracting through the CRT glass?
-    static const float diffusion_weight_static = 0.075;         //  range [0, 1]
+    static const float diffusion_weight_static = 0.001000;         //  range [0, 1]
     //  Underestimate brightness: Bright areas bloom more, but we can base the
     //  bloom brightpass on a lower brightness to sharpen phosphors, or a higher
     //  brightness to soften them.  Low values clip, but >= 0.8 looks okay.
@@ -172,7 +172,7 @@
     //      4 scanlines, max_beam_sigma = 0.5723; distortions begin ~0.70; 134.7 FPS pure; 117.2 FPS generalized
     //      5 scanlines, max_beam_sigma = 0.7591; distortions begin ~0.89; 131.6 FPS pure; 112.1 FPS generalized
     //      6 scanlines, max_beam_sigma = 0.9483; distortions begin ~1.08; 127.9 FPS pure; 105.6 FPS generalized
-    static const float beam_num_scanlines = 4.0;                //  range [2, 6]
+    static const float beam_num_scanlines = 3.0;                //  range [2, 6]
     //  A generalized Gaussian beam varies shape with color too, now just width.
     //  It's slower but more flexible (static option only for now).
     static const bool beam_generalized_gaussian = true;
@@ -184,14 +184,14 @@
     //  Min/max standard deviations for scanline beams: Higher values widen and
     //  soften scanlines.  Depending on other options, low min sigmas can alias.
     static const float beam_min_sigma_static = 0.02;            //  range (0, 1]
-    static const float beam_max_sigma_static = 0.3;             //  range (0, 1]
+    static const float beam_max_sigma_static = 0.2;             //  range (0, 1]
     //  Beam width varies as a function of color: A power function (0) is more
     //  configurable, but a spherical function (1) gives the widest beam
     //  variability without aliasing (static option only for now).
     static const float beam_spot_shape_function = 0.0;
     //  Spot shape power: Powers <= 1 give smoother spot shapes but lower
     //  sharpness.  Powers >= 1.0 are awful unless mix/max sigmas are close.
-    static const float beam_spot_power_static = 1.0/3.0;    //  range (0, 16]
+    static const float beam_spot_power_static = 0.37;//1.0/3.0;    //  range (0, 16]
     //  Generalized Gaussian max shape parameters: Higher values give flatter
     //  scanline plateaus and steeper dropoffs, simultaneously widening and
     //  sharpening scanlines at the cost of aliasing.  2.0 is pure Gaussian, and
@@ -207,7 +207,7 @@
     //  0: Quilez (fast), 1: Gaussian (configurable), 2: Lanczos2 (sharp)
     static const float beam_horiz_filter_static = 0.0;
     //  Standard deviation for horizontal Gaussian resampling:
-    static const float beam_horiz_sigma_static = 0.35;      //  range (0, 2/3]
+    static const float beam_horiz_sigma_static = 0.545;      //  range (0, 2/3]
     //  Do horizontal scanline sampling in linear RGB (correct light mixing),
     //  gamma-encoded RGB (darker, hard spot shape, may better match bandwidth-
     //  limiting circuitry in some CRT's), or a weighted avg.?
@@ -218,9 +218,9 @@
     static const bool beam_misconvergence = true;
     //  Convergence offsets in x/y directions for R/G/B scanline beams in units
     //  of scanlines.  Positive offsets go right/down; ranges [-2, 2]
-    static const float2 convergence_offsets_r_static = float2(0.1, 0.2);
-    static const float2 convergence_offsets_g_static = float2(0.3, 0.4);
-    static const float2 convergence_offsets_b_static = float2(0.5, 0.6);
+    static const float2 convergence_offsets_r_static = float2(-0.05, 0.1);
+    static const float2 convergence_offsets_g_static = float2(0.0, -0.05);
+    static const float2 convergence_offsets_b_static = float2(0.0, 0.1);
     //  Detect interlacing (static option only for now)?
     static const bool interlace_detect_static = true;
     //  Assume 1080-line sources are interlaced?
@@ -258,7 +258,7 @@
 
 //  PHOSPHOR MASK:
     //  Mask type: 0 = aperture grille, 1 = slot mask, 2 = EDP shadow mask
-    static const float mask_type_static = 1.0;                  //  range [0, 2]
+    static const float mask_type_static = 0.0;                  //  range [0, 2]
     //  We can sample the mask three ways.  Pick 2/3 from: Pretty/Fast/Flexible.
     //  0.) Sinc-resize to the desired dot pitch manually (pretty/slow/flexible).
     //      This requires PHOSPHOR_MASK_MANUALLY_RESIZE to be #defined.
@@ -280,10 +280,10 @@
     //  To increase the size limit, double the viewport-relative scales for the
     //  two MASK_RESIZE passes in crt-royale.cgp and user-cgp-contants.h.
     //      range [1, mask_texture_small_size/mask_triads_per_tile]
-    static const float mask_triad_size_desired_static = 24.0 / 8.0;
+    static const float mask_triad_size_desired_static = 1.0;//24.0 / 8.0;
     //  If mask_specify_num_triads is 1.0/true, we'll go by this instead (the
     //  final size will be rounded and constrained as above); default 480.0
-    static const float mask_num_triads_desired_static = 480.0;
+    static const float mask_num_triads_desired_static = 400.0;
     //  How many lobes should the sinc/Lanczos resizer use?  More lobes require
     //  more samples and avoid moire a bit better, but some is unavoidable
     //  depending on the destination size (static option for now).
@@ -303,7 +303,7 @@
     //  2: Alt. spherical mapping (more bulbous), 3: Cylindrical/Trinitron
     static const float geom_mode_static = 0.0;      //  range [0, 3]
     //  Radius of curvature: Measured in units of your viewport's diagonal size.
-    static const float geom_radius_static = 2.0;    //  range [1/(2*pi), 1024]
+    static const float geom_radius_static = 3.0;    //  range [1/(2*pi), 1024]
     //  View dist is the distance from the player to their physical screen, in
     //  units of the viewport's diagonal size.  It controls the field of view.
     static const float geom_view_dist_static = 2.0; //  range [0.5, 1024]
@@ -315,7 +315,7 @@
     //  this equal to Retroarch's display aspect ratio (DAR) for best results;
     //  range [1, geom_max_aspect_ratio from user-cgp-constants.h];
     //  default (256/224)*(54/47) = 1.313069909 (see below)
-    static const float geom_aspect_ratio_static = 1.313069909;
+    static const float geom_aspect_ratio_static = 432.0 / 329.0;//1.313069909;
     //  Before getting into overscan, here's some general aspect ratio info:
     //  - DAR = display aspect ratio = SAR * PAR; as in your Retroarch setting
     //  - SAR = storage aspect ratio = DAR / PAR; square pixel emulator frame AR
@@ -346,10 +346,10 @@
 
 //  BORDERS:
     //  Rounded border size in texture uv coords:
-    static const float border_size_static = 0.015;           //  range [0, 0.5]
+    static const float border_size_static = 0.005;           //  range [0, 0.5]
     //  Border darkness: Moderate values darken the border smoothly, and high
     //  values make the image very dark just inside the border:
-    static const float border_darkness_static = 2.0;        //  range [0, inf)
+    static const float border_darkness_static = 0.0;        //  range [0, inf)
     //  Border compression: High numbers compress border transitions, narrowing
     //  the dark border area.
     static const float border_compress_static = 2.5;        //  range [1, inf)
