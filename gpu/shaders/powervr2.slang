@@ -17,16 +17,14 @@ layout(push_constant) uniform Push
 	vec4 OriginalSize;
 	vec4 OutputSize;
 	uint FrameCount;
-   float INTERLACED, VGASIGNAL, LUMBOOST;
+   float INTERLACED, VGASIGNAL;
 } params;
 
 #pragma parameter INTERLACED "PVR - Interlace smoothing" 1.00 0.00 1.00 1.0
 #pragma parameter VGASIGNAL "PVR - VGA signal loss" 0.00 0.00 1.00 1.0
-#pragma parameter LUMBOOST "PVR - Luminance gain" 0.35 0.00 1.00 0.01
 
 #define INTERLACED params.INTERLACED
 #define VGASIGNAL params.VGASIGNAL
-#define LUMBOOST params.LUMBOOST
 
 #define HW 1.00
 
@@ -76,28 +74,27 @@ void main()
 	// Blend vertically for composite mode
 	if (bool(INTERLACED))
 	{
-	int taps = int(8);
-	float tap = 0.62/taps;
+	int taps = int(3);
+
+	float tap = 2.0f/taps;
 	vec2 texcoord4  = vTexCoord;
 	texcoord4.x = texcoord4.x;
 	texcoord4.y = texcoord4.y + ((tap*(taps/2))/480.0f);
 	vec4 blur1 = texture(Source, texcoord4);
 	int bl;
 	vec4 ble;
+	
+	ble.r = 0.00f;
+	ble.g = 0.00f;
+	ble.b = 0.00f;
 
 	for (bl=0;bl<taps;bl++)
 		{
-			texcoord4.y += (tap  / 480.0f);
+			texcoord4.y += (tap / 480.0f);
 			ble.rgb += texture(Source, texcoord4).rgb / taps;
 		}
 
-        	color.rgb = color.rgb * 0.25 + ( ble.rgb * 0.75);
-	}
-
-	// Some games use a luminance boost (JSR etc)
-	if (bool(LUMBOOST))
-	{
-		color.rgb += (((color.r * LUM_R) + (color.g * LUM_G) + (color.b * LUM_B)) * LUMBOOST);
+        	color.rgb = ( ble.rgb );
 	}
 
 	// Dither. ALWAYS do this for 16bpp
